@@ -1,0 +1,54 @@
+; ============================================================
+; PHP 8.5 开发环境配置
+; 路径: docker/php/php.ini.dev
+; ============================================================
+
+; 内存与执行
+memory_limit = 512M
+max_execution_time = 300
+max_input_time = 300
+max_input_vars = 3000
+post_max_size = 500M
+upload_max_filesize = 500M
+max_file_uploads = 20
+
+; 时区
+date.timezone = Asia/Shanghai
+
+; 错误处理（开发环境开启显示）
+display_errors = On
+display_startup_errors = On
+log_errors = On
+error_log = /var/log/php/error.log
+error_reporting = E_ALL
+
+; OPcache（开发环境可关闭或低频率刷新）
+opcache.enable = 1
+opcache.enable_cli = 1
+opcache.memory_consumption = 128
+opcache.interned_strings_buffer = 8
+opcache.max_accelerated_files = 10000
+opcache.revalidate_freq = 2
+opcache.validate_timestamps = 1
+opcache.save_comments = 1
+
+; Xdebug 配置
+xdebug.mode = debug,coverage
+xdebug.start_with_request = yes
+xdebug.client_host = host.docker.internal
+xdebug.client_port = 9003
+xdebug.idekey = VSCODE
+xdebug.log = /var/log/php/xdebug.log
+xdebug.discover_client_host = 1
+
+; 文件上传
+file_uploads = On
+upload_tmp_dir = /tmp
+
+; Session（开发环境可用文件，也可用 Redis）
+session.save_handler = files
+session.gc_maxlifetime = 7200
+
+; Realpath缓存
+realpath_cache_size = 4096K
+realpath_cache_ttl = 120

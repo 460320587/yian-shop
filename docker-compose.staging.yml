@@ -1,0 +1,127 @@
+# ============================================================
+# 怡安印刷商城 — Staging 环境 (2G 服务器适配)
+# 服务器: 阿里云 ECS 2核2G Ubuntu 24.04
+# 部署: docker compose -f docker-compose.staging.yml up -d
+# 注意: 此配置严格限制内存，只跑核心服务
+# ============================================================
+
+services:
+  # -----------------------------------------------------------
+  # PHP-FPM (生产精简版)
+  # -----------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile.dev
+    container_name: yian-staging-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/php/php.ini.dev:/usr/local/etc/php/php.ini:ro
+      - staging-storage:/var/www/html/storage/app
+    environment:
+      - APP_ENV=staging
+      - APP_DEBUG=false
+      - APP_KEY=${APP_KEY}
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=${DB_DATABASE:-yian_shop}
+      - DB_USERNAME=${DB_USERNAME:-yian}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+      - SCOUT_DRIVER=database
+      - QUEUE_CONNECTION=database
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=redis
+    networks:
+      - yian-staging
+    depends_on:
+      - mysql
+      - redis
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+        reservations:
+          memory: 256M
+
+  # -----------------------------------------------------------
+  # Nginx
+  # -----------------------------------------------------------
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: yian-staging-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.dev.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      - yian-staging
+    depends_on:
+      - app
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  # -----------------------------------------------------------
+  # MySQL 8.0 (严格内存限制)
+  # -----------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: yian-staging-mysql
+    restart: unless-stopped
+    volumes:
+      - staging-mysql-data:/var/lib/mysql
+      - ./docker/mysql/my.cnf.staging:/etc/mysql/conf.d/my.cnf:ro
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE:-yian_shop}
+      MYSQL_USER: ${DB_USERNAME:-yian}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    networks:
+      - yian-staging
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+        reservations:
+          memory: 512M
+
+  # -----------------------------------------------------------
+  # Redis (极简配置)
+  # -----------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: yian-staging-redis
+    restart: unless-stopped
+    volumes:
+      - staging-redis-data:/data
+    # 直接在 command 中配置，不加载配置文件
+    command: >
+      redis-server
+      --maxmemory 128mb
+      --maxmemory-policy allkeys-lru
+      --appendonly no
+      --save ""
+      --loglevel warning
+    networks:
+      - yian-staging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+networks:
+  yian-staging:
+    driver: bridge
+
+volumes:
+  staging-mysql-data:
+  staging-redis-data:
+  staging-storage:

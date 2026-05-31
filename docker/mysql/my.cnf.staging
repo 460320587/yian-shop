@@ -1,0 +1,33 @@
+[mysqld]
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+
+# Staging 环境严格内存限制（适配 2G 服务器）
+innodb_buffer_pool_size = 128M
+innodb_log_file_size = 32M
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT
+
+# 连接数严格限制
+max_connections = 50
+wait_timeout = 300
+interactive_timeout = 300
+
+# 关闭慢查询节省资源
+slow_query_log = 0
+
+# 关闭 binlog
+server-id = 1
+skip-log-bin
+
+# 最小化内存占用
+tmp_table_size = 16M
+max_heap_table_size = 16M
+query_cache_type = 0
+performance_schema = OFF
+
+[mysql]
+default-character-set = utf8mb4
+
+[client]
+default-character-set = utf8mb4
