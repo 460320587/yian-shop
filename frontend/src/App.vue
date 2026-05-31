@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+/**
+ * 根组件
+ * - 全局挂载 Element Plus
+ */
 </script>
 
 <template>
-  <HelloWorld />
+  <router-view />
 </template>
+
+<style>
+/* 全局样式已在 main.ts 引入 */
+</style>
