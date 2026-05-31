@@ -1,0 +1,52 @@
+/* 怡安印刷商城 - 全局CSS变量 */
+/* 主色调：橙色系，契合印刷行业温暖、活力、专业的调性 */
+
+:root {
+  /* 主色 */
+  --color-primary: #e65c00;
+  --color-primary-light: #ff7a29;
+  --color-primary-dark: #b34700;
+
+  /* 辅助色 */
+  --color-secondary: #2b3a4a;
+  --color-secondary-light: #3d5166;
+
+  /* 背景色 */
+  --bg-body: #f5f7fa;
+  --bg-card: #ffffff;
+  --bg-header: #ffffff;
+  --bg-footer: #2b3a4a;
+
+  /* 文字色 */
+  --text-primary: #1a1a1a;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --text-white: #ffffff;
+
+  /* 边框色 */
+  --border-color: #e4e7ed;
+  --border-light: #f0f2f5;
+
+  /* 状态色 */
+  --color-success: #67c23a;
+  --color-warning: #e6a23c;
+  --color-danger: #f56c6c;
+  --color-info: #909399;
+
+  /* 阴影 */
+  --shadow-base: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  --shadow-light: 0 2px 8px 0 rgba(0, 0, 0, 0.06);
+
+  /* 圆角 */
+  --radius-base: 8px;
+  --radius-large: 12px;
+
+  /* 布局 */
+  --header-height: 64px;
+  --max-content-width: 1280px;
+
+  /* Element Plus 主题变量覆盖 */
+  --el-color-primary: var(--color-primary);
+  --el-color-primary-light-3: var(--color-primary-light);
+  --el-color-primary-dark-2: var(--color-primary-dark);
+}
