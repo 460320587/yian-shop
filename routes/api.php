@@ -14,10 +14,10 @@ use Illuminate\Support\Facades\Route;
 // 健康检查
 Route::get('/health', fn () => ['status' => 'ok', 'time' => now()->toDateTimeString()]);
 
-// 门户与首页 (Phase 1)
+// 门户与首页 (Phase 1 / Phase 3)
 Route::prefix('portal')->group(function () {
     Route::get('/banners', fn () => ['todo' => 'banners']);
-    Route::get('/categories', fn () => ['todo' => 'categories']);
+    Route::get('/categories', [\App\Http\Controllers\Api\CategoryController::class, 'tree']);
     Route::get('/hot-products', fn () => ['todo' => 'hot-products']);
     Route::get('/new-arrivals', fn () => ['todo' => 'new-arrivals']);
 });
@@ -45,11 +45,14 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
 
 // 商品系统 (Phase 3)
 Route::prefix('products')->group(function () {
-    Route::get('/', fn () => ['todo' => 'product-list']);
-    Route::get('/{id}', fn () => ['todo' => 'product-detail']);
+    Route::get('/', [\App\Http\Controllers\Api\ProductController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\ProductController::class, 'show']);
     Route::get('/{id}/price', fn () => ['todo' => 'product-price']);
     Route::get('/{id}/params', fn () => ['todo' => 'product-params']);
 });
+
+// 分类系统 (Phase 3)
+Route::get('/categories', [\App\Http\Controllers\Api\CategoryController::class, 'tree']);
 
 // 购物车 (Phase 4)
 Route::middleware('auth:sanctum')->prefix('cart')->group(function () {

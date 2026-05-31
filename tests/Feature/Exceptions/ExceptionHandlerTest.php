@@ -21,7 +21,7 @@ class ExceptionHandlerTest extends TestCase
 
         Route::middleware('api')->group(function () {
             Route::get('/api/v1/test-business-exception', function () {
-                throw new BusinessException(ErrorCode::ORDER_NOT_FOUND);
+                throw new BusinessException(ErrorCode::ORDER_CREATE_FAILED);
             });
 
             Route::post('/api/v1/test-validation-exception', function () {
@@ -48,8 +48,8 @@ class ExceptionHandlerTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJson([
-                'code' => ErrorCode::ORDER_NOT_FOUND->value,
-                'message' => '订单不存在',
+                'code' => ErrorCode::ORDER_CREATE_FAILED->value,
+                'message' => '订单创建失败',
             ]);
     }
 
