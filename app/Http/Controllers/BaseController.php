@@ -21,9 +21,9 @@ abstract class BaseController extends Controller
         return ApiResponse::success($data, $message, $httpStatus);
     }
 
-    public function error(ErrorCode $errorCode, ?string $message = null, mixed $data = null): JsonResponse
+    public function error(ErrorCode $errorCode, ?string $message = null, mixed $data = null, ?int $httpStatus = null): JsonResponse
     {
-        return ApiResponse::error($errorCode, $message, $data);
+        return ApiResponse::error($errorCode, $message, $data, $httpStatus);
     }
 
     public function paginated(LengthAwarePaginator $paginator, ?string $message = null): JsonResponse

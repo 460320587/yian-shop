@@ -6,10 +6,14 @@ namespace App\Domains\User\Models;
 
 use App\Domains\Common\Models\BaseModel;
 use App\Domains\Common\ValueObjects\Money;
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Laravel\Sanctum\HasApiTokens;
 
-class Customer extends BaseModel
+class Customer extends BaseModel implements AuthenticatableContract
 {
+    use HasApiTokens, Authenticatable;
     protected $fillable = [
         'phone',
         'password',

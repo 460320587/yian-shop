@@ -24,10 +24,10 @@ Route::prefix('portal')->group(function () {
 
 // 认证模块 (Phase 2)
 Route::prefix('auth')->group(function () {
-    Route::post('/register', fn () => ['todo' => 'register']);
-    Route::post('/login', fn () => ['todo' => 'login']);
-    Route::post('/logout', fn () => ['todo' => 'logout'])->middleware('auth:sanctum');
-    Route::post('/refresh', fn () => ['todo' => 'refresh'])->middleware('auth:sanctum');
+    Route::post('/register', [\App\Http\Controllers\Api\AuthController::class, 'register']);
+    Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login']);
+    Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth:sanctum');
+    Route::post('/refresh', [\App\Http\Controllers\Api\AuthController::class, 'refresh'])->middleware('auth:sanctum');
     Route::post('/forgot-password', fn () => ['todo' => 'forgot-password']);
     Route::post('/reset-password', fn () => ['todo' => 'reset-password']);
     Route::get('/captcha', fn () => ['todo' => 'captcha']);
@@ -35,7 +35,7 @@ Route::prefix('auth')->group(function () {
 
 // 用户中心
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
-    Route::get('/profile', fn () => ['todo' => 'profile']);
+    Route::get('/profile', [\App\Http\Controllers\Api\AuthController::class, 'profile']);
     Route::put('/profile', fn () => ['todo' => 'update-profile']);
     Route::get('/addresses', fn () => ['todo' => 'addresses']);
     Route::post('/addresses', fn () => ['todo' => 'create-address']);
