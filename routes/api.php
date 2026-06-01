@@ -37,10 +37,15 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\Api\AuthController::class, 'profile']);
     Route::put('/profile', fn () => ['todo' => 'update-profile']);
-    Route::get('/addresses', fn () => ['todo' => 'addresses']);
-    Route::post('/addresses', fn () => ['todo' => 'create-address']);
-    Route::put('/addresses/{id}', fn () => ['todo' => 'update-address']);
-    Route::delete('/addresses/{id}', fn () => ['todo' => 'delete-address']);
+});
+
+// 地址管理 (Phase 6)
+Route::middleware('auth:sanctum')->prefix('addresses')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\AddressController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\AddressController::class, 'store']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\AddressController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\AddressController::class, 'destroy']);
+    Route::put('/{id}/default', [\App\Http\Controllers\Api\AddressController::class, 'setDefault']);
 });
 
 // 商品系统 (Phase 3)
@@ -110,12 +115,12 @@ Route::middleware('auth:sanctum')->prefix('vip')->group(function () {
     Route::get('/discounts', fn () => ['todo' => 'vip-discounts']);
 });
 
-// 消息通知 (Phase 8)
+// 消息通知 (Phase 6)
 Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
-    Route::get('/', fn () => ['todo' => 'notification-list']);
-    Route::put('/{id}/read', fn () => ['todo' => 'read-notification']);
-    Route::put('/read-all', fn () => ['todo' => 'read-all-notifications']);
-    Route::get('/unread-count', fn () => ['todo' => 'unread-count']);
+    Route::get('/', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
+    Route::put('/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markRead']);
+    Route::put('/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllRead']);
+    Route::get('/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
 });
 
 // 企业认证 (Phase 2)

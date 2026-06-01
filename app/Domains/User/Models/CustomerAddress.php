@@ -15,14 +15,18 @@ class CustomerAddress extends BaseModel
         'city_name',
         'county_name',
         'detail_address',
+        'zip_code',
         'contact_name',
         'contact_phone',
         'is_default',
+        'tag',
     ];
 
     protected $casts = [
         'customer_id' => 'integer',
         'is_default' => 'boolean',
+        'zip_code' => 'string',
+        'tag' => 'string',
     ];
 
     public function customer(): BelongsTo
