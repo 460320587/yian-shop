@@ -33,6 +33,9 @@ enum ErrorCode: int
     case PRODUCT_OUT_OF_STOCK = 3001;
     case PRODUCT_PRICE_CHANGED = 3002;
 
+    // 购物车模块 3100-3199
+    case CART_EMPTY = 3100;
+
     // 订单模块 4000-4099
     case ORDER_NOT_FOUND = 4000;
     case ORDER_CREATE_FAILED = 4001;
@@ -67,6 +70,7 @@ enum ErrorCode: int
             self::PRODUCT_NOT_FOUND => '商品不存在',
             self::PRODUCT_OUT_OF_STOCK => '商品库存不足',
             self::PRODUCT_PRICE_CHANGED => '商品价格已变动',
+            self::CART_EMPTY => '购物车为空',
             self::ORDER_NOT_FOUND => '订单不存在',
             self::ORDER_CREATE_FAILED => '订单创建失败',
             self::ORDER_STATUS_INVALID => '订单状态异常',

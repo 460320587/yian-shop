@@ -56,20 +56,20 @@ Route::get('/categories', [\App\Http\Controllers\Api\CategoryController::class, 
 
 // 购物车 (Phase 4)
 Route::middleware('auth:sanctum')->prefix('cart')->group(function () {
-    Route::get('/', fn () => ['todo' => 'cart-list']);
-    Route::post('/', fn () => ['todo' => 'add-cart']);
-    Route::put('/{id}', fn () => ['todo' => 'update-cart']);
-    Route::delete('/{id}', fn () => ['todo' => 'delete-cart']);
-    Route::delete('/', fn () => ['todo' => 'clear-cart']);
+    Route::get('/', [\App\Http\Controllers\Api\CartController::class, 'index']);
+    Route::post('/items', [\App\Http\Controllers\Api\CartController::class, 'store']);
+    Route::put('/items/{id}', [\App\Http\Controllers\Api\CartController::class, 'update']);
+    Route::delete('/items/{id}', [\App\Http\Controllers\Api\CartController::class, 'destroyItem']);
+    Route::delete('/', [\App\Http\Controllers\Api\CartController::class, 'clear']);
     Route::post('/checkout', fn () => ['todo' => 'cart-checkout']);
 });
 
 // 订单系统 (Phase 4)
 Route::middleware('auth:sanctum')->prefix('orders')->group(function () {
-    Route::get('/', fn () => ['todo' => 'order-list']);
-    Route::post('/', fn () => ['todo' => 'create-order']);
-    Route::get('/{id}', fn () => ['todo' => 'order-detail']);
-    Route::put('/{id}/cancel', fn () => ['todo' => 'cancel-order']);
+    Route::get('/', [\App\Http\Controllers\Api\OrderController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\OrderController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\OrderController::class, 'show']);
+    Route::put('/{id}/cancel', [\App\Http\Controllers\Api\OrderController::class, 'cancel']);
     Route::post('/{id}/reorder', fn () => ['todo' => 'reorder']);
 });
 
