@@ -125,9 +125,9 @@ Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
 
 // 企业认证 (Phase 2)
 Route::middleware('auth:sanctum')->prefix('enterprise')->group(function () {
-    Route::get('/auth-status', fn () => ['todo' => 'auth-status']);
-    Route::post('/apply', fn () => ['todo' => 'apply-auth']);
-    Route::get('/info', fn () => ['todo' => 'enterprise-info']);
+    Route::get('/auth-status', [\App\Http\Controllers\Api\EnterpriseController::class, 'authStatus']);
+    Route::post('/apply', [\App\Http\Controllers\Api\EnterpriseController::class, 'apply']);
+    Route::get('/info', [\App\Http\Controllers\Api\EnterpriseController::class, 'info']);
 });
 
 // 收藏与复购 (Phase 7)
@@ -139,9 +139,9 @@ Route::middleware('auth:sanctum')->prefix('favorites')->group(function () {
 
 // 样品订单 (Phase 7)
 Route::middleware('auth:sanctum')->prefix('samples')->group(function () {
-    Route::get('/', fn () => ['todo' => 'sample-list']);
-    Route::post('/orders', fn () => ['todo' => 'create-sample-order']);
-    Route::get('/orders/{id}', fn () => ['todo' => 'sample-order-detail']);
+    Route::get('/', [\App\Http\Controllers\Api\SampleController::class, 'index']);
+    Route::post('/orders', [\App\Http\Controllers\Api\SampleController::class, 'store']);
+    Route::get('/orders/{id}', [\App\Http\Controllers\Api\SampleController::class, 'show']);
 });
 
 // 积分 (Phase 7)
