@@ -23,6 +23,7 @@ class Customer extends BaseModel implements AuthenticatableContract
         'auth_status',
         'vip_level',
         'grow_value',
+        'points',
         'balance',
         'status',
         'link_person',
@@ -36,6 +37,7 @@ class Customer extends BaseModel implements AuthenticatableContract
         'auth_status' => 'integer',
         'vip_level' => 'integer',
         'grow_value' => 'integer',
+        'points' => 'integer',
         'balance' => Money::class,
         'status' => 'integer',
         'last_login_at' => 'datetime:Y-m-d H:i:s',
@@ -58,5 +60,15 @@ class Customer extends BaseModel implements AuthenticatableContract
     public function orders(): HasMany
     {
         return $this->hasMany(\App\Domains\Order\Models\Order::class);
+    }
+
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(\App\Domains\Product\Models\CustomerFavorite::class);
+    }
+
+    public function pointsLogs(): HasMany
+    {
+        return $this->hasMany(\App\Domains\Points\Models\CustomerPointsLog::class);
     }
 }

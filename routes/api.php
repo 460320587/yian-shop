@@ -110,9 +110,9 @@ Route::middleware('auth:sanctum')->prefix('invoices')->group(function () {
 
 // VIP体系 (Phase 7)
 Route::middleware('auth:sanctum')->prefix('vip')->group(function () {
-    Route::get('/info', fn () => ['todo' => 'vip-info']);
-    Route::get('/levels', fn () => ['todo' => 'vip-levels']);
-    Route::get('/discounts', fn () => ['todo' => 'vip-discounts']);
+    Route::get('/info', [\App\Http\Controllers\Api\VipController::class, 'info']);
+    Route::get('/levels', [\App\Http\Controllers\Api\VipController::class, 'levels']);
+    Route::get('/discounts', [\App\Http\Controllers\Api\VipController::class, 'discounts']);
 });
 
 // 消息通知 (Phase 6)
@@ -132,9 +132,9 @@ Route::middleware('auth:sanctum')->prefix('enterprise')->group(function () {
 
 // 收藏与复购 (Phase 7)
 Route::middleware('auth:sanctum')->prefix('favorites')->group(function () {
-    Route::get('/', fn () => ['todo' => 'favorite-list']);
-    Route::post('/', fn () => ['todo' => 'add-favorite']);
-    Route::delete('/{id}', fn () => ['todo' => 'remove-favorite']);
+    Route::get('/', [\App\Http\Controllers\Api\FavoriteController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\FavoriteController::class, 'store']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\FavoriteController::class, 'destroy']);
 });
 
 // 样品订单 (Phase 7)
@@ -146,8 +146,8 @@ Route::middleware('auth:sanctum')->prefix('samples')->group(function () {
 
 // 积分 (Phase 7)
 Route::middleware('auth:sanctum')->prefix('points')->group(function () {
-    Route::get('/', fn () => ['todo' => 'points']);
-    Route::get('/records', fn () => ['todo' => 'points-records']);
+    Route::get('/', [\App\Http\Controllers\Api\PointsController::class, 'index']);
+    Route::get('/records', [\App\Http\Controllers\Api\PointsController::class, 'records']);
 });
 
 // 工单投诉 (Phase 10)
