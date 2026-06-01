@@ -47,6 +47,7 @@ enum ErrorCode: int
     case PAYMENT_TIMEOUT = 5001;
     case PAYMENT_AMOUNT_MISMATCH = 5002;
     case PAYMENT_REFUND_FAILED = 5003;
+    case INSUFFICIENT_BALANCE = 5004;
 
     public function message(): string
     {
@@ -79,6 +80,8 @@ enum ErrorCode: int
             self::PAYMENT_TIMEOUT => '支付超时',
             self::PAYMENT_AMOUNT_MISMATCH => '支付金额不匹配',
             self::PAYMENT_REFUND_FAILED => '退款失败',
+            self::INSUFFICIENT_BALANCE => '余额不足',
+            self::INSUFFICIENT_BALANCE => '余额不足',
         };
     }
 

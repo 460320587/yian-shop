@@ -75,10 +75,11 @@ Route::middleware('auth:sanctum')->prefix('orders')->group(function () {
 
 // 支付系统 (Phase 5)
 Route::middleware('auth:sanctum')->prefix('payments')->group(function () {
-    Route::post('/create', fn () => ['todo' => 'create-payment']);
-    Route::get('/{id}/status', fn () => ['todo' => 'payment-status']);
-    Route::post('/wallet/recharge', fn () => ['todo' => 'wallet-recharge']);
+    Route::post('/create', [\App\Http\Controllers\Api\PaymentController::class, 'create']);
+    Route::get('/{id}/status', [\App\Http\Controllers\Api\PaymentController::class, 'status']);
+    Route::post('/wallet/recharge', [\App\Http\Controllers\Api\PaymentController::class, 'recharge']);
     Route::post('/wallet/withdraw', fn () => ['todo' => 'wallet-withdraw']);
+    Route::post('/{id}/mock-callback', [\App\Http\Controllers\Api\PaymentController::class, 'mockCallback']);
 });
 
 // 物流 (Phase 6)
