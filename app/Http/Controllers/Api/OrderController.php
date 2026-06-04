@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Domains\Cart\Models\Cart;
+use App\Domains\Common\ValueObjects\Money;
+use App\Domains\Coupon\Models\CustomerCoupon;
+use App\Domains\Coupon\Services\CouponDiscountCalculator;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
 use App\Domains\Order\Models\OrderItem;
@@ -44,7 +47,53 @@ class OrderController extends BaseController
             return $this->error(ErrorCode::CART_EMPTY, null, null, 422);
         }
 
-        $totalAmount = $cart->items->sum('subtotal');
+        $goodsAmount = $cart->items->sum('subtotal');
+        $discountSum = 0;
+        $customerCouponId = null;
+
+        // 优惠券处理
+        if ($request->filled('coupon_code')) {
+            $customerCoupon = CustomerCoupon::with('coupon')
+                ->where('customer_id', $customerId)
+                ->where('code', $request->input('coupon_code'))
+                ->first();
+
+            if (! $customerCoupon) {
+                return $this->error(ErrorCode::COUPON_NOT_FOUND, '优惠券不存在', null, 404);
+            }
+
+            if ($customerCoupon->status === 2) {
+                return $this->error(ErrorCode::COUPON_ALREADY_USED, '优惠券已使用');
+            }
+
+            if ($customerCoupon->expired_at && $customerCoupon->expired_at < now()) {
+                return $this->error(ErrorCode::COUPON_EXPIRED, '优惠券已过期');
+            }
+
+            $coupon = $customerCoupon->coupon;
+
+            if (! $coupon || ! $coupon->isActive()) {
+                return $this->error(ErrorCode::COUPON_NOT_APPLICABLE, '优惠券不可用');
+            }
+
+            $discountSum = CouponDiscountCalculator::calculate($coupon, $goodsAmount);
+
+            if ($discountSum === 0 && $coupon->min_amount->amount > 0 && $goodsAmount < $coupon->min_amount->amount) {
+                return $this->error(ErrorCode::COUPON_MIN_AMOUNT_NOT_MET, '订单金额未达到优惠券使用门槛', null, 422);
+            }
+
+            $customerCouponId = $customerCoupon->id;
+
+            // 标记券为已使用
+            $customerCoupon->update([
+                'status' => 2,
+                'used_at' => now(),
+            ]);
+
+            $coupon->increment('used_count');
+        }
+
+        $totalAmount = $goodsAmount - $discountSum;
         $orderNo = $this->generateOrderNo();
 
         $order = Order::create([
@@ -53,6 +102,8 @@ class OrderController extends BaseController
             'status' => OrderStatus::PendingPayment->value,
             'out_status_name' => OrderStatus::PendingPayment->label(),
             'total_amount' => $totalAmount,
+            'discount_sum' => $discountSum,
+            'customer_coupon_id' => $customerCouponId,
             'source' => 1,
         ]);
 
@@ -73,7 +124,8 @@ class OrderController extends BaseController
             'order_no' => $order->order_no,
             'status' => OrderStatus::PendingPayment->value,
             'customer_status' => OrderStatus::PendingPayment->label(),
-            'total_amount' => (new \App\Domains\Common\ValueObjects\Money($totalAmount))->toYuan(),
+            'total_amount' => (new Money($totalAmount))->toYuan(),
+            'discount_sum' => (new Money($discountSum))->toYuan(),
             'items' => $order->items->map(fn (OrderItem $item) => [
                 'product_id' => $item->product_id,
                 'product_name' => $item->product_name,
@@ -130,6 +182,21 @@ class OrderController extends BaseController
             'status' => OrderStatus::Cancelled->value,
             'out_status_name' => OrderStatus::Cancelled->label(),
         ]);
+
+        // 退还优惠券
+        if ($order->customer_coupon_id) {
+            $customerCoupon = CustomerCoupon::with('coupon')->find($order->customer_coupon_id);
+            if ($customerCoupon && $customerCoupon->status === 2) {
+                $customerCoupon->update([
+                    'status' => 1,
+                    'used_at' => null,
+                ]);
+
+                if ($customerCoupon->coupon) {
+                    $customerCoupon->coupon->decrement('used_count');
+                }
+            }
+        }
 
         return $this->success([], '订单取消成功');
     }

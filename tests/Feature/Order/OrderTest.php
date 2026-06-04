@@ -216,4 +216,270 @@ class OrderTest extends TestCase
             ->assertJsonPath('meta.current_page', 2)
             ->assertJsonPath('meta.total', 15);
     }
+
+    // ========== 订单使用优惠券 ==========
+
+    public function test_order_can_use_full_reduction_coupon(): void
+    {
+        $customer = $this->authCustomer();
+        $cart = $this->createCartWithProduct($customer, 500, 2); // subtotal = 1000
+
+        $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
+            'type' => 1, // 满减券
+            'value' => 200, // 减2元
+            'min_amount' => 500, // 满5元
+            'max_discount' => 0,
+            'start_at' => now()->subDay(),
+            'end_at' => now()->addDay(),
+        ]);
+
+        // 确保 factory 默认值不会覆盖
+        $coupon->update(['min_amount' => 500]);
+
+        $customerCoupon = \App\Domains\Coupon\Models\CustomerCoupon::factory()->create([
+            'customer_id' => $customer->id,
+            'coupon_id' => $coupon->id,
+            'status' => 1,
+        ]);
+
+        $response = $this->postJson('/api/v1/orders', [
+            'address_id' => 1,
+            'coupon_code' => $customerCoupon->code,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('code', 0)
+            ->assertJsonPath('data.total_amount', 8); // 10 - 2 = 8元
+
+        $this->assertDatabaseHas('orders', [
+            'customer_id' => $customer->id,
+            'discount_sum' => 200,
+        ]);
+    }
+
+    public function test_order_can_use_discount_coupon(): void
+    {
+        $customer = $this->authCustomer();
+        $cart = $this->createCartWithProduct($customer, 1000, 1); // subtotal = 1000
+
+        $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
+            'type' => 2, // 折扣券
+            'value' => 850, // 85折（存储为 850 = 85.0%）
+            'min_amount' => 0,
+            'max_discount' => 150, // 最高减1.5元
+            'start_at' => now()->subDay(),
+            'end_at' => now()->addDay(),
+        ]);
+
+        $coupon->update(['min_amount' => 0]);
+
+        $customerCoupon = \App\Domains\Coupon\Models\CustomerCoupon::factory()->create([
+            'customer_id' => $customer->id,
+            'coupon_id' => $coupon->id,
+            'status' => 1,
+        ]);
+
+        $response = $this->postJson('/api/v1/orders', [
+            'address_id' => 1,
+            'coupon_code' => $customerCoupon->code,
+        ]);
+
+        // 1000 * (1 - 0.85) = 150分，不超过上限150，所以总额 = 850分 = 8.5元
+        $response->assertStatus(201)
+            ->assertJsonPath('code', 0)
+            ->assertJsonPath('data.total_amount', 8.5);
+    }
+
+    public function test_order_can_use_direct_reduction_coupon(): void
+    {
+        $customer = $this->authCustomer();
+        $cart = $this->createCartWithProduct($customer, 1000, 1); // subtotal = 1000
+
+        $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
+            'type' => 3, // 直减券
+            'value' => 300, // 直减3元
+            'min_amount' => 0,
+            'start_at' => now()->subDay(),
+            'end_at' => now()->addDay(),
+        ]);
+
+        $coupon->update(['min_amount' => 0]);
+
+        $customerCoupon = \App\Domains\Coupon\Models\CustomerCoupon::factory()->create([
+            'customer_id' => $customer->id,
+            'coupon_id' => $coupon->id,
+            'status' => 1,
+        ]);
+
+        $response = $this->postJson('/api/v1/orders', [
+            'address_id' => 1,
+            'coupon_code' => $customerCoupon->code,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('code', 0)
+            ->assertJsonPath('data.total_amount', 7); // 10 - 3 = 7元
+    }
+
+    public function test_use_coupon_fails_below_min_amount(): void
+    {
+        $customer = $this->authCustomer();
+        $cart = $this->createCartWithProduct($customer, 300, 1); // subtotal = 300
+
+        $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
+            'type' => 1,
+            'value' => 200,
+            'min_amount' => 500, // 满5元才能用
+            'start_at' => now()->subDay(),
+            'end_at' => now()->addDay(),
+        ]);
+
+        $coupon->update(['min_amount' => 500]);
+
+        $customerCoupon = \App\Domains\Coupon\Models\CustomerCoupon::factory()->create([
+            'customer_id' => $customer->id,
+            'coupon_id' => $coupon->id,
+            'status' => 1,
+        ]);
+
+        $response = $this->postJson('/api/v1/orders', [
+            'address_id' => 1,
+            'coupon_code' => $customerCoupon->code,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('code', 6006);
+    }
+
+    public function test_use_coupon_fails_when_expired(): void
+    {
+        $customer = $this->authCustomer();
+        $cart = $this->createCartWithProduct($customer, 1000, 1);
+
+        $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
+            'type' => 3,
+            'value' => 300,
+            'min_amount' => 0,
+            'start_at' => now()->subDays(10),
+            'end_at' => now()->subDays(1),
+        ]);
+
+        $customerCoupon = \App\Domains\Coupon\Models\CustomerCoupon::factory()->create([
+            'customer_id' => $customer->id,
+            'coupon_id' => $coupon->id,
+            'status' => 1,
+            'expired_at' => now()->subDay(),
+        ]);
+
+        $response = $this->postJson('/api/v1/orders', [
+            'address_id' => 1,
+            'coupon_code' => $customerCoupon->code,
+        ]);
+
+        $response->assertStatus(400)
+            ->assertJsonPath('code', 6001);
+    }
+
+    public function test_use_coupon_fails_when_already_used(): void
+    {
+        $customer = $this->authCustomer();
+        $cart = $this->createCartWithProduct($customer, 1000, 1);
+
+        $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
+            'type' => 3,
+            'value' => 300,
+            'min_amount' => 0,
+            'start_at' => now()->subDay(),
+            'end_at' => now()->addDay(),
+        ]);
+
+        $customerCoupon = \App\Domains\Coupon\Models\CustomerCoupon::factory()->create([
+            'customer_id' => $customer->id,
+            'coupon_id' => $coupon->id,
+            'status' => 2, // 已使用
+            'used_at' => now(),
+        ]);
+
+        $response = $this->postJson('/api/v1/orders', [
+            'address_id' => 1,
+            'coupon_code' => $customerCoupon->code,
+        ]);
+
+        $response->assertStatus(400)
+            ->assertJsonPath('code', 6007);
+    }
+
+    public function test_cancel_order_restores_coupon(): void
+    {
+        $customer = $this->authCustomer();
+        $cart = $this->createCartWithProduct($customer, 1000, 1);
+
+        $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
+            'type' => 3,
+            'value' => 300,
+            'min_amount' => 0,
+            'start_at' => now()->subDay(),
+            'end_at' => now()->addDay(),
+            'used_count' => 0,
+        ]);
+
+        $customerCoupon = \App\Domains\Coupon\Models\CustomerCoupon::factory()->create([
+            'customer_id' => $customer->id,
+            'coupon_id' => $coupon->id,
+            'status' => 1,
+        ]);
+
+        // 先下单用券
+        $this->postJson('/api/v1/orders', [
+            'address_id' => 1,
+            'coupon_code' => $customerCoupon->code,
+        ]);
+
+        $order = Order::where('customer_id', $customer->id)->latest()->first();
+
+        // 验证券已使用
+        $this->assertDatabaseHas('customer_coupons', [
+            'id' => $customerCoupon->id,
+            'status' => 2,
+        ]);
+
+        // 取消订单
+        $response = $this->putJson('/api/v1/orders/' . $order->id . '/cancel');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('code', 0);
+
+        // 券应恢复为未使用
+        $this->assertDatabaseHas('customer_coupons', [
+            'id' => $customerCoupon->id,
+            'status' => 1,
+            'used_at' => null,
+        ]);
+
+        // Coupon.used_count 应减 1
+        $this->assertDatabaseHas('coupons', [
+            'id' => $coupon->id,
+            'used_count' => 0,
+        ]);
+    }
+
+    private function createCartWithProduct(Customer $customer, int $unitPrice, int $quantity): Cart
+    {
+        $cart = Cart::factory()->create(['customer_id' => $customer->id]);
+        $category = ProductCategory::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 1,
+            'price_min' => $unitPrice,
+            'price_max' => $unitPrice,
+        ]);
+        CartItem::factory()->create([
+            'cart_id' => $cart->id,
+            'product_id' => $product->id,
+            'quantity' => $quantity,
+            'unit_price' => $unitPrice,
+            'subtotal' => $unitPrice * $quantity,
+        ]);
+        return $cart;
+    }
 }

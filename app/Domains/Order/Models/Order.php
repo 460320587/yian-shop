@@ -20,6 +20,7 @@ class Order extends BaseModel
         'total_amount',
         'deposit_sum',
         'discount_sum',
+        'customer_coupon_id',
         'express_company',
         'delivery_type',
         'source',
@@ -36,6 +37,7 @@ class Order extends BaseModel
         'discount_sum' => Money::class,
         'delivery_type' => 'integer',
         'source' => 'integer',
+        'customer_coupon_id' => 'integer',
         'paid_at' => 'datetime:Y-m-d H:i:s',
         'submitted_at' => 'datetime:Y-m-d H:i:s',
     ];
