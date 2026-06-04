@@ -180,7 +180,7 @@ Route::middleware('auth:sanctum')->get('/my-coupons', [\App\Http\Controllers\Api
 Route::prefix('admin')->group(function () {
     Route::post('/auth/login', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'login']);
 
-    Route::middleware('auth:admin')->group(function () {
+    Route::middleware(['auth:admin', \App\Http\Middleware\AuditLogMiddleware::class])->group(function () {
         Route::post('/auth/logout', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'logout']);
         Route::get('/auth/profile', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'profile']);
 
