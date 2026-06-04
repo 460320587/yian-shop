@@ -38,7 +38,7 @@ Route::prefix('auth')->group(function () {
 // 用户中心
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\Api\AuthController::class, 'profile']);
-    Route::put('/profile', fn () => ['todo' => 'update-profile']);
+    Route::put('/profile', [\App\Http\Controllers\Api\AuthController::class, 'updateProfile']);
 });
 
 // 地址管理 (Phase 6)

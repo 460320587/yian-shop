@@ -8,6 +8,7 @@ use App\Domains\User\Models\Customer;
 use App\Http\Controllers\BaseController;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -98,6 +99,29 @@ class AuthController extends BaseController
             'auth_status' => $customer->auth_status,
             'vip_level' => $customer->vip_level,
             'balance' => $customer->balance?->toYuan(),
+            'link_person' => $customer->link_person,
+            'qq' => $customer->qq,
         ]);
+    }
+
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    {
+        $customer = auth('sanctum')->user();
+        $data = $request->validated();
+
+        $customer->update($data);
+
+        return $this->success([
+            'id' => $customer->id,
+            'phone' => $customer->phone,
+            'nickname' => $customer->nickname,
+            'avatar' => $customer->avatar,
+            'type' => $customer->type,
+            'auth_status' => $customer->auth_status,
+            'vip_level' => $customer->vip_level,
+            'balance' => $customer->balance?->toYuan(),
+            'link_person' => $customer->link_person,
+            'qq' => $customer->qq,
+        ], '更新成功');
     }
 }
