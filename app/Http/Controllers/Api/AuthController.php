@@ -171,4 +171,17 @@ class AuthController extends BaseController
 
         return $this->success([], '密码重置成功');
     }
+
+    public function captcha(): JsonResponse
+    {
+        $key = 'captcha_' . uniqid();
+        $code = (string) random_int(1000, 9999);
+
+        cache()->put($key, $code, now()->addMinutes(5));
+
+        return $this->success([
+            'captcha_key' => $key,
+            'captcha_code' => $code,
+        ]);
+    }
 }
