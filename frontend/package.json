@@ -7,7 +7,9 @@
     "dev": "vite --port 5173 --host",
     "build": "vue-tsc && vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .vue,.ts,.tsx"
+    "lint": "eslint . --ext .vue,.ts,.tsx",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.3.2",
@@ -21,12 +23,15 @@
     "@types/node": "^24.12.3",
     "@vitejs/plugin-vue": "^6.0.6",
     "@vue/eslint-config-typescript": "^14.7.0",
+    "@vue/test-utils": "^2.4.10",
     "@vue/tsconfig": "^0.9.1",
     "eslint": "^10.4.1",
     "eslint-plugin-vue": "^10.9.1",
+    "jsdom": "^29.1.1",
     "prettier": "^3.8.3",
     "typescript": "~6.0.2",
     "vite": "^8.0.12",
+    "vitest": "^4.1.8",
     "vue-tsc": "^3.2.8"
   }
 }

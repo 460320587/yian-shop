@@ -1,42 +1,25 @@
 import { get } from '@/utils/request'
-import type { PaginationData } from '@/types'
 
-export interface ProductItem {
+export interface Product {
   id: number
   name: string
-  thumbnail: string
-  min_price: number
-  max_price: number
+  thumbnail: string | null
+  price_min: number | null
+  price_max: number | null
   sales_count: number
-  is_hot: number
-  is_new: number
-  category: { id: number; name: string }
+  category?: { id: number; name: string }
 }
 
-export interface ProductDetail {
-  id: number
-  name: string
-  code: string
-  cover_image: string
-  price_min: number
-  price_max: number
-  status: number
-  sort: number
-  category: { id: number; name: string } | null
+export interface ProductDetail extends Product {
+  description: string
+  specs: any[]
+  prices: any[]
 }
 
-/** 获取商品列表 */
-export function getProducts(params?: {
-  category_id?: number
-  keyword?: string
-  sort?: string
-  per_page?: number
-  page?: number
-}) {
-  return get<PaginationData<ProductItem>>('/products', params as Record<string, unknown>)
+export function getProducts(params?: { page?: number; category_id?: number; keyword?: string }) {
+  return get<{ data: Product[]; total: number; current_page: number; last_page: number }>('/products', params)
 }
 
-/** 获取商品详情 */
 export function getProductDetail(id: number) {
   return get<ProductDetail>(`/products/${id}`)
 }

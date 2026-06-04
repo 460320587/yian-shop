@@ -1,0 +1,31 @@
+import { config } from '@vue/test-utils'
+
+// 全局挂载 Element Plus 图标（简化处理，避免完整注册 Element Plus）
+config.global.stubs = {
+  'el-button': { template: '<button><slot /></button>' },
+  'el-input': { template: '<input />' },
+  'el-input-number': { template: '<input type="number" />' },
+  'el-form': { template: '<form><slot /></form>' },
+  'el-form-item': { template: '<div><slot /></div>' },
+  'el-card': { template: '<div><slot name="header" /><slot /></div>' },
+  'el-empty': { template: '<div><slot /></div>' },
+  'el-image': { template: '<img />' },
+  'el-tag': { template: '<span><slot /></span>' },
+  'el-tabs': { template: '<div><slot /></div>' },
+  'el-tab-pane': { template: '<div><slot /></div>' },
+  'el-carousel': { template: '<div><slot /></div>' },
+  'el-carousel-item': { template: '<div><slot /></div>' },
+  'el-checkbox': { template: '<input type="checkbox" />' },
+  'el-radio-group': { template: '<div><slot /></div>' },
+  'el-radio': { template: '<label><input type="radio" /><slot /></label>' },
+  'el-pagination': { template: '<div />' },
+  'el-menu': { template: '<div><slot /></div>' },
+  'el-menu-item': { template: '<div><slot /></div>' },
+  'el-dropdown': { template: '<div><slot /></div>' },
+  'el-dropdown-menu': { template: '<div><slot /></div>' },
+  'el-dropdown-item': { template: '<div><slot /></div>' },
+  'el-avatar': { template: '<div />' },
+  'el-badge': { template: '<div><slot /></div>' },
+  'el-icon': { template: '<span><slot /></span>' },
+  'el-loading': { template: '<div />' },
+}

@@ -1,14 +1,4 @@
 import { get, post, put } from '@/utils/request'
-import type { PaginationData } from '@/types'
-
-export interface OrderItem {
-  id?: number
-  product_id: number
-  product_name: string
-  quantity: number
-  unit_price: number
-  subtotal: number
-}
 
 export interface Order {
   id: number
@@ -16,27 +6,22 @@ export interface Order {
   status: number
   customer_status: string
   total_amount: number
-  discount_sum?: number
   created_at: string
-  items: OrderItem[]
+  items?: any[]
 }
 
-/** 创建订单 */
-export function createOrder(data: { address_id?: number; coupon_code?: string }) {
-  return post<Order>('/orders', data)
+export function getOrders(params?: { page?: number; status?: number }) {
+  return get<{ data: Order[]; total: number; current_page: number; last_page: number }>('/orders', params)
 }
 
-/** 获取订单列表 */
-export function getOrders(params?: { status?: number; page?: number; per_page?: number }) {
-  return get<PaginationData<Order>>('/orders', params as Record<string, unknown>)
+export function getOrderDetail(orderNo: string) {
+  return get<Order>(`/orders/${orderNo}`)
 }
 
-/** 获取订单详情 */
-export function getOrderDetail(id: number) {
-  return get<Order>(`/orders/${id}`)
+export function createOrder(data: { address_id: number; items: Array<{ product_id: number; quantity: number }>; coupon_id?: number }) {
+  return post<{ order_no: string; total_amount: number; status: number }>('/orders', data)
 }
 
-/** 取消订单 */
-export function cancelOrder(id: number) {
-  return put<null>(`/orders/${id}/cancel`)
+export function cancelOrder(orderNo: string) {
+  return put(`/orders/${orderNo}/cancel`)
 }

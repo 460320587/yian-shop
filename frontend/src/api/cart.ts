@@ -9,41 +9,29 @@ export interface CartItem {
   unit_price: number
   subtotal: number
   selected: boolean
-  spec_info: string | null
-}
-
-export interface CartSummary {
-  total_count: number
-  selected_count: number
-  selected_subtotal: number
 }
 
 export interface CartData {
   items: CartItem[]
-  summary: CartSummary
+  summary: { total_count: number; selected_count: number; selected_subtotal: number }
 }
 
-/** 获取购物车 */
 export function getCart() {
   return get<CartData>('/cart')
 }
 
-/** 添加商品到购物车 */
-export function addToCart(data: { product_id: number; quantity: number }) {
-  return post<{ id: number; product_id: number; quantity: number; unit_price: number; subtotal: number; selected: boolean }>('/cart/items', data)
+export function addToCart(data: { product_id: number; quantity: number; spec_id: number | null }) {
+  return post<CartItem>('/cart', data)
 }
 
-/** 更新购物车商品 */
 export function updateCartItem(id: number, data: { quantity?: number; selected?: boolean }) {
-  return put<{ id: number; quantity: number; unit_price: number; subtotal: number; selected: boolean }>(`/cart/items/${id}`, data)
+  return put(`/cart/items/${id}`, data)
 }
 
-/** 删除购物车商品 */
 export function removeCartItem(id: number) {
-  return del<null>(`/cart/items/${id}`)
+  return del(`/cart/items/${id}`)
 }
 
-/** 清空购物车 */
 export function clearCart() {
-  return del<null>('/cart')
+  return post('/cart/clear')
 }
