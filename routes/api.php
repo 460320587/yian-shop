@@ -169,6 +169,13 @@ Route::middleware('auth:sanctum')->prefix('tickets')->group(function () {
     Route::put('/{id}/cancel', [\App\Http\Controllers\Api\TicketController::class, 'cancel']);
 });
 
+// 优惠券 (Phase 13)
+Route::middleware('auth:sanctum')->prefix('coupons')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\CouponController::class, 'index']);
+    Route::post('/{id}/claim', [\App\Http\Controllers\Api\CouponController::class, 'claim']);
+});
+Route::middleware('auth:sanctum')->get('/my-coupons', [\App\Http\Controllers\Api\CouponController::class, 'myCoupons']);
+
 // Admin 后台 (Admin Phase)
 Route::prefix('admin')->group(function () {
     Route::post('/auth/login', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'login']);

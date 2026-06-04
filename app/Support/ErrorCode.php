@@ -49,6 +49,16 @@ enum ErrorCode: int
     case PAYMENT_REFUND_FAILED = 5003;
     case INSUFFICIENT_BALANCE = 5004;
 
+    // 优惠券模块 6000-6099
+    case COUPON_NOT_FOUND = 6000;
+    case COUPON_EXPIRED = 6001;
+    case COUPON_EXHAUSTED = 6002;
+    case COUPON_ALREADY_CLAIMED = 6003;
+    case COUPON_OVER_LIMIT = 6004;
+    case COUPON_NOT_APPLICABLE = 6005;
+    case COUPON_MIN_AMOUNT_NOT_MET = 6006;
+    case COUPON_ALREADY_USED = 6007;
+
     public function message(): string
     {
         return match ($this) {
@@ -81,7 +91,14 @@ enum ErrorCode: int
             self::PAYMENT_AMOUNT_MISMATCH => '支付金额不匹配',
             self::PAYMENT_REFUND_FAILED => '退款失败',
             self::INSUFFICIENT_BALANCE => '余额不足',
-            self::INSUFFICIENT_BALANCE => '余额不足',
+            self::COUPON_NOT_FOUND => '优惠券不存在',
+            self::COUPON_EXPIRED => '优惠券已过期',
+            self::COUPON_EXHAUSTED => '优惠券已领完',
+            self::COUPON_ALREADY_CLAIMED => '优惠券已领取',
+            self::COUPON_OVER_LIMIT => '已达到领取上限',
+            self::COUPON_NOT_APPLICABLE => '优惠券不适用',
+            self::COUPON_MIN_AMOUNT_NOT_MET => '未达到最低消费金额',
+            self::COUPON_ALREADY_USED => '优惠券已使用',
         };
     }
 
@@ -99,6 +116,12 @@ enum ErrorCode: int
             self::VALIDATION_ERROR => 422,
             self::TOO_MANY_REQUESTS => 429,
             self::SYSTEM_ERROR => 500,
+            self::COUPON_EXPIRED => 400,
+            self::COUPON_EXHAUSTED => 400,
+            self::COUPON_OVER_LIMIT => 400,
+            self::COUPON_NOT_APPLICABLE => 400,
+            self::COUPON_MIN_AMOUNT_NOT_MET => 422,
+            self::COUPON_ALREADY_USED => 400,
             default => 200,
         };
     }
