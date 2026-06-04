@@ -77,7 +77,7 @@ Route::middleware('auth:sanctum')->prefix('orders')->group(function () {
     Route::post('/', [\App\Http\Controllers\Api\OrderController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Api\OrderController::class, 'show']);
     Route::put('/{id}/cancel', [\App\Http\Controllers\Api\OrderController::class, 'cancel']);
-    Route::post('/{id}/reorder', fn () => ['todo' => 'reorder']);
+    Route::post('/{id}/reorder', [\App\Http\Controllers\Api\OrderController::class, 'reorder']);
 });
 
 // 支付系统 (Phase 5)

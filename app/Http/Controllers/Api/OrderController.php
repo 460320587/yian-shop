@@ -11,6 +11,7 @@ use App\Domains\Coupon\Services\CouponDiscountCalculator;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
 use App\Domains\Order\Models\OrderItem;
+use App\Domains\Product\Models\Product;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
@@ -164,6 +165,43 @@ class OrderController extends BaseController
         ]);
     }
 
+    public function reorder(int $id): JsonResponse
+    {
+        $customerId = auth('sanctum')->id();
+        $order = Order::where('customer_id', $customerId)
+            ->with('items')
+            ->find($id);
+
+        if (! $order) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权访问该订单', null, 403);
+        }
+
+        $cart = Cart::firstOrCreate(
+            ['customer_id' => $customerId],
+            ['total_count' => 0, 'selected_subtotal' => 0]
+        );
+
+        $validItems = $order->items->filter(function (OrderItem $item) {
+            $product = Product::where('id', $item->product_id)->where('status', 1)->first();
+            return $product !== null;
+        });
+
+        foreach ($validItems as $item) {
+            $cart->items()->create([
+                'product_id' => $item->product_id,
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_price->amount,
+                'subtotal' => $item->total_price->amount,
+                'selected' => 1,
+                'spec_info' => null,
+            ]);
+        }
+
+        $this->updateCartSummary($cart);
+
+        return $this->success([], '已加入购物车');
+    }
+
     public function cancel(int $id): JsonResponse
     {
         $order = Order::where('customer_id', auth('sanctum')->id())->find($id);
@@ -199,6 +237,14 @@ class OrderController extends BaseController
         }
 
         return $this->success([], '订单取消成功');
+    }
+
+    private function updateCartSummary(Cart $cart): void
+    {
+        $items = $cart->items()->get();
+        $cart->total_count = $items->count();
+        $cart->selected_subtotal = $items->where('selected', 1)->sum('subtotal');
+        $cart->save();
     }
 
     private function generateOrderNo(): string
