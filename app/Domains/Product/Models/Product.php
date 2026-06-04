@@ -20,6 +20,10 @@ class Product extends BaseModel
         'status',
         'sort',
         'cover_image',
+        'thumbnail',
+        'sales_count',
+        'is_hot',
+        'is_new',
     ];
 
     protected $casts = [
@@ -28,6 +32,9 @@ class Product extends BaseModel
         'price_max' => Money::class,
         'status' => 'integer',
         'sort' => 'integer',
+        'sales_count' => 'integer',
+        'is_hot' => 'integer',
+        'is_new' => 'integer',
     ];
 
     public function category(): BelongsTo

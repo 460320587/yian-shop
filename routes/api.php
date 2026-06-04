@@ -14,12 +14,14 @@ use Illuminate\Support\Facades\Route;
 // 健康检查
 Route::get('/health', fn () => ['status' => 'ok', 'time' => now()->toDateTimeString()]);
 
-// 门户与首页 (Phase 1 / Phase 3)
+// 门户与首页 (Phase 10)
 Route::prefix('portal')->group(function () {
-    Route::get('/banners', fn () => ['todo' => 'banners']);
+    Route::get('/banners', [\App\Http\Controllers\Api\PortalController::class, 'banners']);
     Route::get('/categories', [\App\Http\Controllers\Api\CategoryController::class, 'tree']);
-    Route::get('/hot-products', fn () => ['todo' => 'hot-products']);
-    Route::get('/new-arrivals', fn () => ['todo' => 'new-arrivals']);
+    Route::get('/announcements', [\App\Http\Controllers\Api\PortalController::class, 'announcements']);
+    Route::get('/hot-products', [\App\Http\Controllers\Api\PortalController::class, 'hotProducts']);
+    Route::get('/new-arrivals', [\App\Http\Controllers\Api\PortalController::class, 'newArrivals']);
+    Route::get('/home', [\App\Http\Controllers\Api\PortalController::class, 'home']);
 });
 
 // 认证模块 (Phase 2)
@@ -89,23 +91,32 @@ Route::middleware('auth:sanctum')->prefix('payments')->group(function () {
 
 // 物流 (Phase 6)
 Route::middleware('auth:sanctum')->prefix('logistics')->group(function () {
-    Route::get('/{orderId}/tracks', fn () => ['todo' => 'logistics-tracks']);
-    Route::get('/{orderId}/recommend', fn () => ['todo' => 'logistics-recommend']);
+    Route::get('/{orderId}/tracks', [\App\Http\Controllers\Api\LogisticsController::class, 'tracks']);
+    Route::get('/{orderId}/recommend', [\App\Http\Controllers\Api\LogisticsController::class, 'recommend']);
 });
 
 // 售后 (Phase 6)
 Route::middleware('auth:sanctum')->prefix('after-sales')->group(function () {
-    Route::get('/', fn () => ['todo' => 'after-sale-list']);
-    Route::post('/', fn () => ['todo' => 'create-after-sale']);
-    Route::get('/{id}', fn () => ['todo' => 'after-sale-detail']);
-    Route::put('/{id}/cancel', fn () => ['todo' => 'cancel-after-sale']);
+    Route::get('/', [\App\Http\Controllers\Api\AfterSaleController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\AfterSaleController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\AfterSaleController::class, 'show']);
+    Route::put('/{id}/cancel', [\App\Http\Controllers\Api\AfterSaleController::class, 'cancel']);
 });
 
-// 发票 (Phase 6)
+// 发票抬头 (Phase 11)
+Route::middleware('auth:sanctum')->prefix('invoice-titles')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\InvoiceController::class, 'titleIndex']);
+    Route::post('/', [\App\Http\Controllers\Api\InvoiceController::class, 'titleStore']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'titleUpdate']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'titleDestroy']);
+});
+
+// 发票申请 (Phase 11)
 Route::middleware('auth:sanctum')->prefix('invoices')->group(function () {
-    Route::get('/', fn () => ['todo' => 'invoice-list']);
-    Route::post('/', fn () => ['todo' => 'create-invoice']);
-    Route::get('/{id}', fn () => ['todo' => 'invoice-detail']);
+    Route::get('/', [\App\Http\Controllers\Api\InvoiceController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\InvoiceController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\InvoiceController::class, 'show']);
+    Route::put('/{id}/cancel', [\App\Http\Controllers\Api\InvoiceController::class, 'cancel']);
 });
 
 // VIP体系 (Phase 7)
@@ -150,11 +161,55 @@ Route::middleware('auth:sanctum')->prefix('points')->group(function () {
     Route::get('/records', [\App\Http\Controllers\Api\PointsController::class, 'records']);
 });
 
-// 工单投诉 (Phase 10)
+// 工单投诉 (Phase 12)
 Route::middleware('auth:sanctum')->prefix('tickets')->group(function () {
-    Route::get('/', fn () => ['todo' => 'ticket-list']);
-    Route::post('/', fn () => ['todo' => 'create-ticket']);
-    Route::get('/{id}', fn () => ['todo' => 'ticket-detail']);
+    Route::get('/', [\App\Http\Controllers\Api\TicketController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\TicketController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\TicketController::class, 'show']);
+    Route::put('/{id}/cancel', [\App\Http\Controllers\Api\TicketController::class, 'cancel']);
 });
 
+// Admin 后台 (Admin Phase)
+Route::prefix('admin')->group(function () {
+    Route::post('/auth/login', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'login']);
+
+    Route::middleware('auth:admin')->group(function () {
+        Route::post('/auth/logout', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'logout']);
+        Route::get('/auth/profile', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'profile']);
+
+        // 客户管理
+        Route::get('/customers', [\App\Http\Controllers\Api\Admin\AdminCustomerController::class, 'index']);
+        Route::get('/customers/{id}', [\App\Http\Controllers\Api\Admin\AdminCustomerController::class, 'show']);
+
+        // 订单管理
+        Route::get('/orders', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'index']);
+        Route::get('/orders/{id}', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'show']);
+
+        // Banner/公告管理
+        Route::get('/banners', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'bannerIndex']);
+        Route::post('/banners', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'bannerStore']);
+        Route::put('/banners/{id}', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'bannerUpdate']);
+        Route::delete('/banners/{id}', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'bannerDestroy']);
+        Route::get('/announcements', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'announcementIndex']);
+        Route::post('/announcements', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'announcementStore']);
+        Route::put('/announcements/{id}', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'announcementUpdate']);
+        Route::delete('/announcements/{id}', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'announcementDestroy']);
+
+        // 售后审核
+        Route::get('/after-sales', [\App\Http\Controllers\Api\Admin\AdminAfterSaleController::class, 'index']);
+        Route::get('/after-sales/{id}', [\App\Http\Controllers\Api\Admin\AdminAfterSaleController::class, 'show']);
+        Route::put('/after-sales/{id}/audit', [\App\Http\Controllers\Api\Admin\AdminAfterSaleController::class, 'audit']);
+
+        // 发票管理
+        Route::get('/invoices', [\App\Http\Controllers\Api\Admin\AdminInvoiceController::class, 'index']);
+        Route::get('/invoices/{id}', [\App\Http\Controllers\Api\Admin\AdminInvoiceController::class, 'show']);
+        Route::put('/invoices/{id}/audit', [\App\Http\Controllers\Api\Admin\AdminInvoiceController::class, 'audit']);
+        Route::put('/invoices/{id}/issue', [\App\Http\Controllers\Api\Admin\AdminInvoiceController::class, 'issue']);
+
+        // 工单管理
+        Route::get('/tickets', [\App\Http\Controllers\Api\Admin\AdminTicketController::class, 'index']);
+        Route::get('/tickets/{id}', [\App\Http\Controllers\Api\Admin\AdminTicketController::class, 'show']);
+        Route::put('/tickets/{id}/process', [\App\Http\Controllers\Api\Admin\AdminTicketController::class, 'process']);
+    });
+});
 

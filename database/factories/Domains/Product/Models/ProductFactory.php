@@ -23,6 +23,10 @@ class ProductFactory extends Factory
             'status' => $this->faker->numberBetween(0, 2),
             'sort' => $this->faker->numberBetween(0, 100),
             'cover_image' => $this->faker->optional()->imageUrl(),
+            'thumbnail' => $this->faker->optional()->imageUrl(400, 400),
+            'sales_count' => $this->faker->numberBetween(0, 10000),
+            'is_hot' => $this->faker->boolean(20) ? 1 : 0,
+            'is_new' => $this->faker->boolean(20) ? 1 : 0,
         ];
     }
 }
