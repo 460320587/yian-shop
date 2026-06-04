@@ -24,6 +24,7 @@ class Product extends BaseModel
         'sales_count',
         'is_hot',
         'is_new',
+        'pricing_params',
     ];
 
     protected $casts = [
@@ -35,6 +36,7 @@ class Product extends BaseModel
         'sales_count' => 'integer',
         'is_hot' => 'integer',
         'is_new' => 'integer',
+        'pricing_params' => 'array',
     ];
 
     public function category(): BelongsTo

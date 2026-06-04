@@ -54,8 +54,8 @@ Route::middleware('auth:sanctum')->prefix('addresses')->group(function () {
 Route::prefix('products')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\ProductController::class, 'index']);
     Route::get('/{id}', [\App\Http\Controllers\Api\ProductController::class, 'show']);
-    Route::get('/{id}/price', fn () => ['todo' => 'product-price']);
-    Route::get('/{id}/params', fn () => ['todo' => 'product-params']);
+    Route::post('/{id}/price', [\App\Http\Controllers\Api\ProductController::class, 'price']);
+    Route::get('/{id}/params', [\App\Http\Controllers\Api\ProductController::class, 'params']);
 });
 
 // 分类系统 (Phase 3)
