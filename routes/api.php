@@ -217,6 +217,12 @@ Route::prefix('admin')->group(function () {
         Route::get('/tickets', [\App\Http\Controllers\Api\Admin\AdminTicketController::class, 'index']);
         Route::get('/tickets/{id}', [\App\Http\Controllers\Api\Admin\AdminTicketController::class, 'show']);
         Route::put('/tickets/{id}/process', [\App\Http\Controllers\Api\Admin\AdminTicketController::class, 'process']);
+
+        // 优惠券管理
+        Route::get('/coupons', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'index']);
+        Route::post('/coupons', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'store']);
+        Route::put('/coupons/{id}', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'update']);
+        Route::put('/coupons/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'toggleStatus']);
     });
 });
 
