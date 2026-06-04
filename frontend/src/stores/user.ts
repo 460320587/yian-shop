@@ -6,7 +6,8 @@
 
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import type { User } from '@/types'
+import { getUserInfo } from '@/api/user'
+import type { UserInfo } from '@/api/user'
 
 const TOKEN_KEY = 'access_token'
 const USER_KEY = 'user_info'
@@ -14,7 +15,7 @@ const USER_KEY = 'user_info'
 export const useUserStore = defineStore('user', () => {
   // ========== State ==========
   const token = ref<string | null>(localStorage.getItem(TOKEN_KEY))
-  const userInfo = ref<User | null>(null)
+  const userInfo = ref<UserInfo | null>(null)
 
   // 初始化时尝试从 localStorage 恢复用户信息
   const cachedUser = localStorage.getItem(USER_KEY)
@@ -37,15 +38,26 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /** 设置用户信息 */
-  function setUserInfo(user: User) {
+  function setUserInfo(user: UserInfo) {
     userInfo.value = user
     localStorage.setItem(USER_KEY, JSON.stringify(user))
   }
 
   /** 登录成功后的统一处理 */
-  function loginSuccess(newToken: string, user: User) {
+  function loginSuccess(newToken: string, user: UserInfo) {
     setToken(newToken)
     setUserInfo(user)
+  }
+
+  /** 从服务器获取用户信息 */
+  async function fetchUserInfo() {
+    try {
+      const user = await getUserInfo()
+      setUserInfo(user)
+      return user
+    } catch {
+      return null
+    }
   }
 
   /** 退出登录 */
@@ -63,6 +75,7 @@ export const useUserStore = defineStore('user', () => {
     setToken,
     setUserInfo,
     loginSuccess,
+    fetchUserInfo,
     logout,
   }
 })

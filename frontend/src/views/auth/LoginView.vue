@@ -2,11 +2,11 @@
 /**
  * 登录页
  * - 手机号 + 密码登录表单
- * - 表单校验
  */
 import { ref, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { login } from '@/api/user'
 import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 
@@ -35,31 +35,29 @@ const rules = {
 const formRef = ref()
 
 async function handleLogin() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+
   loading.value = true
-
   try {
-    // 骨架阶段：模拟登录成功
-    // 实际开发时替换为真实 API 调用
-    await new Promise((resolve) => setTimeout(resolve, 800))
-
-    const mockToken = 'mock_token_' + Date.now()
-    const mockUser = {
-      id: 1,
-      name: '测试用户',
-      email: 'test@example.com',
-      phone: form.phone,
-      created_at: new Date().toISOString(),
-    }
-
-    userStore.loginSuccess(mockToken, mockUser)
+    const res = await login({ phone: form.phone, password: form.password })
+    userStore.loginSuccess(res.token, {
+      id: res.user.id,
+      phone: res.user.phone,
+      nickname: res.user.nickname,
+      avatar: null,
+      type: 1,
+      auth_status: 0,
+      vip_level: 0,
+      balance: 0,
+    })
     ElMessage.success('登录成功')
 
     // 跳转回之前页面或首页
     const redirect = route.query.redirect as string
     router.push(redirect || '/')
-  } catch {
-    // 校验失败或异常
+  } catch (e: any) {
+    // 错误已由 request 拦截器处理
   } finally {
     loading.value = false
   }

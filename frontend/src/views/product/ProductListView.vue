@@ -4,51 +4,71 @@
  * - 分类筛选
  * - 商品卡片列表
  */
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import type { Category } from '@/types'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { getProducts } from '@/api/product'
+import { getCategories } from '@/api/portal'
+import type { ProductItem } from '@/api/product'
 
 const router = useRouter()
+const route = useRoute()
 
-// 分类数据（骨架）
-const categories = ref<Category[]>([
-  { id: 0, name: '全部' },
-  { id: 1, name: '名片印刷' },
-  { id: 2, name: '宣传册' },
-  { id: 3, name: '包装盒' },
-  { id: 4, name: '台历挂历' },
-  { id: 5, name: '办公用品' },
-  { id: 6, name: '海报印刷' },
-  { id: 7, name: '不干胶标签' },
-])
-
+const categories = ref<{ id: number; name: string }[]>([{ id: 0, name: '全部' }])
 const activeCategory = ref(0)
+const products = ref<ProductItem[]>([])
+const loading = ref(false)
+const currentPage = ref(1)
+const total = ref(0)
+const perPage = 12
 
-// 商品列表（骨架）
-const products = ref([
-  { id: 1, name: '高级铜版纸名片 300g', price: 3500, cover_image: '', sold_count: 1200, category_id: 1 },
-  { id: 2, name: '企业宣传册 A4 骑马钉', price: 12800, cover_image: '', sold_count: 856, category_id: 2 },
-  { id: 3, name: '牛皮纸手提袋 定制', price: 5600, cover_image: '', sold_count: 2300, category_id: 3 },
-  { id: 4, name: '不干胶标签 卷筒', price: 4200, cover_image: '', sold_count: 1540, category_id: 7 },
-  { id: 5, name: '台历定制 2026年款', price: 15800, cover_image: '', sold_count: 670, category_id: 4 },
-  { id: 6, name: '海报印刷 铜版纸覆膜', price: 2800, cover_image: '', sold_count: 3100, category_id: 6 },
-  { id: 7, name: '信封定制 企业专用', price: 1800, cover_image: '', sold_count: 980, category_id: 5 },
-  { id: 8, name: '无碳复写联单', price: 3200, cover_image: '', sold_count: 1120, category_id: 5 },
-  { id: 9, name: 'PVC会员卡制作', price: 4500, cover_image: '', sold_count: 760, category_id: 1 },
-  { id: 10, name: '精装画册印刷', price: 25600, cover_image: '', sold_count: 430, category_id: 2 },
-  { id: 11, name: '瓦楞纸箱定制', price: 8900, cover_image: '', sold_count: 620, category_id: 3 },
-  { id: 12, name: '展架易拉宝', price: 6800, cover_image: '', sold_count: 1890, category_id: 6 },
-])
+onMounted(async () => {
+  // 加载分类
+  try {
+    const cats = await getCategories()
+    if (cats) {
+      categories.value = [{ id: 0, name: '全部' }, ...cats.map((c) => ({ id: c.id, name: c.name }))]
+    }
+  } catch (e) {
+    console.error('分类加载失败', e)
+  }
 
-const filteredProducts = ref(products.value)
+  // 从 URL 参数恢复分类
+  const catId = route.query.category_id
+  if (catId) {
+    activeCategory.value = Number(catId)
+  }
+
+  await loadProducts()
+})
+
+async function loadProducts() {
+  loading.value = true
+  try {
+    const res = await getProducts({
+      category_id: activeCategory.value || undefined,
+      per_page: perPage,
+      page: currentPage.value,
+    })
+    products.value = res.data || []
+    total.value = res.total || 0
+  } catch (e) {
+    console.error('商品加载失败', e)
+    products.value = []
+  }
+  loading.value = false
+}
 
 function selectCategory(id: number) {
   activeCategory.value = id
-  if (id === 0) {
-    filteredProducts.value = products.value
-  } else {
-    filteredProducts.value = products.value.filter((p) => p.category_id === id)
-  }
+  currentPage.value = 1
+  loadProducts()
+  // 更新 URL
+  router.replace({ query: id ? { category_id: id } : {} })
+}
+
+function handlePageChange(page: number) {
+  currentPage.value = page
+  loadProducts()
 }
 
 function goDetail(id: number) {
@@ -56,7 +76,7 @@ function goDetail(id: number) {
 }
 
 function formatPrice(value: number) {
-  return '¥' + (value / 100).toFixed(2)
+  return '¥' + (value ?? 0).toFixed(2)
 }
 </script>
 
@@ -83,37 +103,42 @@ function formatPrice(value: number) {
     </div>
 
     <!-- 商品列表 -->
-    <div class="product-grid">
-      <div
-        v-for="product in filteredProducts"
-        :key="product.id"
-        class="product-card"
-        @click="goDetail(product.id)"
-      >
-        <div class="product-image">
-          <el-image
-            :src="product.cover_image || 'https://placehold.co/280x200/e4e7ed/999?text=印刷产品'"
-            fit="cover"
-            class="image"
-          />
-        </div>
-        <div class="product-info">
-          <h4 class="product-name">{{ product.name }}</h4>
-          <div class="product-meta">
-            <span class="product-price">{{ formatPrice(product.price) }}</span>
-            <span class="product-sold">已售 {{ product.sold_count }}</span>
+    <div v-loading="loading">
+      <div v-if="products.length" class="product-grid">
+        <div
+          v-for="product in products"
+          :key="product.id"
+          class="product-card"
+          @click="goDetail(product.id)"
+        >
+          <div class="product-image">
+            <el-image
+              :src="product.thumbnail || 'https://placehold.co/280x200/e4e7ed/999?text=印刷产品'"
+              fit="cover"
+              class="image"
+            />
+          </div>
+          <div class="product-info">
+            <h4 class="product-name">{{ product.name }}</h4>
+            <div class="product-meta">
+              <span class="product-price">{{ formatPrice(product.min_price) }}</span>
+              <span class="product-sold">已售 {{ product.sales_count }}</span>
+            </div>
           </div>
         </div>
       </div>
+      <el-empty v-else description="暂无商品" />
     </div>
 
     <!-- 分页 -->
-    <div class="pagination-bar">
+    <div v-if="total > perPage" class="pagination-bar">
       <el-pagination
         background
         layout="prev, pager, next"
-        :total="filteredProducts.length"
-        :page-size="12"
+        :total="total"
+        :page-size="perPage"
+        :current-page="currentPage"
+        @current-change="handlePageChange"
       />
     </div>
   </div>

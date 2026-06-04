@@ -5,10 +5,12 @@
  * - 底部 Footer
  * - 响应式：PC 为主，兼容平板
  */
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
+import { logout as apiLogout } from '@/api/user'
+import { ElMessage } from 'element-plus'
 import {
   ShoppingCart,
   User,
@@ -28,7 +30,7 @@ const cartCount = computed(() => cartStore.totalCount)
 
 const navItems = [
   { name: 'Home', label: '首页', path: '/' },
-  { name: 'ProductList', label: '全部商品', path: '/product' },
+  { name: 'ProductList', label: '全部商品', path: '/products' },
 ]
 
 const activeNav = computed(() => route.name as string)
@@ -41,8 +43,21 @@ function goRegister() {
   router.push('/register')
 }
 
-function logout() {
+onMounted(() => {
+  // 如果有 token 但没有用户信息，尝试获取
+  if (userStore.isLoggedIn && !userStore.userInfo) {
+    userStore.fetchUserInfo()
+  }
+})
+
+async function logout() {
+  try {
+    await apiLogout()
+  } catch {
+    // 忽略退出接口错误
+  }
   userStore.logout()
+  ElMessage.success('已退出登录')
   router.push('/')
 }
 
@@ -96,7 +111,7 @@ function goUser() {
             <el-dropdown>
               <div class="action-item user-dropdown">
                 <el-avatar :size="28" :icon="User" />
-                <span>{{ userStore.userInfo?.name || '用户' }}</span>
+                <span>{{ userStore.userInfo?.nickname || userStore.userInfo?.phone || '用户' }}</span>
               </div>
               <template #dropdown>
                 <el-dropdown-menu>

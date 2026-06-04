@@ -1,6 +1,5 @@
 <template>
-  <MainLayout>
-    <div class="cart-page">
+  <div class="cart-page">
       <el-card class="cart-card">
         <template #header>
           <div class="cart-header">
@@ -51,13 +50,11 @@
         </div>
       </el-card>
     </div>
-  </MainLayout>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import MainLayout from '@/components/Layout/MainLayout.vue'
 
 const router = useRouter()
 

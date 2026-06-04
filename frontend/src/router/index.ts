@@ -1,11 +1,46 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
+import MainLayout from '@/components/Layout/MainLayout.vue'
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'Home',
-    component: () => import('@/views/home/HomeView.vue'),
+    component: MainLayout,
+    children: [
+      {
+        path: '',
+        name: 'Home',
+        component: () => import('@/views/home/HomeView.vue'),
+      },
+      {
+        path: '/products',
+        name: 'ProductList',
+        component: () => import('@/views/product/ProductListView.vue'),
+      },
+      {
+        path: '/product/:id',
+        name: 'ProductDetail',
+        component: () => import('@/views/product/ProductDetailView.vue'),
+      },
+      {
+        path: '/cart',
+        name: 'Cart',
+        component: () => import('@/views/cart/CartView.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/orders',
+        name: 'OrderList',
+        component: () => import('@/views/order/OrderListView.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/user',
+        name: 'UserCenter',
+        component: () => import('@/views/user/UserCenterView.vue'),
+        meta: { requiresAuth: true },
+      },
+    ],
   },
   {
     path: '/login',
@@ -19,28 +54,6 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/auth/RegisterView.vue'),
     meta: { guest: true },
   },
-  {
-    path: '/products',
-    name: 'ProductList',
-    component: () => import('@/views/product/ProductListView.vue'),
-  },
-  {
-    path: '/product/:id',
-    name: 'ProductDetail',
-    component: () => import('@/views/product/ProductDetailView.vue'),
-  },
-  {
-    path: '/cart',
-    name: 'Cart',
-    component: () => import('@/views/cart/CartView.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/user',
-    name: 'UserCenter',
-    component: () => import('@/views/user/UserCenterView.vue'),
-    meta: { requiresAuth: true },
-  },
 ]
 
 const router = createRouter({
@@ -49,7 +62,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, _from, next) => {
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('access_token')
 
   if (to.meta.requiresAuth && !token) {
     next('/login')

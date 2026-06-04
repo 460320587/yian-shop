@@ -2,11 +2,14 @@
 /**
  * 首页视图
  * - Banner 轮播区域
+ * - 公告栏
  * - 商品分类入口
- * - 推荐商品列表
+ * - 热销推荐 / 新品上市
  */
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { getHomeData, getCategories } from '@/api/portal'
+import type { Banner, Announcement, HomeProduct } from '@/api/portal'
 import {
   Document,
   Picture,
@@ -14,40 +17,54 @@ import {
   Calendar,
   OfficeBuilding,
   More,
+  ArrowRight,
+  Bell,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
-// Banner 数据
-const banners = [
-  { id: 1, title: '专业印刷 品质保证', subtitle: '企业宣传册、名片、海报一站式定制', color: 'linear-gradient(135deg, #e65c00 0%, #ff8c42 100%)' },
-  { id: 2, title: '新用户首单立减', subtitle: '注册即享 88 折优惠', color: 'linear-gradient(135deg, #2b3a4a 0%, #4a6078 100%)' },
-]
-
-// 分类入口
-const categories = [
-  { id: 1, name: '名片印刷', icon: Document },
-  { id: 2, name: '宣传册', icon: Picture },
-  { id: 3, name: '包装盒', icon: Box },
-  { id: 4, name: '台历挂历', icon: Calendar },
-  { id: 5, name: '办公用品', icon: OfficeBuilding },
-  { id: 6, name: '更多分类', icon: More },
-]
-
-// 推荐商品（骨架数据）
-const recommendProducts = ref([
-  { id: 1, name: '高级铜版纸名片 300g', price: 3500, cover_image: '', sold_count: 1200 },
-  { id: 2, name: '企业宣传册 A4 骑马钉', price: 12800, cover_image: '', sold_count: 856 },
-  { id: 3, name: '牛皮纸手提袋 定制', price: 5600, cover_image: '', sold_count: 2300 },
-  { id: 4, name: '不干胶标签 卷筒', price: 4200, cover_image: '', sold_count: 1540 },
-  { id: 5, name: '台历定制 2026年款', price: 15800, cover_image: '', sold_count: 670 },
-  { id: 6, name: '海报印刷 铜版纸覆膜', price: 2800, cover_image: '', sold_count: 3100 },
-  { id: 7, name: '信封定制 企业专用', price: 1800, cover_image: '', sold_count: 980 },
-  { id: 8, name: '无碳复写联单', price: 3200, cover_image: '', sold_count: 1120 },
+// 数据
+const banners = ref<Banner[]>([])
+const announcements = ref<Announcement[]>([])
+const hotProducts = ref<HomeProduct[]>([])
+const newArrivals = ref<HomeProduct[]>([])
+const categories = ref<{ id: number; name: string }[]>([
+  { id: 1, name: '名片印刷' },
+  { id: 2, name: '宣传册' },
+  { id: 3, name: '包装盒' },
+  { id: 4, name: '台历挂历' },
+  { id: 5, name: '办公用品' },
+  { id: 6, name: '更多分类' },
 ])
+const loading = ref(false)
+
+const categoryIcons = [Document, Picture, Box, Calendar, OfficeBuilding, More]
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const homeData = await getHomeData()
+    banners.value = homeData.banners || []
+    announcements.value = homeData.announcements || []
+    hotProducts.value = homeData.hot_products || []
+    newArrivals.value = homeData.new_arrivals || []
+  } catch (e) {
+    console.error('首页数据加载失败', e)
+  }
+
+  try {
+    const cats = await getCategories()
+    if (cats && cats.length > 0) {
+      categories.value = cats.slice(0, 6).map((c) => ({ id: c.id, name: c.name }))
+    }
+  } catch (e) {
+    console.error('分类加载失败', e)
+  }
+  loading.value = false
+})
 
 function goProductList() {
-  router.push('/product')
+  router.push('/products')
 }
 
 function goProductDetail(id: number) {
@@ -55,26 +72,44 @@ function goProductDetail(id: number) {
 }
 
 function formatPrice(value: number) {
-  return '¥' + (value / 100).toFixed(2)
+  return '¥' + (value ?? 0).toFixed(2)
 }
 </script>
 
 <template>
   <div class="home-view">
+    <!-- 公告栏 -->
+    <div v-if="announcements.length" class="announcement-bar page-container">
+      <el-icon :size="16"><Bell /></el-icon>
+      <el-carousel height="24px" direction="vertical" :interval="3000" indicator-position="none">
+        <el-carousel-item v-for="a in announcements" :key="a.id">
+          <span class="announcement-text">{{ a.title }}</span>
+        </el-carousel-item>
+      </el-carousel>
+    </div>
+
     <!-- Banner 轮播 -->
     <section class="banner-section">
-      <el-carousel height="360px" indicator-position="outside">
+      <el-carousel height="360px" indicator-position="outside" v-loading="loading">
         <el-carousel-item v-for="banner in banners" :key="banner.id">
-          <div class="banner-item" :style="{ background: banner.color }">
+          <div
+            class="banner-item"
+            :style="{ backgroundImage: `url(${banner.image})`, backgroundSize: 'cover', backgroundPosition: 'center' }"
+          >
             <div class="banner-content page-container">
               <h2>{{ banner.title }}</h2>
-              <p>{{ banner.subtitle }}</p>
-              <el-button
-                type="warning"
-                size="large"
-                round
-                @click="goProductList"
-              >
+              <el-button type="warning" size="large" round @click="goProductList">
+                立即选购
+              </el-button>
+            </div>
+          </div>
+        </el-carousel-item>
+        <el-carousel-item v-if="!banners.length">
+          <div class="banner-item" style="background: linear-gradient(135deg, #e65c00 0%, #ff8c42 100%)">
+            <div class="banner-content page-container">
+              <h2>专业印刷 品质保证</h2>
+              <p>企业宣传册、名片、海报一站式定制</p>
+              <el-button type="warning" size="large" round @click="goProductList">
                 立即选购
               </el-button>
             </div>
@@ -87,21 +122,21 @@ function formatPrice(value: number) {
     <section class="category-section page-container">
       <div class="category-grid">
         <div
-          v-for="cat in categories"
+          v-for="(cat, idx) in categories"
           :key="cat.id"
           class="category-card"
           @click="goProductList"
         >
           <el-icon :size="32" color="var(--color-primary)">
-            <component :is="cat.icon" />
+            <component :is="categoryIcons[idx % categoryIcons.length]" />
           </el-icon>
           <span class="category-name">{{ cat.name }}</span>
         </div>
       </div>
     </section>
 
-    <!-- 推荐商品 -->
-    <section class="recommend-section page-container">
+    <!-- 热销推荐 -->
+    <section class="recommend-section page-container" v-loading="loading">
       <div class="section-header">
         <h3 class="section-title">
           <span class="title-bar" />
@@ -112,16 +147,16 @@ function formatPrice(value: number) {
         </el-button>
       </div>
 
-      <div class="product-grid">
+      <div v-if="hotProducts.length" class="product-grid">
         <div
-          v-for="product in recommendProducts"
+          v-for="product in hotProducts"
           :key="product.id"
           class="product-card"
           @click="goProductDetail(product.id)"
         >
           <div class="product-image">
             <el-image
-              :src="product.cover_image || 'https://placehold.co/280x200/e4e7ed/999?text=印刷产品'"
+              :src="product.thumbnail || 'https://placehold.co/280x200/e4e7ed/999?text=印刷产品'"
               fit="cover"
               class="image"
             />
@@ -129,17 +164,68 @@ function formatPrice(value: number) {
           <div class="product-info">
             <h4 class="product-name">{{ product.name }}</h4>
             <div class="product-meta">
-              <span class="product-price">{{ formatPrice(product.price) }}</span>
-              <span class="product-sold">已售 {{ product.sold_count }}</span>
+              <span class="product-price">{{ formatPrice(product.min_price) }}</span>
+              <span class="product-sold">已售 {{ product.sales_count }}</span>
             </div>
           </div>
         </div>
       </div>
+      <el-empty v-else description="暂无热销商品" />
+    </section>
+
+    <!-- 新品上市 -->
+    <section class="recommend-section page-container" v-loading="loading">
+      <div class="section-header">
+        <h3 class="section-title">
+          <span class="title-bar" />
+          新品上市
+        </h3>
+        <el-button text type="primary" @click="goProductList">
+          查看更多 <el-icon><ArrowRight /></el-icon>
+        </el-button>
+      </div>
+
+      <div v-if="newArrivals.length" class="product-grid">
+        <div
+          v-for="product in newArrivals"
+          :key="product.id"
+          class="product-card"
+          @click="goProductDetail(product.id)"
+        >
+          <div class="product-image">
+            <el-image
+              :src="product.thumbnail || 'https://placehold.co/280x200/e4e7ed/999?text=印刷产品'"
+              fit="cover"
+              class="image"
+            />
+          </div>
+          <div class="product-info">
+            <h4 class="product-name">{{ product.name }}</h4>
+            <div class="product-meta">
+              <span class="product-price">{{ formatPrice(product.min_price) }}</span>
+              <span class="product-sold">已售 {{ product.sales_count }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <el-empty v-else description="暂无新品" />
     </section>
   </div>
 </template>
 
 <style scoped>
+.announcement-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: var(--color-primary);
+  font-size: 13px;
+}
+.announcement-text {
+  line-height: 24px;
+}
+
 .banner-section {
   margin-bottom: 24px;
 }
@@ -149,6 +235,10 @@ function formatPrice(value: number) {
   display: flex;
   align-items: center;
   color: #fff;
+}
+
+.banner-content {
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
 }
 
 .banner-content h2 {

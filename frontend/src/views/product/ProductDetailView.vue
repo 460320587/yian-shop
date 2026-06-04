@@ -1,50 +1,37 @@
 <script setup lang="ts">
 /**
  * 商品详情页
- * - 图片展示
- * - 名称、价格、规格
- * - 加入购物车按钮
  */
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { getProductDetail } from '@/api/product'
 import { useCartStore } from '@/stores/cart'
 import { ElMessage } from 'element-plus'
 import { ShoppingCart, ArrowLeft } from '@element-plus/icons-vue'
+import type { ProductDetail } from '@/api/product'
 
 const route = useRoute()
 const router = useRouter()
 const cartStore = useCartStore()
 
 const productId = Number(route.params.id)
-
-// 骨架商品数据
-const product = ref({
-  id: productId,
-  name: '高级铜版纸名片 300g',
-  description: '采用300g高级铜版纸，四色印刷，覆哑膜，手感细腻，色彩还原度高。适用于商务名片、企业名片定制。',
-  price: 3500,
-  original_price: 5000,
-  cover_image: 'https://placehold.co/480x480/e4e7ed/999?text=商品主图',
-  images: [
-    'https://placehold.co/480x480/e4e7ed/999?text=商品主图',
-    'https://placehold.co/480x480/e4e7ed/999?text=详情图1',
-    'https://placehold.co/480x480/e4e7ed/999?text=详情图2',
-  ],
-  stock: 9999,
-  sold_count: 1200,
-  specs: [
-    { id: 1, name: '数量', values: ['100张', '200张', '500张', '1000张'] },
-    { id: 2, name: '覆膜', values: ['不覆膜', '哑膜', '亮膜'] },
-  ],
-})
-
-const selectedImage = ref(product.value.images[0])
+const product = ref<ProductDetail | null>(null)
+const loading = ref(false)
 const quantity = ref(1)
-const selectedSpecs = ref<Record<number, string>>({})
 
-// 初始化默认规格
-product.value.specs?.forEach((spec) => {
-  selectedSpecs.value[spec.id] = spec.values[0]
+onMounted(async () => {
+  if (!productId) {
+    ElMessage.error('商品不存在')
+    router.push('/products')
+    return
+  }
+  loading.value = true
+  try {
+    product.value = await getProductDetail(productId)
+  } catch (e) {
+    ElMessage.error('商品加载失败')
+  }
+  loading.value = false
 })
 
 function goBack() {
@@ -52,14 +39,13 @@ function goBack() {
 }
 
 function addToCart() {
-  const specInfo = Object.values(selectedSpecs.value).join(' / ')
+  if (!product.value) return
   cartStore.addItem({
     id: Date.now(),
     product_id: product.value.id,
     product_name: product.value.name,
-    product_image: product.value.cover_image,
-    spec_info: specInfo,
-    price: product.value.price,
+    product_image: product.value.cover_image || '',
+    price: product.value.price_min,
     quantity: quantity.value,
     selected: true,
   })
@@ -72,62 +58,38 @@ function buyNow() {
 }
 
 function formatPrice(value: number) {
-  return '¥' + (value / 100).toFixed(2)
+  return '¥' + (value ?? 0).toFixed(2)
 }
 </script>
 
 <template>
-  <div class="product-detail-view page-container">
-    <!-- 返回按钮 -->
+  <div class="product-detail-view page-container" v-loading="loading">
     <el-button text :icon="ArrowLeft" class="back-btn" @click="goBack">
       返回
     </el-button>
 
-    <div class="detail-layout">
+    <div v-if="product" class="detail-layout">
       <!-- 左侧：图片 -->
       <div class="gallery">
         <div class="main-image">
-          <el-image :src="selectedImage" fit="cover" class="image" />
-        </div>
-        <div class="thumb-list">
-          <div
-            v-for="(img, idx) in product.images"
-            :key="idx"
-            :class="['thumb-item', { active: selectedImage === img }]"
-            @click="selectedImage = img"
-          >
-            <el-image :src="img" fit="cover" class="thumb-image" />
-          </div>
+          <el-image
+            :src="product.cover_image || 'https://placehold.co/480x480/e4e7ed/999?text=商品主图'"
+            fit="cover"
+            class="image"
+          />
         </div>
       </div>
 
       <!-- 右侧：信息 -->
       <div class="product-info">
         <h1 class="product-name">{{ product.name }}</h1>
-        <p class="product-desc">{{ product.description }}</p>
 
         <div class="price-box">
           <div class="price-row">
-            <span class="price-label">优惠价</span>
-            <span class="price-value">{{ formatPrice(product.price) }}</span>
-          </div>
-          <div class="price-row original">
-            <span class="price-label">原价</span>
-            <span class="original-price">{{ formatPrice(product.original_price || 0) }}</span>
-          </div>
-        </div>
-
-        <!-- 规格选择 -->
-        <div v-for="spec in product.specs" :key="spec.id" class="spec-row">
-          <span class="spec-label">{{ spec.name }}</span>
-          <div class="spec-options">
-            <span
-              v-for="val in spec.values"
-              :key="val"
-              :class="['spec-option', { active: selectedSpecs[spec.id] === val }]"
-              @click="selectedSpecs[spec.id] = val"
-            >
-              {{ val }}
+            <span class="price-label">价格</span>
+            <span class="price-value">{{ formatPrice(product.price_min) }}</span>
+            <span v-if="product.price_max > product.price_min" class="price-range">
+              ~ {{ formatPrice(product.price_max) }}
             </span>
           </div>
         </div>
@@ -135,8 +97,7 @@ function formatPrice(value: number) {
         <!-- 数量 -->
         <div class="quantity-row">
           <span class="spec-label">数量</span>
-          <el-input-number v-model="quantity" :min="1" :max="product.stock" />
-          <span class="stock-hint">库存 {{ product.stock }} 件</span>
+          <el-input-number v-model="quantity" :min="1" :max="9999" />
         </div>
 
         <!-- 操作按钮 -->
@@ -150,6 +111,8 @@ function formatPrice(value: number) {
         </div>
       </div>
     </div>
+
+    <el-empty v-else description="商品不存在或已下架" />
   </div>
 </template>
 
@@ -188,31 +151,6 @@ function formatPrice(value: number) {
   height: 100%;
 }
 
-.thumb-list {
-  display: flex;
-  gap: 10px;
-}
-
-.thumb-item {
-  width: 80px;
-  height: 80px;
-  border-radius: 6px;
-  overflow: hidden;
-  cursor: pointer;
-  border: 2px solid transparent;
-  transition: border-color 0.2s;
-}
-
-.thumb-item.active,
-.thumb-item:hover {
-  border-color: var(--color-primary);
-}
-
-.thumb-image {
-  width: 100%;
-  height: 100%;
-}
-
 /* Info */
 .product-info {
   display: flex;
@@ -224,12 +162,6 @@ function formatPrice(value: number) {
   font-size: 24px;
   font-weight: 600;
   color: var(--text-primary);
-}
-
-.product-desc {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.8;
 }
 
 .price-box {
@@ -244,10 +176,6 @@ function formatPrice(value: number) {
   gap: 12px;
 }
 
-.price-row.original {
-  margin-top: 8px;
-}
-
 .price-label {
   font-size: 14px;
   color: var(--text-secondary);
@@ -260,15 +188,14 @@ function formatPrice(value: number) {
   color: var(--color-primary);
 }
 
-.original-price {
-  font-size: 16px;
-  color: var(--text-muted);
-  text-decoration: line-through;
+.price-range {
+  font-size: 18px;
+  color: var(--color-primary);
 }
 
-.spec-row {
+.quantity-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
 }
 
@@ -278,45 +205,6 @@ function formatPrice(value: number) {
   width: 50px;
   flex-shrink: 0;
   line-height: 32px;
-}
-
-.spec-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.spec-option {
-  padding: 6px 16px;
-  font-size: 14px;
-  color: var(--text-primary);
-  background: var(--bg-body);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.spec-option:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.spec-option.active {
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
-}
-
-.quantity-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.stock-hint {
-  font-size: 13px;
-  color: var(--text-muted);
 }
 
 .action-btns {

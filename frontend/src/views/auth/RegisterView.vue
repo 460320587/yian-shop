@@ -1,13 +1,16 @@
 <script setup lang="ts">
 /**
- * 注册页（骨架）
+ * 注册页
  */
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { register } from '@/api/user'
+import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { User, Lock, Message } from '@element-plus/icons-vue'
+import { User, Lock } from '@element-plus/icons-vue'
 
 const router = useRouter()
+const userStore = useUserStore()
 const loading = ref(false)
 
 const form = reactive({
@@ -43,13 +46,33 @@ const rules = {
 }
 
 async function handleRegister() {
-  await formRef.value?.validate()
+  const valid = await formRef.value?.validate().catch(() => false)
+  if (!valid) return
+
   loading.value = true
-  setTimeout(() => {
+  try {
+    const res = await register({
+      phone: form.phone,
+      password: form.password,
+      password_confirmation: form.confirmPassword,
+    })
+    userStore.loginSuccess(res.token, {
+      id: res.user.id,
+      phone: res.user.phone,
+      nickname: res.user.nickname,
+      avatar: null,
+      type: 1,
+      auth_status: 0,
+      vip_level: 0,
+      balance: 0,
+    })
+    ElMessage.success('注册成功')
+    router.push('/')
+  } catch (e: any) {
+    // 错误已由 request 拦截器处理
+  } finally {
     loading.value = false
-    ElMessage.success('注册成功，请登录')
-    router.push('/login')
-  }, 800)
+  }
 }
 
 function goLogin() {
@@ -96,7 +119,7 @@ function goLogin() {
             v-model="form.confirmPassword"
             type="password"
             placeholder="请确认密码"
-            :prefix-icon="Message"
+            :prefix-icon="Lock"
             show-password
             @keyup.enter="handleRegister"
           />
