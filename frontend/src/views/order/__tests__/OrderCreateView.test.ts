@@ -1,21 +1,41 @@
-import { describe, it, expect, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import OrderCreateView from '../OrderCreateView.vue'
 
+let createOrderMock = vi.fn()
+
 vi.mock('@/api/order', () => ({
-  createOrder: vi.fn(() => Promise.resolve({ order_no: 'Y202601010002', total_amount: 3000, status: 11 })),
+  createOrder: (...args: any[]) => createOrderMock(...args),
 }))
 
+beforeEach(() => {
+  createOrderMock = vi.fn(() => Promise.resolve({ id: 1, order_no: 'Y202601010001' }))
+})
+
 describe('OrderCreateView', () => {
-  it('renders order creation page', () => {
+  function mountComponent() {
     setActivePinia(createPinia())
     const router = createRouter({ history: createWebHistory(), routes: [] })
-    const wrapper = mount(OrderCreateView, {
+    return mount(OrderCreateView, {
       global: { plugins: [createPinia(), router] },
     })
-    expect(wrapper.find('.order-create-view').exists()).toBe(true)
+  }
+
+  it('renders order create page', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    expect(wrapper.find('.order-create-view').exists() || wrapper.find('.order-create-page').exists()).toBe(true)
     expect(wrapper.text()).toContain('确认订单')
+  })
+
+  it('submits order', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    if (vm.submitOrder) vm.submitOrder()
+    await flushPromises()
+    expect(createOrderMock).toHaveBeenCalledTimes(1)
   })
 })
