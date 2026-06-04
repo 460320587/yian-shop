@@ -81,14 +81,27 @@ export interface Order {
   created_at: string
 }
 
-/** 订单状态 */
+/** 订单状态（与后端枚举对应） */
 export enum OrderStatus {
-  PENDING_PAYMENT = 'pending_payment',
-  PAID = 'paid',
-  SHIPPED = 'shipped',
-  DELIVERED = 'delivered',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
+  PENDING_PAYMENT = 11,
+  PAID = 12,
+  IN_PRODUCTION = 13,
+  SHIPPED = 20,
+  PENDING_RECEIVE = 54,
+  RECEIVED = 55,
+  COMPLETED = 60,
+  CANCELLED = 61,
+}
+
+export const ORDER_STATUS_MAP: Record<number, { label: string; type: string }> = {
+  11: { label: '待付款', type: 'warning' },
+  12: { label: '已付款', type: 'primary' },
+  13: { label: '生产中', type: 'info' },
+  20: { label: '已发货', type: 'success' },
+  54: { label: '待收货', type: 'success' },
+  55: { label: '已收货', type: 'success' },
+  60: { label: '已完成', type: 'info' },
+  61: { label: '已取消', type: 'info' },
 }
 
 /** 订单项 */

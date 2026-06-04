@@ -1,31 +1,49 @@
-/**
- * 购物车相关 API 接口
- * （骨架阶段预留，后续对接真实接口）
- */
 import { get, post, put, del } from '@/utils/request'
-import type { ApiResponse, CartItem } from '@/types'
 
-/** 获取购物车列表 */
-export function getCartItems() {
-  return get<ApiResponse<CartItem[]>>('/cart')
+export interface CartItem {
+  id: number
+  product_id: number
+  product_name: string
+  thumbnail: string
+  quantity: number
+  unit_price: number
+  subtotal: number
+  selected: boolean
+  spec_info: string | null
+}
+
+export interface CartSummary {
+  total_count: number
+  selected_count: number
+  selected_subtotal: number
+}
+
+export interface CartData {
+  items: CartItem[]
+  summary: CartSummary
+}
+
+/** 获取购物车 */
+export function getCart() {
+  return get<CartData>('/cart')
 }
 
 /** 添加商品到购物车 */
-export function addToCart(data: { product_id: number; quantity: number; spec_info?: string }) {
-  return post<ApiResponse<CartItem>>('/cart', data)
+export function addToCart(data: { product_id: number; quantity: number }) {
+  return post<{ id: number; product_id: number; quantity: number; unit_price: number; subtotal: number; selected: boolean }>('/cart/items', data)
 }
 
-/** 更新购物车商品数量 */
-export function updateCartItem(id: number, data: { quantity: number }) {
-  return put<ApiResponse<CartItem>>(`/cart/${id}`, data)
+/** 更新购物车商品 */
+export function updateCartItem(id: number, data: { quantity?: number; selected?: boolean }) {
+  return put<{ id: number; quantity: number; unit_price: number; subtotal: number; selected: boolean }>(`/cart/items/${id}`, data)
 }
 
 /** 删除购物车商品 */
 export function removeCartItem(id: number) {
-  return del<ApiResponse<null>>(`/cart/${id}`)
+  return del<null>(`/cart/items/${id}`)
 }
 
 /** 清空购物车 */
 export function clearCart() {
-  return del<ApiResponse<null>>('/cart')
+  return del<null>('/cart')
 }

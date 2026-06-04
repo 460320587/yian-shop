@@ -29,6 +29,12 @@ const routes: RouteRecordRaw[] = [
         meta: { requiresAuth: true },
       },
       {
+        path: '/checkout',
+        name: 'Checkout',
+        component: () => import('@/views/order/OrderCreateView.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
         path: '/orders',
         name: 'OrderList',
         component: () => import('@/views/order/OrderListView.vue'),
@@ -38,6 +44,18 @@ const routes: RouteRecordRaw[] = [
         path: '/user',
         name: 'UserCenter',
         component: () => import('@/views/user/UserCenterView.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/coupons',
+        name: 'Coupons',
+        component: () => import('@/views/coupon/CouponView.vue'),
+        meta: { requiresAuth: true },
+      },
+      {
+        path: '/my-coupons',
+        name: 'MyCoupons',
+        component: () => import('@/views/coupon/MyCouponsView.vue'),
         meta: { requiresAuth: true },
       },
     ],

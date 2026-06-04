@@ -1,26 +1,42 @@
-/**
- * 订单相关 API 接口
- * （骨架阶段预留，后续对接真实接口）
- */
-import { get, post } from '@/utils/request'
-import type { ApiResponse, Order, PaginationData } from '@/types'
+import { get, post, put } from '@/utils/request'
+import type { PaginationData } from '@/types'
+
+export interface OrderItem {
+  id?: number
+  product_id: number
+  product_name: string
+  quantity: number
+  unit_price: number
+  subtotal: number
+}
+
+export interface Order {
+  id: number
+  order_no: string
+  status: number
+  customer_status: string
+  total_amount: number
+  discount_sum?: number
+  created_at: string
+  items: OrderItem[]
+}
 
 /** 创建订单 */
-export function createOrder(data: { cart_item_ids: number[]; address_id: number }) {
-  return post<ApiResponse<Order>>('/orders', data)
+export function createOrder(data: { address_id?: number; coupon_code?: string }) {
+  return post<Order>('/orders', data)
 }
 
 /** 获取订单列表 */
-export function getOrders(params?: Record<string, unknown>) {
-  return get<ApiResponse<PaginationData<Order>>>('/orders', params)
+export function getOrders(params?: { status?: number; page?: number; per_page?: number }) {
+  return get<PaginationData<Order>>('/orders', params as Record<string, unknown>)
 }
 
 /** 获取订单详情 */
 export function getOrderDetail(id: number) {
-  return get<ApiResponse<Order>>(`/orders/${id}`)
+  return get<Order>(`/orders/${id}`)
 }
 
 /** 取消订单 */
 export function cancelOrder(id: number) {
-  return post<ApiResponse<Order>>(`/orders/${id}/cancel`)
+  return put<null>(`/orders/${id}/cancel`)
 }

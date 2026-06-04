@@ -1,18 +1,11 @@
 <script setup lang="ts">
-/**
- * 用户中心页
- * - 侧边菜单
- * - 内容区（根据路由或 Tab 切换）
- */
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { logout as apiLogout } from '@/api/user'
+import { ElMessage } from 'element-plus'
 import {
-  User,
-  List,
-  Location,
-  Setting,
-  ShoppingCart,
+  User, List, Location, Setting, ShoppingCart, Ticket, Wallet, Medal,
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -23,19 +16,35 @@ const activeMenu = ref('profile')
 const menuItems = [
   { key: 'profile', label: '个人资料', icon: User },
   { key: 'orders', label: '我的订单', icon: List },
+  { key: 'coupons', label: '我的优惠券', icon: Ticket },
   { key: 'address', label: '收货地址', icon: Location },
   { key: 'cart', label: '购物车', icon: ShoppingCart },
   { key: 'settings', label: '账号设置', icon: Setting },
 ]
 
+onMounted(() => {
+  if (userStore.isLoggedIn && !userStore.userInfo) {
+    userStore.fetchUserInfo()
+  }
+})
+
 function handleMenuSelect(key: string) {
   activeMenu.value = key
-  if (key === 'orders') {
-    router.push('/orders')
-  } else if (key === 'cart') {
-    router.push('/cart')
-  }
+  if (key === 'orders') router.push('/orders')
+  else if (key === 'cart') router.push('/cart')
+  else if (key === 'coupons') router.push('/my-coupons')
 }
+
+async function handleLogout() {
+  try {
+    await apiLogout()
+  } catch { /* ignore */ }
+  userStore.logout()
+  ElMessage.success('已退出登录')
+  router.push('/')
+}
+
+const user = userStore.userInfo
 </script>
 
 <template>
@@ -45,22 +54,30 @@ function handleMenuSelect(key: string) {
       <aside class="user-sidebar ya-card">
         <div class="user-profile">
           <el-avatar :size="64" :icon="User" />
-          <h3 class="user-name">{{ userStore.userInfo?.name || '用户' }}</h3>
-          <p class="user-phone">{{ userStore.userInfo?.phone || '--' }}</p>
+          <h3 class="user-name">{{ user?.nickname || user?.phone || '用户' }}</h3>
+          <p class="user-phone">{{ user?.phone || '--' }}</p>
+          <div v-if="user" class="user-stats">
+            <div class="stat-item">
+              <el-icon :size="18"><Medal /></el-icon>
+              <span>VIP {{ user.vip_level || 0 }}</span>
+            </div>
+            <div class="stat-item">
+              <el-icon :size="18"><Wallet /></el-icon>
+              <span>余额 ¥{{ (user.balance ?? 0).toFixed(2) }}</span>
+            </div>
+          </div>
         </div>
 
-        <el-menu
-          :default-active="activeMenu"
-          class="user-menu"
-          @select="handleMenuSelect"
-        >
+        <el-menu :default-active="activeMenu" class="user-menu" @select="handleMenuSelect">
           <el-menu-item v-for="item in menuItems" :key="item.key" :index="item.key">
-            <el-icon>
-              <component :is="item.icon" />
-            </el-icon>
+            <el-icon><component :is="item.icon" /></el-icon>
             <span>{{ item.label }}</span>
           </el-menu-item>
         </el-menu>
+
+        <div class="logout-bar">
+          <el-button type="danger" text @click="handleLogout">退出登录</el-button>
+        </div>
       </aside>
 
       <!-- 内容区 -->
@@ -72,28 +89,14 @@ function handleMenuSelect(key: string) {
               <el-avatar :size="80" :icon="User" />
             </el-form-item>
             <el-form-item label="昵称">
-              <el-input
-                :model-value="userStore.userInfo?.name || ''"
-                placeholder="请输入昵称"
-                style="max-width: 320px"
-              />
+              <el-input :model-value="user?.nickname || ''" placeholder="请输入昵称" style="max-width: 320px" disabled />
             </el-form-item>
             <el-form-item label="手机号">
-              <el-input
-                :model-value="userStore.userInfo?.phone || ''"
-                disabled
-                style="max-width: 320px"
-              />
-            </el-form-item>
-            <el-form-item label="邮箱">
-              <el-input
-                :model-value="userStore.userInfo?.email || ''"
-                placeholder="请输入邮箱"
-                style="max-width: 320px"
-              />
+              <el-input :model-value="user?.phone || ''" disabled style="max-width: 320px" />
             </el-form-item>
             <el-form-item>
-              <el-button type="primary">保存修改</el-button>
+              <el-tag v-if="user?.auth_status === 1" type="success">已认证</el-tag>
+              <el-tag v-else type="info">未认证</el-tag>
             </el-form-item>
           </el-form>
         </template>
@@ -110,9 +113,6 @@ function handleMenuSelect(key: string) {
           <el-form label-width="120px">
             <el-form-item label="修改密码">
               <el-button>修改登录密码</el-button>
-            </el-form-item>
-            <el-form-item label="账号注销">
-              <el-button type="danger" text>申请注销账号</el-button>
             </el-form-item>
           </el-form>
         </template>
@@ -153,8 +153,29 @@ function handleMenuSelect(key: string) {
   color: var(--text-muted);
 }
 
+.user-stats {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
 .user-menu {
   border-right: none;
+}
+
+.logout-bar {
+  padding: 16px;
+  border-top: 1px solid var(--border-light);
+  text-align: center;
 }
 
 /* 内容区 */
