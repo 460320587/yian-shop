@@ -7,11 +7,23 @@ namespace App\Domains\Order\Models;
 use App\Domains\Common\Models\BaseModel;
 use App\Domains\Common\ValueObjects\Money;
 use App\Domains\User\Models\Customer;
+use App\Events\OrderStatusChanged;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends BaseModel
 {
+    protected static function booted(): void
+    {
+        static::updating(function (Order $order): void {
+            $originalStatus = (int) $order->getOriginal('status');
+            $newStatus = (int) $order->status;
+
+            if ($originalStatus !== $newStatus) {
+                OrderStatusChanged::dispatch($order, $originalStatus, $newStatus);
+            }
+        });
+    }
     protected $fillable = [
         'order_no',
         'customer_id',
