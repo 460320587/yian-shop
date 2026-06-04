@@ -85,7 +85,7 @@ Route::middleware('auth:sanctum')->prefix('payments')->group(function () {
     Route::post('/create', [\App\Http\Controllers\Api\PaymentController::class, 'create']);
     Route::get('/{id}/status', [\App\Http\Controllers\Api\PaymentController::class, 'status']);
     Route::post('/wallet/recharge', [\App\Http\Controllers\Api\PaymentController::class, 'recharge']);
-    Route::post('/wallet/withdraw', fn () => ['todo' => 'wallet-withdraw']);
+    Route::post('/wallet/withdraw', [\App\Http\Controllers\Api\PaymentController::class, 'withdraw']);
     Route::post('/{id}/mock-callback', [\App\Http\Controllers\Api\PaymentController::class, 'mockCallback']);
 });
 

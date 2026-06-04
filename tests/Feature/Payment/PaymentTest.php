@@ -241,4 +241,51 @@ class PaymentTest extends TestCase
             'status' => PaymentStatus::Failed->value,
         ]);
     }
+
+    public function test_user_can_withdraw_wallet_balance(): void
+    {
+        $customer = $this->authCustomer(['balance' => 10000]);
+
+        $response = $this->postJson('/api/v1/payments/wallet/withdraw', [
+            'amount' => 50,
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('code', 0)
+            ->assertJsonPath('data.status', PaymentStatus::Success->value)
+            ->assertJsonPath('data.amount', 50);
+
+        $customer->refresh();
+        $this->assertEquals(50, $customer->balance->toYuan());
+
+        $this->assertDatabaseHas('payments', [
+            'customer_id' => $customer->id,
+            'gateway' => 'withdraw',
+            'amount' => 5000,
+            'status' => PaymentStatus::Success->value,
+        ]);
+    }
+
+    public function test_withdraw_fails_with_insufficient_balance(): void
+    {
+        $customer = $this->authCustomer(['balance' => 1000]);
+
+        $response = $this->postJson('/api/v1/payments/wallet/withdraw', [
+            'amount' => 50,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('code', ErrorCode::INSUFFICIENT_BALANCE->value);
+    }
+
+    public function test_withdraw_fails_with_invalid_amount(): void
+    {
+        $customer = $this->authCustomer(['balance' => 10000]);
+
+        $response = $this->postJson('/api/v1/payments/wallet/withdraw', [
+            'amount' => 0,
+        ]);
+
+        $response->assertStatus(422);
+    }
 }

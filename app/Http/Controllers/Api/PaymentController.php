@@ -168,6 +168,44 @@ class PaymentController extends BaseController
         ], '充值成功', 201);
     }
 
+    public function withdraw(Request $request): JsonResponse
+    {
+        $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:50000'],
+        ]);
+
+        $customerId = auth('sanctum')->id();
+        $customer = Customer::find($customerId);
+        $amount = (int) round($request->input('amount') * 100);
+
+        if ($customer->balance->amount < $amount) {
+            return $this->error(ErrorCode::INSUFFICIENT_BALANCE, null, null, 422);
+        }
+
+        $customer->balance = $customer->balance->subtract(new Money($amount));
+        $customer->save();
+
+        $paymentNo = 'P' . now()->format('Ymd') . strtoupper(Str::random(6));
+        $payment = Payment::create([
+            'payment_no' => $paymentNo,
+            'order_no' => null,
+            'customer_id' => $customerId,
+            'gateway' => 'withdraw',
+            'amount' => $amount,
+            'status' => PaymentStatus::Success->value,
+            'paid_at' => now(),
+            'expire_at' => now()->addMinutes(5),
+        ]);
+
+        return $this->success([
+            'payment_id' => $payment->id,
+            'payment_no' => $payment->payment_no,
+            'amount' => $amount / 100,
+            'gateway' => 'withdraw',
+            'status' => PaymentStatus::Success->value,
+        ], '提现成功', 201);
+    }
+
     public function mockCallback(Request $request, int $id): JsonResponse
     {
         $payment = Payment::where('customer_id', auth('sanctum')->id())->find($id);
