@@ -232,6 +232,12 @@ Route::prefix('admin')->group(function () {
         Route::get('/audit-logs', [\App\Http\Controllers\Api\Admin\AdminAuditLogController::class, 'index']);
         Route::get('/audit-logs/{id}', [\App\Http\Controllers\Api\Admin\AdminAuditLogController::class, 'show']);
 
+        // 系统配置
+        Route::get('/system-configs', [\App\Http\Controllers\Api\Admin\AdminSystemConfigController::class, 'index']);
+        Route::put('/system-configs/batch', [\App\Http\Controllers\Api\Admin\AdminSystemConfigController::class, 'batchUpdate']);
+        Route::get('/system-configs/{id}', [\App\Http\Controllers\Api\Admin\AdminSystemConfigController::class, 'show']);
+        Route::put('/system-configs/{id}', [\App\Http\Controllers\Api\Admin\AdminSystemConfigController::class, 'update']);
+
         // 优惠券管理
         Route::get('/coupons', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'index']);
         Route::post('/coupons', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'store']);

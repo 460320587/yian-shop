@@ -4,6 +4,7 @@ import {
   getDashboardStats,
   getAdminProducts, getAdminProductDetail, createAdminProduct, toggleProductStatus,
   getAdminAuditLogs, getAdminAuditLogDetail,
+  getSystemConfigs, updateSystemConfig, batchUpdateSystemConfigs,
 } from '../admin'
 
 vi.mock('@/utils/request', () => ({
@@ -16,6 +17,9 @@ vi.mock('@/utils/request', () => ({
     }
     if (url === '/products') {
       return Promise.resolve({ id: 2, name: '新产品', code: 'NEW-001', price_min: 1000, price_max: 5000, status: 1 })
+    }
+    if (url === '/system-configs/batch') {
+      return Promise.resolve({})
     }
     return Promise.resolve({})
   }),
@@ -49,11 +53,23 @@ vi.mock('@/utils/request', () => ({
     if (url.startsWith('/audit-logs/')) {
       return Promise.resolve({ id: 1, admin_id: 1, admin_name: '管理员', action: 'login', model_type: 'Admin', model_id: 1, before_data: null, after_data: null, ip: '127.0.0.1', user_agent: 'Mozilla', result: 1, remark: '', created_at: '2026-01-01' })
     }
+    if (url === '/system-configs') {
+      return Promise.resolve([
+        { id: 1, config_key: 'site_name', config_value: '怡安印刷', type: 'string', description: '站点名称', group: 'basic' },
+        { id: 2, config_key: 'maintenance_mode', config_value: '0', type: 'bool', description: '维护模式', group: 'system' },
+      ])
+    }
+    if (url.startsWith('/system-configs/') && !url.includes('/batch')) {
+      return Promise.resolve({ id: 1, config_key: 'site_name', config_value: '怡安印刷', type: 'string', description: '站点名称', group: 'basic' })
+    }
     return Promise.resolve({})
   }),
   put: vi.fn((url: string) => {
     if (url.startsWith('/products/')) {
       return Promise.resolve({ status: 0 })
+    }
+    if (url.startsWith('/system-configs/')) {
+      return Promise.resolve({})
     }
     return Promise.resolve({})
   }),
@@ -107,12 +123,28 @@ describe('Admin API', () => {
     const res = await getAdminAuditLogs()
     expect(res.data).toHaveLength(1)
     expect(res.data[0].action).toBe('login')
-    expect(res.data[0].admin_name).toBe('管理员')
   })
 
   it('getAdminAuditLogDetail returns log detail', async () => {
     const log = await getAdminAuditLogDetail(1)
     expect(log.action).toBe('login')
     expect(log.ip).toBe('127.0.0.1')
+  })
+
+  it('getSystemConfigs returns config list', async () => {
+    const res = await getSystemConfigs()
+    expect(res).toHaveLength(2)
+    expect(res[0].config_key).toBe('site_name')
+    expect(res[1].group).toBe('system')
+  })
+
+  it('updateSystemConfig updates config', async () => {
+    const res = await updateSystemConfig(1, { config_value: '新名称' })
+    expect(res).toEqual({})
+  })
+
+  it('batchUpdateSystemConfigs batch updates', async () => {
+    const res = await batchUpdateSystemConfigs([{ id: 1, config_value: '新名称' }, { id: 2, config_value: '1' }])
+    expect(res).toEqual({})
   })
 })

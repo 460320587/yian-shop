@@ -257,6 +257,25 @@ export function getAdminAuditLogDetail(id: number) {
   return getAdmin<AuditLogDetail>(`/audit-logs/${id}`)
 }
 
+// ===== SystemConfig =====
+export interface SystemConfig {
+  id: number
+  config_key: string
+  config_value: string
+  type: string
+  description: string | null
+  group: string
+}
+export function getSystemConfigs(params?: { group?: string; keyword?: string }) {
+  return getAdmin<SystemConfig[]>('/system-configs', params)
+}
+export function updateSystemConfig(id: number, data: { config_value: string }) {
+  return putAdmin(`/system-configs/${id}`, data)
+}
+export function batchUpdateSystemConfigs(configs: Array<{ id: number; config_value: string }>) {
+  return putAdmin('/system-configs/batch', { configs })
+}
+
 // ===== Ticket =====
 export interface Ticket {
   id: number
