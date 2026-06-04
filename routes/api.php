@@ -184,6 +184,13 @@ Route::prefix('admin')->group(function () {
         Route::post('/auth/logout', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'logout']);
         Route::get('/auth/profile', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'profile']);
 
+        // 商品管理
+        Route::get('/products', [\App\Http\Controllers\Api\Admin\AdminProductController::class, 'index']);
+        Route::get('/products/{id}', [\App\Http\Controllers\Api\Admin\AdminProductController::class, 'show']);
+        Route::post('/products', [\App\Http\Controllers\Api\Admin\AdminProductController::class, 'store']);
+        Route::put('/products/{id}', [\App\Http\Controllers\Api\Admin\AdminProductController::class, 'update']);
+        Route::put('/products/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\AdminProductController::class, 'toggleStatus']);
+
         // 客户管理
         Route::get('/customers', [\App\Http\Controllers\Api\Admin\AdminCustomerController::class, 'index']);
         Route::get('/customers/{id}', [\App\Http\Controllers\Api\Admin\AdminCustomerController::class, 'show']);
@@ -217,6 +224,9 @@ Route::prefix('admin')->group(function () {
         Route::get('/tickets', [\App\Http\Controllers\Api\Admin\AdminTicketController::class, 'index']);
         Route::get('/tickets/{id}', [\App\Http\Controllers\Api\Admin\AdminTicketController::class, 'show']);
         Route::put('/tickets/{id}/process', [\App\Http\Controllers\Api\Admin\AdminTicketController::class, 'process']);
+
+        // 数据看板
+        Route::get('/dashboard', [\App\Http\Controllers\Api\Admin\AdminDashboardController::class, 'index']);
 
         // 优惠券管理
         Route::get('/coupons', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'index']);
