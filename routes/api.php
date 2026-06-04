@@ -30,8 +30,8 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [\App\Http\Controllers\Api\AuthController::class, 'login']);
     Route::post('/logout', [\App\Http\Controllers\Api\AuthController::class, 'logout'])->middleware('auth:sanctum');
     Route::post('/refresh', [\App\Http\Controllers\Api\AuthController::class, 'refresh'])->middleware('auth:sanctum');
-    Route::post('/forgot-password', fn () => ['todo' => 'forgot-password']);
-    Route::post('/reset-password', fn () => ['todo' => 'reset-password']);
+    Route::post('/forgot-password', [\App\Http\Controllers\Api\AuthController::class, 'forgotPassword']);
+    Route::post('/reset-password', [\App\Http\Controllers\Api\AuthController::class, 'resetPassword']);
     Route::get('/captcha', fn () => ['todo' => 'captcha']);
 });
 

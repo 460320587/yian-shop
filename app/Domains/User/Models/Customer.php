@@ -30,6 +30,8 @@ class Customer extends BaseModel implements AuthenticatableContract
         'qq',
         'register_ip',
         'last_login_at',
+        'reset_token',
+        'reset_token_expires_at',
     ];
 
     protected $casts = [

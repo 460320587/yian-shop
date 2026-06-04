@@ -6,8 +6,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\User\Models\Customer;
 use App\Http\Controllers\BaseController;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
@@ -123,5 +125,50 @@ class AuthController extends BaseController
             'link_person' => $customer->link_person,
             'qq' => $customer->qq,
         ], '更新成功');
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        $customer = Customer::where('phone', $request->input('phone'))->first();
+
+        if (! $customer) {
+            return $this->error(ErrorCode::USER_NOT_FOUND, '用户不存在', null, 404);
+        }
+
+        $token = bin2hex(random_bytes(32));
+
+        $customer->update([
+            'reset_token' => $token,
+            'reset_token_expires_at' => now()->addHour(),
+        ]);
+
+        return $this->success([
+            'token' => $token,
+        ], '重置令牌已生成');
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        $customer = Customer::where('phone', $request->input('phone'))->first();
+
+        if (! $customer) {
+            return $this->error(ErrorCode::USER_NOT_FOUND, '用户不存在', null, 404);
+        }
+
+        if ($customer->reset_token !== $request->input('token')) {
+            return $this->error(ErrorCode::AUTH_TOKEN_INVALID, '重置令牌无效');
+        }
+
+        if ($customer->reset_token_expires_at && $customer->reset_token_expires_at < now()) {
+            return $this->error(ErrorCode::AUTH_TOKEN_EXPIRED, '重置令牌已过期');
+        }
+
+        $customer->update([
+            'password' => Hash::make($request->input('password')),
+            'reset_token' => null,
+            'reset_token_expires_at' => null,
+        ]);
+
+        return $this->success([], '密码重置成功');
     }
 }

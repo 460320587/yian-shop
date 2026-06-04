@@ -116,6 +116,8 @@ enum ErrorCode: int
             self::VALIDATION_ERROR => 422,
             self::TOO_MANY_REQUESTS => 429,
             self::SYSTEM_ERROR => 500,
+            self::AUTH_TOKEN_INVALID => 400,
+            self::AUTH_TOKEN_EXPIRED => 400,
             self::COUPON_EXPIRED => 400,
             self::COUPON_EXHAUSTED => 400,
             self::COUPON_OVER_LIMIT => 400,
