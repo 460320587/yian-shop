@@ -228,6 +228,10 @@ Route::prefix('admin')->group(function () {
         // 数据看板
         Route::get('/dashboard', [\App\Http\Controllers\Api\Admin\AdminDashboardController::class, 'index']);
 
+        // 审计日志
+        Route::get('/audit-logs', [\App\Http\Controllers\Api\Admin\AdminAuditLogController::class, 'index']);
+        Route::get('/audit-logs/{id}', [\App\Http\Controllers\Api\Admin\AdminAuditLogController::class, 'show']);
+
         // 优惠券管理
         Route::get('/coupons', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'index']);
         Route::post('/coupons', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'store']);

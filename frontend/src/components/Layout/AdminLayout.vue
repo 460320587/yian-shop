@@ -18,6 +18,7 @@ const menuItems = [
   { index: '/admin/banners', label: 'Banner/公告' },
   { index: '/admin/after-sales', label: '售后管理' },
   { index: '/admin/invoices', label: '发票管理' },
+  { index: '/admin/audit-logs', label: '审计日志' },
 ]
 
 const activeMenu = computed(() => route.path)

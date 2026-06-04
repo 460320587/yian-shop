@@ -34,6 +34,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'banners', name: 'AdminBanners', component: () => import('@/views/admin/BannerManagementView.vue'), meta: { title: 'Banner/公告' } },
       { path: 'after-sales', name: 'AdminAfterSales', component: () => import('@/views/admin/AfterSaleManagementView.vue'), meta: { title: '售后管理' } },
       { path: 'invoices', name: 'AdminInvoices', component: () => import('@/views/admin/InvoiceManagementView.vue'), meta: { title: '发票管理' } },
+      { path: 'audit-logs', name: 'AdminAuditLogs', component: () => import('@/views/admin/AuditLogView.vue'), meta: { title: '审计日志' } },
     ],
   },
   { path: '/admin/login', name: 'AdminLogin', component: () => import('@/views/admin/AdminLoginView.vue'), meta: { guestAdmin: true } },

@@ -232,6 +232,31 @@ export function issueInvoice(id: number) {
   return putAdmin(`/invoices/${id}/issue`)
 }
 
+// ===== AuditLog =====
+export interface AuditLog {
+  id: number
+  admin_id: number | null
+  admin_name: string | null
+  action: string
+  model_type: string | null
+  model_id: number | null
+  ip: string | null
+  result: number
+  created_at: string
+}
+export interface AuditLogDetail extends AuditLog {
+  before_data: any
+  after_data: any
+  user_agent: string | null
+  remark: string | null
+}
+export function getAdminAuditLogs(params?: { action?: string; admin_id?: number; page?: number; per_page?: number }) {
+  return getAdmin<{ data: AuditLog[]; total: number; current_page: number; last_page: number }>('/audit-logs', params)
+}
+export function getAdminAuditLogDetail(id: number) {
+  return getAdmin<AuditLogDetail>(`/audit-logs/${id}`)
+}
+
 // ===== Ticket =====
 export interface Ticket {
   id: number

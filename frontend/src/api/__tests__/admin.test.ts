@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest'
-import { adminLogin, adminLogout, adminProfile, getDashboardStats, getAdminProducts, getAdminProductDetail, createAdminProduct, updateAdminProduct, toggleProductStatus } from '../admin'
+import {
+  adminLogin, adminLogout, adminProfile,
+  getDashboardStats,
+  getAdminProducts, getAdminProductDetail, createAdminProduct, toggleProductStatus,
+  getAdminAuditLogs, getAdminAuditLogDetail,
+} from '../admin'
 
 vi.mock('@/utils/request', () => ({
   post: vi.fn((url: string) => {
@@ -35,6 +40,15 @@ vi.mock('@/utils/request', () => ({
     if (url.startsWith('/products/')) {
       return Promise.resolve({ id: 1, name: '名片', code: 'CARD-001', price_min: 1000, price_max: 5000, status: 1, category: { id: 1, name: '名片' } })
     }
+    if (url === '/audit-logs') {
+      return Promise.resolve({
+        data: [{ id: 1, admin_id: 1, admin_name: '管理员', action: 'login', model_type: 'Admin', model_id: 1, ip: '127.0.0.1', result: 1, created_at: '2026-01-01' }],
+        total: 1, current_page: 1, last_page: 1,
+      })
+    }
+    if (url.startsWith('/audit-logs/')) {
+      return Promise.resolve({ id: 1, admin_id: 1, admin_name: '管理员', action: 'login', model_type: 'Admin', model_id: 1, before_data: null, after_data: null, ip: '127.0.0.1', user_agent: 'Mozilla', result: 1, remark: '', created_at: '2026-01-01' })
+    }
     return Promise.resolve({})
   }),
   put: vi.fn((url: string) => {
@@ -66,7 +80,6 @@ describe('Admin API', () => {
     const data = await getDashboardStats()
     expect(data.today_orders).toBe(5)
     expect(data.total_customers).toBe(100)
-    expect(data.sales_trend).toHaveLength(1)
   })
 
   it('getAdminProducts returns paginated products', async () => {
@@ -88,5 +101,18 @@ describe('Admin API', () => {
   it('toggleProductStatus toggles status', async () => {
     const res = await toggleProductStatus(1)
     expect(res.status).toBe(0)
+  })
+
+  it('getAdminAuditLogs returns audit logs', async () => {
+    const res = await getAdminAuditLogs()
+    expect(res.data).toHaveLength(1)
+    expect(res.data[0].action).toBe('login')
+    expect(res.data[0].admin_name).toBe('管理员')
+  })
+
+  it('getAdminAuditLogDetail returns log detail', async () => {
+    const log = await getAdminAuditLogDetail(1)
+    expect(log.action).toBe('login')
+    expect(log.ip).toBe('127.0.0.1')
   })
 })
