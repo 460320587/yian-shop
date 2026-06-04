@@ -6,12 +6,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Cart\Models\Cart;
 use App\Domains\Cart\Models\CartItem;
+use App\Domains\Coupon\Models\CustomerCoupon;
 use App\Domains\Product\Models\Product;
+use App\Domains\User\Models\CustomerAddress;
 use App\Http\Controllers\BaseController;
 use App\Http\Requests\Cart\AddCartItemRequest;
 use App\Http\Requests\Cart\UpdateCartItemRequest;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class CartController extends BaseController
 {
@@ -126,6 +129,86 @@ class CartController extends BaseController
         $this->updateCartSummary($cart);
 
         return $this->success([], '购物车已清空');
+    }
+
+    public function checkout(Request $request): JsonResponse
+    {
+        $customerId = auth('sanctum')->id();
+        $cart = Cart::where('customer_id', $customerId)
+            ->with('items.product')
+            ->first();
+
+        if (! $cart) {
+            return $this->error(ErrorCode::CART_EMPTY, '购物车为空', null, 422);
+        }
+
+        $itemsQuery = $cart->items()->where('selected', 1);
+
+        if ($request->has('item_ids')) {
+            $itemsQuery->whereIn('id', $request->input('item_ids'));
+        }
+
+        $items = $itemsQuery->get();
+
+        if ($items->isEmpty()) {
+            return $this->error(ErrorCode::CART_EMPTY, '购物车为空', null, 422);
+        }
+
+        $goodsAmount = $items->sum('subtotal');
+
+        $address = CustomerAddress::where('customer_id', $customerId)
+            ->where('is_default', true)
+            ->first();
+
+        $coupons = CustomerCoupon::with('coupon')
+            ->where('customer_id', $customerId)
+            ->where('status', 1)
+            ->where(function ($q) {
+                $q->whereNull('expired_at')
+                    ->orWhere('expired_at', '>', now());
+            })
+            ->get();
+
+        return $this->success([
+            'items' => $items->map(fn (CartItem $item) => [
+                'id' => $item->id,
+                'product_id' => $item->product_id,
+                'product_name' => $item->product?->name ?? '',
+                'thumbnail' => $item->product?->cover_image,
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_price / 100,
+                'subtotal' => $item->subtotal / 100,
+                'spec_info' => $item->spec_info,
+            ])->all(),
+            'address' => $address ? [
+                'id' => $address->id,
+                'contact_name' => $address->contact_name,
+                'contact_phone' => $address->contact_phone,
+                'full_address' => $address->province_name . $address->city_name . $address->county_name . $address->detail_address,
+                'province_name' => $address->province_name,
+                'city_name' => $address->city_name,
+                'county_name' => $address->county_name,
+                'detail_address' => $address->detail_address,
+                'is_default' => (bool) $address->is_default,
+                'tag' => $address->tag,
+            ] : null,
+            'coupons' => $coupons->map(fn (CustomerCoupon $customerCoupon) => [
+                'id' => $customerCoupon->id,
+                'code' => $customerCoupon->code,
+                'status' => $customerCoupon->status,
+                'coupon' => $customerCoupon->coupon ? [
+                    'name' => $customerCoupon->coupon->name,
+                    'type' => $customerCoupon->coupon->type,
+                    'value' => $customerCoupon->coupon->value,
+                    'min_amount' => $customerCoupon->coupon->min_amount->toYuan(),
+                ] : null,
+            ])->all(),
+            'summary' => [
+                'goods_amount' => $goodsAmount / 100,
+                'discount' => 0,
+                'total_amount' => $goodsAmount / 100,
+            ],
+        ]);
     }
 
     private function getOrCreateCart(): Cart

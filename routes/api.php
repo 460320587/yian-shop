@@ -68,7 +68,7 @@ Route::middleware('auth:sanctum')->prefix('cart')->group(function () {
     Route::put('/items/{id}', [\App\Http\Controllers\Api\CartController::class, 'update']);
     Route::delete('/items/{id}', [\App\Http\Controllers\Api\CartController::class, 'destroyItem']);
     Route::delete('/', [\App\Http\Controllers\Api\CartController::class, 'clear']);
-    Route::post('/checkout', fn () => ['todo' => 'cart-checkout']);
+    Route::post('/checkout', [\App\Http\Controllers\Api\CartController::class, 'checkout']);
 });
 
 // 订单系统 (Phase 4)
