@@ -10,6 +10,10 @@ vi.mock('@/api/user', () => ({
   register: (...args: any[]) => registerMock(...args),
 }))
 
+vi.mock('@/api/captcha', () => ({
+  getCaptcha: () => Promise.resolve({ captcha_key: 'key_1', captcha_code: '1234' }),
+}))
+
 vi.mock('element-plus', () => ({
   ElMessage: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
 }))
@@ -55,6 +59,8 @@ describe('RegisterView', () => {
     vm.form.phone = '123'
     vm.form.password = 'Abc12345'
     vm.form.password_confirmation = 'Abc12345'
+    vm.form.captcha = '1234'
+    vm.captchaValid = true
     vm.agreed = true
     await vm.handleRegister()
     expect(registerMock).not.toHaveBeenCalled()
@@ -67,6 +73,8 @@ describe('RegisterView', () => {
     vm.form.phone = '13800138000'
     vm.form.password = 'Abc12345'
     vm.form.password_confirmation = 'Abc12346'
+    vm.form.captcha = '1234'
+    vm.captchaValid = true
     vm.agreed = true
     await vm.handleRegister()
     expect(registerMock).not.toHaveBeenCalled()
@@ -79,6 +87,8 @@ describe('RegisterView', () => {
     vm.form.phone = '13800138000'
     vm.form.password = 'Abc12345'
     vm.form.password_confirmation = 'Abc12345'
+    vm.form.captcha = '1234'
+    vm.captchaValid = true
     vm.agreed = false
     await vm.handleRegister()
     expect(registerMock).not.toHaveBeenCalled()
@@ -94,6 +104,8 @@ describe('RegisterView', () => {
     vm.form.nickname = '测试昵称'
     vm.form.link_person = '张三'
     vm.form.qq = '123456'
+    vm.form.captcha = '1234'
+    vm.captchaValid = true
     vm.agreed = true
     await vm.handleRegister()
     await flushPromises()
@@ -114,6 +126,8 @@ describe('RegisterView', () => {
     vm.form.phone = '13800138000'
     vm.form.password = 'Abc12345'
     vm.form.password_confirmation = 'Abc12345'
+    vm.form.captcha = '1234'
+    vm.captchaValid = true
     vm.agreed = true
     await vm.handleRegister()
     await flushPromises()

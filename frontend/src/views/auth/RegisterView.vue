@@ -4,11 +4,15 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import { register } from '@/api/user'
+import AppCaptcha from '@/components/Common/AppCaptcha/AppCaptcha.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const loading = ref(false)
 const agreed = ref(false)
+const captchaRef = ref<InstanceType<typeof AppCaptcha>>()
+const captchaValid = ref(false)
+const captchaKey = ref('')
 
 const form = reactive({
   phone: '',
@@ -17,6 +21,7 @@ const form = reactive({
   nickname: '',
   link_person: '',
   qq: '',
+  captcha: '',
 })
 
 const passwordStrength = computed(() => {
@@ -62,6 +67,14 @@ function validate(): boolean {
     ElMessage.warning('两次密码输入不一致')
     return false
   }
+  if (!form.captcha) {
+    ElMessage.warning('请输入验证码')
+    return false
+  }
+  if (!captchaValid.value) {
+    ElMessage.warning('验证码不正确')
+    return false
+  }
   if (!agreed.value) {
     ElMessage.warning('请同意用户协议')
     return false
@@ -96,15 +109,26 @@ async function handleRegister() {
   } catch (e: any) {
     const msg = e?.response?.data?.message || '注册失败'
     ElMessage.error(msg)
+    if (captchaRef.value) {
+      captchaRef.value.refreshCaptcha()
+      form.captcha = ''
+      captchaValid.value = false
+    }
   } finally {
     loading.value = false
   }
+}
+
+function onCaptchaVerify(valid: boolean, key: string) {
+  captchaValid.value = valid
+  captchaKey.value = key
 }
 
 defineExpose({
   loading,
   form,
   agreed,
+  captchaValid,
   passwordStrength,
   strengthText,
   strengthColor,
@@ -159,6 +183,14 @@ defineExpose({
 
         <el-form-item label="QQ">
           <el-input v-model="form.qq" placeholder="请输入QQ号（选填）" maxlength="20" />
+        </el-form-item>
+
+        <el-form-item label="验证码">
+          <AppCaptcha
+            ref="captchaRef"
+            v-model="form.captcha"
+            @verify="onCaptchaVerify"
+          />
         </el-form-item>
 
         <el-form-item>

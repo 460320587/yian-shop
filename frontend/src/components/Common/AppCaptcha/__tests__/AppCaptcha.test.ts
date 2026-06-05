@@ -27,7 +27,6 @@ describe('AppCaptcha', () => {
     const wrapper = createWrapper()
     await flushPromises()
     expect(wrapper.find('.app-captcha').exists()).toBe(true)
-    expect(wrapper.find('input').exists()).toBe(true)
   })
 
   it('fetches captcha on mount', async () => {
@@ -44,7 +43,7 @@ describe('AppCaptcha', () => {
     const wrapper = createWrapper()
     await flushPromises()
 
-    expect(wrapper.find('.captcha-code').text()).toContain('1234')
+    expect(wrapper.text()).toContain('1234')
   })
 
   it('refreshes captcha when clicking refresh', async () => {

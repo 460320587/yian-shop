@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { getCaptcha } from '@/api/captcha'
 
 const props = withDefaults(defineProps<{
@@ -22,6 +22,35 @@ const captchaKey = ref('')
 const captchaCode = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
+
+const charStyles = computed(() => {
+  return (captchaCode.value || '').split('').map((_, i) => ({
+    transform: `rotate(${randomRange(-15, 15)}deg)`,
+    fontSize: `${randomRange(18, 24)}px`,
+    color: randomColor(),
+  }))
+})
+
+function randomRange(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function randomColor(): string {
+  const colors = ['#409eff', '#67c23a', '#e6a23c', '#f56c6c', '#909399', '#606266']
+  return colors[Math.floor(Math.random() * colors.length)]
+}
+
+function randomLineStyle(): string {
+  const top = randomRange(5, 35)
+  const left = randomRange(0, 100)
+  const width = randomRange(20, 60)
+  const rotate = randomRange(-30, 30)
+  return `top:${top}px;left:${left}px;width:${width}px;transform:rotate(${rotate}deg);background:${randomColor()}`
+}
+
+const noiseLines = computed(() => {
+  return Array.from({ length: 4 }, () => randomLineStyle())
+})
 
 async function refreshCaptcha() {
   loading.value = true
@@ -75,29 +104,39 @@ defineExpose({
 
 <template>
   <div class="app-captcha">
-    <input
-      :value="modelValue"
+    <el-input
+      :model-value="modelValue"
       type="text"
       class="captcha-input"
       :maxlength="length"
       placeholder="请输入验证码"
-      @input="(e) => handleInput((e.target as HTMLInputElement).value)"
+      @update:model-value="handleInput"
       @blur="verifyCode"
-    >
-    <div class="captcha-display">
-      <span v-if="captchaCode" class="captcha-code">{{ captchaCode }}</span>
+    />
+    <div class="captcha-display" @click="refreshCaptcha">
+      <div v-for="(line, i) in noiseLines" :key="i" class="noise-line" :style="line" />
+      <template v-if="captchaCode">
+        <span
+          v-for="(char, i) in captchaCode.split('')"
+          :key="i"
+          class="captcha-char"
+          :style="charStyles[i]"
+        >
+          {{ char }}
+        </span>
+      </template>
       <span v-else class="captcha-placeholder">--</span>
-      <button
-        v-if="refreshable"
-        data-testid="refresh-btn"
-        type="button"
-        class="refresh-btn"
-        :disabled="loading"
-        @click="refreshCaptcha"
-      >
-        刷新
-      </button>
     </div>
+    <button
+      v-if="refreshable"
+      data-testid="refresh-btn"
+      type="button"
+      class="refresh-btn"
+      :disabled="loading"
+      @click="refreshCaptcha"
+    >
+      刷新
+    </button>
     <div v-if="errorMsg" class="error-msg">{{ errorMsg }}</div>
   </div>
 </template>
@@ -111,29 +150,37 @@ defineExpose({
 }
 .captcha-input {
   width: 120px;
-  padding: 6px 10px;
-  border: 1px solid #dcdfe6;
-  border-radius: 4px;
-  font-size: 14px;
 }
 .captcha-display {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: #f5f7fa;
+  justify-content: center;
+  gap: 6px;
+  width: 100px;
+  height: 40px;
+  background: linear-gradient(135deg, #f5f7fa, #e4e7ed);
   border-radius: 4px;
-  border: 1px solid #e4e7ed;
+  border: 1px solid #dcdfe6;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
 }
-.captcha-code {
-  font-family: monospace;
-  font-size: 16px;
-  font-weight: 600;
-  color: #409eff;
-  letter-spacing: 2px;
+.captcha-char {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  display: inline-block;
+  transition: all 0.3s;
 }
 .captcha-placeholder {
   color: #c0c4cc;
+  font-size: 14px;
+}
+.noise-line {
+  position: absolute;
+  height: 1px;
+  opacity: 0.4;
+  pointer-events: none;
 }
 .refresh-btn {
   padding: 2px 8px;
