@@ -61,6 +61,58 @@ describe('ProfileEditView', () => {
     expect(vm.form.avatar).toBe('https://example.com/avatar.jpg')
   })
 
+  it('renders avatar upload area', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+    expect(wrapper.find('.avatar-upload').exists()).toBe(true)
+    expect(wrapper.find('.avatar-preview').exists()).toBe(true)
+  })
+
+  it('sets base64 avatar from file', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as any
+
+    const base64 = 'data:image/png;base64,abc123'
+    await vm.handleFileSelect(base64)
+    await flushPromises()
+
+    expect(vm.form.avatar).toBe(base64)
+    expect(vm.avatarPreview).toBe(base64)
+  })
+
+  it('clears avatar', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as any
+
+    await vm.handleFileSelect('data:image/png;base64,abc123')
+    await flushPromises()
+    expect(vm.form.avatar).not.toBe('')
+
+    await vm.clearAvatar()
+    await flushPromises()
+
+    expect(vm.form.avatar).toBe('')
+    expect(vm.avatarPreview).toBe('')
+  })
+
+  it('submits profile with base64 avatar', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as any
+
+    const base64 = 'data:image/png;base64,abc123'
+    await vm.handleFileSelect(base64)
+    vm.form.nickname = '新昵称'
+    await flushPromises()
+
+    await wrapper.find('[data-testid="submit-btn"]').trigger('click')
+    await flushPromises()
+
+    expect(updateProfileMock).toHaveBeenCalledWith(expect.objectContaining({
+      nickname: '新昵称',
+      avatar: base64,
+    }))
+  })
+
   it('submits updated profile and calls API', async () => {
     const wrapper = createWrapper()
     const vm = wrapper.vm as any
@@ -150,5 +202,7 @@ describe('ProfileEditView', () => {
     expect(vm.submitting).toBe(false)
     expect(typeof vm.handleSubmit).toBe('function')
     expect(typeof vm.goBack).toBe('function')
+    expect(typeof vm.handleFileSelect).toBe('function')
+    expect(typeof vm.clearAvatar).toBe('function')
   })
 })

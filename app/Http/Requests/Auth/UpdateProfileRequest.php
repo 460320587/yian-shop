@@ -12,7 +12,7 @@ class UpdateProfileRequest extends BaseRequest
     {
         return [
             'nickname' => ['sometimes', 'string', 'max:50'],
-            'avatar' => ['sometimes', 'string', 'url', 'max:500'],
+            'avatar' => ['sometimes', 'string', 'max:200000', 'regex:/^(https?:\/\/|data:image\/)/'],
             'link_person' => ['sometimes', 'string', 'max:50'],
             'qq' => ['sometimes', 'string', 'max:20'],
         ];

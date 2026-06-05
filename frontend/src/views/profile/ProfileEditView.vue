@@ -9,6 +9,8 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const submitting = ref(false)
+const avatarPreview = ref('')
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
 interface FormState {
   nickname: string
@@ -29,7 +31,43 @@ function initForm() {
   if (user) {
     form.value.nickname = user.nickname || ''
     form.value.avatar = user.avatar || ''
+    avatarPreview.value = user.avatar || ''
   }
+}
+
+function handleFileChange(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  if (file.size > 2 * 1024 * 1024) {
+    ElMessage.error('图片大小不能超过2MB')
+    return
+  }
+
+  const reader = new FileReader()
+  reader.onload = () => {
+    const result = reader.result as string
+    handleFileSelect(result)
+  }
+  reader.readAsDataURL(file)
+}
+
+function handleFileSelect(base64: string) {
+  form.value.avatar = base64
+  avatarPreview.value = base64
+}
+
+function clearAvatar() {
+  form.value.avatar = ''
+  avatarPreview.value = ''
+  if (fileInputRef.value) {
+    fileInputRef.value.value = ''
+  }
+}
+
+function triggerFileInput() {
+  fileInputRef.value?.click()
 }
 
 async function handleSubmit() {
@@ -37,8 +75,8 @@ async function handleSubmit() {
     ElMessage.error('昵称最多50个字符')
     return
   }
-  if (form.value.avatar && form.value.avatar.length > 500) {
-    ElMessage.error('头像链接过长')
+  if (form.value.avatar && form.value.avatar.length > 200000) {
+    ElMessage.error('头像图片过大')
     return
   }
   if (form.value.link_person && form.value.link_person.length > 50) {
@@ -79,8 +117,13 @@ onMounted(() => {
 defineExpose({
   form,
   submitting,
+  avatarPreview,
+  fileInputRef,
   handleSubmit,
   goBack,
+  handleFileSelect,
+  clearAvatar,
+  triggerFileInput,
 })
 </script>
 
@@ -93,19 +136,35 @@ defineExpose({
         <el-form-item label="手机号">
           <span class="phone-text">{{ userStore.userInfo?.phone }}</span>
         </el-form-item>
+
+        <el-form-item label="头像">
+          <div class="avatar-upload">
+            <div v-if="avatarPreview" class="avatar-preview">
+              <img :src="avatarPreview" alt="avatar">
+            </div>
+            <div v-else class="avatar-placeholder">
+              暂无头像
+            </div>
+            <div class="avatar-actions">
+              <el-button size="small" @click="triggerFileInput">选择图片</el-button>
+              <el-button v-if="avatarPreview" size="small" type="danger" @click="clearAvatar">清除</el-button>
+            </div>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept="image/*"
+              class="avatar-input"
+              @change="handleFileChange"
+            >
+          </div>
+        </el-form-item>
+
         <el-form-item label="昵称">
           <el-input
             v-model="form.nickname"
             placeholder="请输入昵称"
             maxlength="50"
             show-word-limit
-          />
-        </el-form-item>
-        <el-form-item label="头像链接">
-          <el-input
-            v-model="form.avatar"
-            placeholder="请输入头像图片URL"
-            maxlength="500"
           />
         </el-form-item>
         <el-form-item label="联系人">
@@ -152,6 +211,42 @@ defineExpose({
 .phone-text {
   color: #606266;
   font-size: 14px;
+}
+.avatar-upload {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.avatar-preview {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid #ebeef5;
+}
+.avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar-placeholder {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #f5f7fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  font-size: 12px;
+  border: 1px solid #ebeef5;
+}
+.avatar-actions {
+  display: flex;
+  gap: 8px;
+}
+.avatar-input {
+  display: none;
 }
 .actions {
   display: flex;
