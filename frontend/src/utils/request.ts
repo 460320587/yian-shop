@@ -68,8 +68,20 @@ request.interceptors.response.use(
   },
   (error: AxiosError) => {
     const status = error.response?.status
-    const message =
-      HTTP_ERROR_MESSAGES[status || 0] || error.message || '网络请求异常'
+    const resData = error.response?.data as any
+    let message = HTTP_ERROR_MESSAGES[status || 0] || error.message || '网络请求异常'
+
+    // 422 验证错误：展示后端返回的具体字段错误
+    if (status === 422 && resData?.data) {
+      const errors = Object.values(resData.data).flat()
+      if (errors.length > 0) {
+        message = errors.join('；')
+      } else if (resData.message) {
+        message = resData.message
+      }
+    } else if (resData?.message) {
+      message = resData.message
+    }
 
     ElMessage.error(message)
 
