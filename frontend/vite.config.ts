@@ -18,10 +18,6 @@ export default defineConfig({
         target: 'http://yashop.test',
         changeOrigin: true,
       },
-      '/admin': {
-        target: 'http://yashop.test',
-        changeOrigin: true,
-      },
     },
   },
 })
