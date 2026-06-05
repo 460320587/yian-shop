@@ -17,6 +17,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/user', name: 'UserCenter', component: () => import('@/views/user/UserCenterView.vue'), meta: { requiresAuth: true } },
       { path: '/coupons', name: 'Coupons', component: () => import('@/views/coupon/CouponView.vue'), meta: { requiresAuth: true } },
       { path: '/my-coupons', name: 'MyCoupons', component: () => import('@/views/coupon/MyCouponsView.vue'), meta: { requiresAuth: true } },
+      { path: '/addresses', name: 'Addresses', component: () => import('@/views/address/AddressManagementView.vue'), meta: { requiresAuth: true } },
       { path: '/notifications', name: 'Notifications', component: () => import('@/views/notification/NotificationCenterView.vue'), meta: { requiresAuth: true } },
     ],
   },

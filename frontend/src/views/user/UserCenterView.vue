@@ -13,6 +13,7 @@ const user = computed(() => userStore.userInfo)
       <p>手机号: {{ user.phone }}</p>
       <p>昵称: {{ user.nickname || '-' }}</p>
       <p><router-link to="/notifications">消息通知</router-link></p>
+      <p><router-link to="/addresses">收货地址</router-link></p>
     </div>
   </div>
 </template>
