@@ -10,6 +10,9 @@ export interface User {
   auth_status: number
   vip_level: number
   balance: number
+  points?: number
+  link_person?: string | null
+  qq?: string | null
 }
 
 const TOKEN_KEY = 'access_token'

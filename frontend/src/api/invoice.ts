@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import request, { get } from '@/utils/request'
 
 export interface InvoiceTitle {
   id: number
@@ -26,7 +26,7 @@ export interface CreateInvoiceTitleData {
 }
 
 export function getInvoiceTitles() {
-  return request.get<InvoiceTitle[]>('/invoice-titles')
+  return get<InvoiceTitle[]>('/invoice-titles')
 }
 
 export function createInvoiceTitle(data: CreateInvoiceTitleData) {

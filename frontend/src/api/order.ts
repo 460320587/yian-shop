@@ -18,8 +18,30 @@ export function getOrderDetail(orderNo: string) {
   return get<Order>(`/orders/${orderNo}`)
 }
 
-export function createOrder(data: { address_id: number; items: Array<{ product_id: number; quantity: number }>; coupon_id?: number }) {
-  return post<{ order_no: string; total_amount: number; status: number }>('/orders', data)
+export interface CreateOrderData {
+  address_id: number
+  items?: Array<{ product_id: number; quantity: number }>
+  cart_item_ids?: number[]
+  coupon_code?: string | null
+  invoice_type?: number
+  invoice_title?: string
+  invoice_tax_no?: string
+  invoice_email?: string
+  remark?: string
+  use_balance?: number
+  delivery_date?: string
+}
+
+export interface CreateOrderResponse {
+  order_no: string
+  total_amount: number
+  status: number
+  discount_sum?: number
+  items?: any[]
+}
+
+export function createOrder(data: CreateOrderData) {
+  return post<CreateOrderResponse>('/orders', data)
 }
 
 export function cancelOrder(orderNo: string) {
