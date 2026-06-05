@@ -6,8 +6,8 @@ import HomeView from '../HomeView.vue'
 
 const mockHomeData = {
   banners: [
-    { id: 1, title: 'Banner1', image: 'https://example.com/b1.jpg', image_mobile: '', link_type: 1, link_target: '', sort: 1 },
-    { id: 2, title: 'Banner2', image: 'https://example.com/b2.jpg', image_mobile: '', link_type: 1, link_target: '', sort: 2 },
+    { id: 1, title: 'Banner1', image: 'https://example.com/b1.jpg', image_mobile: '', link_type: 1, link_target: '1', sort: 1 },
+    { id: 2, title: 'Banner2', image: 'https://example.com/b2.jpg', image_mobile: '', link_type: 2, link_target: '2', sort: 2 },
   ],
   announcements: [
     { id: 1, title: '普通公告', type: 1, is_popup: 0 },
@@ -15,13 +15,19 @@ const mockHomeData = {
   ],
   hot_products: [
     { id: 1, name: '名片', thumbnail: '', min_price: 1000, max_price: 2000, sales_count: 50, is_hot: 1, is_new: 0, category: { id: 1, name: '名片' } },
+    { id: 3, name: '宣传册', thumbnail: '', min_price: 3000, max_price: 5000, sales_count: 120, is_hot: 1, is_new: 0, category: { id: 2, name: '宣传册' } },
   ],
   new_arrivals: [
-    { id: 2, name: '海报', thumbnail: '', min_price: 500, max_price: 1500, sales_count: 10, is_hot: 0, is_new: 1, category: { id: 2, name: '海报' } },
+    { id: 2, name: '海报', thumbnail: '', min_price: 500, max_price: 1500, sales_count: 10, is_hot: 0, is_new: 1, category: { id: 3, name: '海报' } },
   ],
 }
 
-const mockCategories = [{ id: 1, name: '名片', children: [] }]
+const mockCategories = [
+  { id: 1, name: '名片', children: [] },
+  { id: 2, name: '宣传册', children: [] },
+  { id: 3, name: '包装盒', children: [] },
+  { id: 4, name: '海报', children: [] },
+]
 
 let getHomeMock = vi.fn()
 let getCategoriesMock = vi.fn()
@@ -62,14 +68,14 @@ describe('HomeView', () => {
     const wrapper = mountComponent()
     await flushPromises()
     expect(getCategoriesMock).toHaveBeenCalledTimes(1)
-    expect((wrapper.vm as any).categories).toHaveLength(1)
+    expect((wrapper.vm as any).categories).toHaveLength(4)
     expect((wrapper.vm as any).categories[0].name).toBe('名片')
   })
 
   it('loads hot products', async () => {
     const wrapper = mountComponent()
     await flushPromises()
-    expect((wrapper.vm as any).hotProducts).toHaveLength(1)
+    expect((wrapper.vm as any).hotProducts).toHaveLength(2)
     expect((wrapper.vm as any).hotProducts[0].name).toBe('名片')
   })
 
@@ -107,7 +113,29 @@ describe('HomeView', () => {
 
     const vm = wrapper.vm as any
     expect(vm.banners).toHaveLength(2)
-    expect(wrapper.find('.banner-section').exists()).toBe(true)
+    expect(wrapper.find('.hero-carousel').exists()).toBe(true)
+  })
+
+  it('renders category quick entries', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    expect(wrapper.findAll('.category-item').length).toBeGreaterThan(0)
+  })
+
+  it('computes top sales ranking', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    expect(vm.topSales.length).toBe(2)
+    expect(vm.topSales[0].name).toBe('宣传册')
+    expect(vm.topSales[1].name).toBe('名片')
+  })
+
+  it('renders advantages section', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    expect(wrapper.find('.advantage-section').exists()).toBe(true)
+    expect(wrapper.findAll('.advantage-item').length).toBe(5)
   })
 
   it('handles empty data gracefully', async () => {
