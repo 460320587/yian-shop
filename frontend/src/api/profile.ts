@@ -21,5 +21,5 @@ export interface UserProfile {
 }
 
 export function updateProfile(data: ProfileData) {
-  return request.put<UserProfile>('/profile', data)
+  return request.put<UserProfile>('/user/profile', data)
 }

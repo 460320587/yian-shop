@@ -15,7 +15,7 @@ vi.mock('@/utils/request', () => ({
     return Promise.resolve({})
   }),
   get: vi.fn((url: string) => {
-    if (url === '/auth/me') {
+    if (url === '/user/profile') {
       return Promise.resolve({ id: 1, phone: '13800138000', nickname: '测试用户', avatar: null, type: 1, auth_status: 0, vip_level: 1, balance: 100 })
     }
     return Promise.resolve({})

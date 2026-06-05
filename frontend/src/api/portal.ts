@@ -18,5 +18,5 @@ export function getHome() {
 }
 
 export function getCategories() {
-  return get<Category[]>('/categories')
+  return get<Category[]>('/portal/categories')
 }

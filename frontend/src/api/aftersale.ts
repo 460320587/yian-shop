@@ -1,4 +1,4 @@
-import request from '@/utils/request'
+import { get, post, put } from '@/utils/request'
 
 export interface AfterSale {
   id: number
@@ -21,13 +21,13 @@ export interface CreateAfterSaleData {
 }
 
 export function getAfterSales(params?: { page?: number; per_page?: number; status?: number }) {
-  return request.get<{ data: AfterSale[]; total: number; current_page: number; last_page: number }>('/after-sales', { params })
+  return get<{ data: AfterSale[]; total: number; current_page: number; last_page: number }>('/after-sales', params)
 }
 
 export function createAfterSale(data: CreateAfterSaleData) {
-  return request.post('/after-sales', data)
+  return post('/after-sales', data)
 }
 
 export function cancelAfterSale(id: number) {
-  return request.post(`/after-sales/${id}/cancel`)
+  return put(`/after-sales/${id}/cancel`)
 }

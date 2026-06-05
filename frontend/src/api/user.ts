@@ -31,7 +31,7 @@ export function register(data: RegisterData) {
 }
 
 export function getUserInfo() {
-  return get<User>('/auth/me')
+  return get<User>('/user/profile')
 }
 
 export function logout() {

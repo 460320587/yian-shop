@@ -9,16 +9,18 @@ vi.mock('@/utils/request', () => ({
     return Promise.resolve({})
   }),
   post: vi.fn((url: string) => {
-    if (url === '/cart') {
+    if (url === '/cart/items') {
       return Promise.resolve({ id: 2, product_id: 2, product_name: '传单', quantity: 1, unit_price: 500, subtotal: 500 })
-    }
-    if (url === '/cart/clear') {
-      return Promise.resolve(null)
     }
     return Promise.resolve({})
   }),
   put: vi.fn(() => Promise.resolve({})),
-  del: vi.fn(() => Promise.resolve(null)),
+  del: vi.fn((url: string) => {
+    if (url === '/cart') {
+      return Promise.resolve(null)
+    }
+    return Promise.resolve(null)
+  }),
 }))
 
 describe('Cart API', () => {

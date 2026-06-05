@@ -11,7 +11,7 @@ vi.mock('@/utils/request', () => ({
         new_arrivals: [],
       })
     }
-    if (url === '/categories') {
+    if (url === '/portal/categories') {
       return Promise.resolve([{ id: 1, name: '分类1', children: [] }])
     }
     return Promise.resolve({})

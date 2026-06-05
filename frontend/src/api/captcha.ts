@@ -6,5 +6,5 @@ export interface CaptchaData {
 }
 
 export function getCaptcha() {
-  return request.get<CaptchaData>('/captcha')
+  return request.get<CaptchaData>('/auth/captcha')
 }

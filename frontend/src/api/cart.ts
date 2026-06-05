@@ -21,7 +21,7 @@ export function getCart() {
 }
 
 export function addToCart(data: { product_id: number; quantity: number; spec_id: number | null }) {
-  return post<CartItem>('/cart', data)
+  return post<CartItem>('/cart/items', data)
 }
 
 export function updateCartItem(id: number, data: { quantity?: number; selected?: boolean }) {
@@ -33,5 +33,5 @@ export function removeCartItem(id: number) {
 }
 
 export function clearCart() {
-  return post('/cart/clear')
+  return del('/cart')
 }
