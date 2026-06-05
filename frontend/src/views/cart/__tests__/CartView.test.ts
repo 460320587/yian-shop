@@ -13,13 +13,24 @@ const mockCart = {
 }
 
 let getCartMock = vi.fn()
+let updateCartItemMock = vi.fn()
+let removeCartItemMock = vi.fn()
+let clearCartMock = vi.fn()
 
 vi.mock('@/api/cart', () => ({
   getCart: () => getCartMock(),
+  updateCartItem: (...args: any[]) => updateCartItemMock(...args),
+  removeCartItem: (...args: any[]) => removeCartItemMock(...args),
+  clearCart: () => clearCartMock(),
 }))
+
+vi.stubGlobal('confirm', () => true)
 
 beforeEach(() => {
   getCartMock = vi.fn(() => Promise.resolve(mockCart))
+  updateCartItemMock = vi.fn(() => Promise.resolve({}))
+  removeCartItemMock = vi.fn(() => Promise.resolve({}))
+  clearCartMock = vi.fn(() => Promise.resolve({}))
 })
 
 describe('CartView', () => {
@@ -51,5 +62,83 @@ describe('CartView', () => {
     const wrapper = mountComponent()
     await flushPromises()
     expect((wrapper.vm as any).cartItems).toHaveLength(0)
+    expect(wrapper.find('.empty-state').exists()).toBe(true)
+  })
+
+  it('updates item quantity', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    await vm.updateQuantity(mockCart.items[0], 3)
+    await flushPromises()
+
+    expect(updateCartItemMock).toHaveBeenCalledWith(1, { quantity: 3 })
+  })
+
+  it('toggles item selection', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    await vm.toggleSelection(mockCart.items[0], false)
+    await flushPromises()
+
+    expect(updateCartItemMock).toHaveBeenCalledWith(1, { selected: false })
+  })
+
+  it('removes item', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    await vm.removeItem(mockCart.items[0])
+    await flushPromises()
+
+    expect(removeCartItemMock).toHaveBeenCalledWith(1)
+  })
+
+  it('selects all items', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    await vm.toggleSelectAll(true)
+    await flushPromises()
+
+    expect(updateCartItemMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('shows summary and checkout', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    expect(wrapper.find('.cart-summary').exists()).toBe(true)
+    expect(wrapper.find('.cart-summary').text()).toContain('20.00')
+    expect(wrapper.find('[data-testid="checkout-btn"]').exists()).toBe(true)
+  })
+
+  it('clears cart', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    await vm.clearCart()
+    await flushPromises()
+
+    expect(clearCartMock).toHaveBeenCalled()
+  })
+
+  it('exposes refs and methods', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.cartItems).toBeDefined()
+    expect(vm.summary).toBeDefined()
+    expect(typeof vm.updateQuantity).toBe('function')
+    expect(typeof vm.removeItem).toBe('function')
+    expect(typeof vm.toggleSelectAll).toBe('function')
+    expect(typeof vm.goCheckout).toBe('function')
   })
 })
