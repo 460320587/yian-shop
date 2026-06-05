@@ -198,6 +198,9 @@ Route::prefix('admin')->group(function () {
         // 订单管理
         Route::get('/orders', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'index']);
         Route::get('/orders/{id}', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'show']);
+        Route::put('/orders/{id}/confirm-payment', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'confirmPayment']);
+        Route::put('/orders/{id}/ship', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'ship']);
+        Route::put('/orders/{id}/complete', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'complete']);
 
         // Banner/公告管理
         Route::get('/banners', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'bannerIndex']);
