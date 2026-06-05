@@ -115,6 +115,14 @@ describe('InvoiceListView', () => {
     expect(wrapper.find('.empty-state').exists()).toBe(true)
   })
 
+  it('shows apply invoice button', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('.header-row').exists()).toBe(true)
+    expect(wrapper.find('.header-row').text()).toContain('申请发票')
+  })
+
   it('exposes refs and methods', async () => {
     const wrapper = createWrapper()
     await flushPromises()

@@ -111,7 +111,10 @@ defineExpose({
 
 <template>
   <div class="invoice-list-view page-container">
-    <h2 class="page-title">发票中心</h2>
+    <div class="header-row">
+      <h2 class="page-title">发票中心</h2>
+      <el-button type="primary" size="small" @click="$router.push('/invoice-apply')">申请发票</el-button>
+    </div>
 
     <div class="status-tabs">
       <button
@@ -177,6 +180,15 @@ defineExpose({
   max-width: 680px;
   margin: 20px auto;
   padding: 20px;
+}
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.page-title {
+  margin: 0;
 }
 .status-tabs {
   display: flex;

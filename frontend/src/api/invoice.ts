@@ -68,3 +68,16 @@ export function getInvoices(params?: { status?: number; page?: number }) {
 export function cancelInvoice(id: number) {
   return request.put(`/invoices/${id}/cancel`)
 }
+
+export interface CreateInvoiceApplyData {
+  order_id: number
+  title_id: number
+  type: number
+  email?: string
+  address?: string
+  remark?: string
+}
+
+export function createInvoiceApply(data: CreateInvoiceApplyData) {
+  return request.post<Invoice>('/invoices', data)
+}
