@@ -40,3 +40,31 @@ export function updateInvoiceTitle(id: number, data: Partial<CreateInvoiceTitleD
 export function deleteInvoiceTitle(id: number) {
   return request.delete(`/invoice-titles/${id}`)
 }
+
+export interface Invoice {
+  id: number
+  invoice_no: string
+  status: number
+  type: number
+  title: string
+  amount: number | { amount: number; currency: string }
+  created_at: string
+}
+
+export interface InvoiceListResponse {
+  data: Invoice[]
+  meta: {
+    total: number
+    current_page: number
+    last_page: number
+    per_page: number
+  }
+}
+
+export function getInvoices(params?: { status?: number; page?: number }) {
+  return request.get<InvoiceListResponse>('/invoices', params)
+}
+
+export function cancelInvoice(id: number) {
+  return request.put(`/invoices/${id}/cancel`)
+}
