@@ -37,7 +37,7 @@ function canApplyAfterSale(order: any): boolean {
 }
 
 function goToAfterSale(order: any) {
-  router.push('/after-sale/apply?orderNo=' + order.order_no)
+  router.push('/after-sale/apply?orderId=' + order.id + '&orderNo=' + order.order_no)
 }
 
 defineExpose({

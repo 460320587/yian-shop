@@ -74,4 +74,13 @@ describe('OrderListView', () => {
     expect((wrapper.vm as any).canApplyAfterSale({ status: 20 })).toBe(true)
     expect((wrapper.vm as any).canApplyAfterSale({ status: 11 })).toBe(false)
   })
+
+  it('navigates to after sale apply page', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const router = (wrapper.vm as any).$router
+    const pushSpy = vi.spyOn(router, 'push')
+    ;(wrapper.vm as any).goToAfterSale({ id: 3, order_no: 'Y202601010003', status: 60 })
+    expect(pushSpy).toHaveBeenCalledWith('/after-sale/apply?orderId=3&orderNo=Y202601010003')
+  })
 })
