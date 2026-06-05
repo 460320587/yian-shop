@@ -56,6 +56,7 @@ Route::prefix('products')->group(function () {
     Route::get('/{id}', [\App\Http\Controllers\Api\ProductController::class, 'show']);
     Route::post('/{id}/price', [\App\Http\Controllers\Api\ProductController::class, 'price']);
     Route::get('/{id}/params', [\App\Http\Controllers\Api\ProductController::class, 'params']);
+    Route::get('/{id}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'indexByProduct']);
 });
 
 // 分类系统 (Phase 3)
@@ -78,6 +79,7 @@ Route::middleware('auth:sanctum')->prefix('orders')->group(function () {
     Route::get('/{id}', [\App\Http\Controllers\Api\OrderController::class, 'show']);
     Route::put('/{id}/cancel', [\App\Http\Controllers\Api\OrderController::class, 'cancel']);
     Route::post('/{id}/reorder', [\App\Http\Controllers\Api\OrderController::class, 'reorder']);
+    Route::post('/{id}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
 });
 
 // 支付系统 (Phase 5)
@@ -175,6 +177,7 @@ Route::middleware('auth:sanctum')->prefix('coupons')->group(function () {
     Route::post('/{id}/claim', [\App\Http\Controllers\Api\CouponController::class, 'claim']);
 });
 Route::middleware('auth:sanctum')->get('/my-coupons', [\App\Http\Controllers\Api\CouponController::class, 'myCoupons']);
+Route::middleware('auth:sanctum')->get('/my-reviews', [\App\Http\Controllers\Api\ReviewController::class, 'myReviews']);
 
 // Admin 后台 (Admin Phase)
 Route::prefix('admin')->group(function () {
