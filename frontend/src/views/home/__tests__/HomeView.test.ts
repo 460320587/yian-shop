@@ -5,8 +5,14 @@ import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../HomeView.vue'
 
 const mockHomeData = {
-  banners: [{ id: 1, title: 'Banner1', image: 'img.jpg', image_mobile: '', link_type: 1, link_target: '', sort: 1 }],
-  announcements: [{ id: 1, title: '公告', type: 1, is_popup: 0 }],
+  banners: [
+    { id: 1, title: 'Banner1', image: 'https://example.com/b1.jpg', image_mobile: '', link_type: 1, link_target: '', sort: 1 },
+    { id: 2, title: 'Banner2', image: 'https://example.com/b2.jpg', image_mobile: '', link_type: 1, link_target: '', sort: 2 },
+  ],
+  announcements: [
+    { id: 1, title: '普通公告', type: 1, is_popup: 0 },
+    { id: 2, title: '弹窗公告', type: 1, is_popup: 1, content: '重要通知内容' },
+  ],
   hot_products: [
     { id: 1, name: '名片', thumbnail: '', min_price: 1000, max_price: 2000, sales_count: 50, is_hot: 1, is_new: 0, category: { id: 1, name: '名片' } },
   ],
@@ -48,7 +54,7 @@ describe('HomeView', () => {
     const wrapper = mountComponent()
     await flushPromises()
     expect(getHomeMock).toHaveBeenCalledTimes(1)
-    expect((wrapper.vm as any).banners).toHaveLength(1)
+    expect((wrapper.vm as any).banners).toHaveLength(2)
     expect((wrapper.vm as any).banners[0].title).toBe('Banner1')
   })
 
@@ -74,13 +80,44 @@ describe('HomeView', () => {
     expect((wrapper.vm as any).newArrivals[0].name).toBe('海报')
   })
 
+  it('shows popup announcement dialog', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.popupAnnouncements).toHaveLength(1)
+    expect(vm.popupAnnouncements[0].title).toBe('弹窗公告')
+  })
+
+  it('does not show popup when no popup announcements', async () => {
+    getHomeMock = vi.fn(() => Promise.resolve({
+      ...mockHomeData,
+      announcements: [{ id: 1, title: '普通公告', type: 1, is_popup: 0 }],
+    }))
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.popupAnnouncements).toHaveLength(0)
+  })
+
+  it('renders banner carousel', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.banners).toHaveLength(2)
+    expect(wrapper.find('.banner-section').exists()).toBe(true)
+  })
+
   it('handles empty data gracefully', async () => {
-    getHomeMock = vi.fn(() => Promise.resolve({ banners: [], hot_products: [], new_arrivals: [] }))
+    getHomeMock = vi.fn(() => Promise.resolve({ banners: [], hot_products: [], new_arrivals: [], announcements: [] }))
     getCategoriesMock = vi.fn(() => Promise.resolve([]))
     const wrapper = mountComponent()
     await flushPromises()
     expect((wrapper.vm as any).banners).toHaveLength(0)
     expect((wrapper.vm as any).categories).toHaveLength(0)
     expect((wrapper.vm as any).hotProducts).toHaveLength(0)
+    expect((wrapper.vm as any).popupAnnouncements).toHaveLength(0)
   })
 })
