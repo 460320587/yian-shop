@@ -28,6 +28,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/after-sales', name: 'AfterSaleList', component: () => import('@/views/aftersale/AfterSaleListView.vue'), meta: { requiresAuth: true } },
       { path: '/after-sale-apply', name: 'AfterSaleApply', component: () => import('@/views/aftersale/AfterSaleApplyView.vue'), meta: { requiresAuth: true } },
       { path: '/notifications', name: 'Notifications', component: () => import('@/views/notification/NotificationCenterView.vue'), meta: { requiresAuth: true } },
+      { path: '/profile', name: 'ProfileEdit', component: () => import('@/views/profile/ProfileEditView.vue'), meta: { requiresAuth: true } },
     ],
   },
   { path: '/login', name: 'Login', component: () => import('@/views/auth/LoginView.vue'), meta: { guest: true } },
