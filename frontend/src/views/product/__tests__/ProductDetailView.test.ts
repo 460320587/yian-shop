@@ -4,10 +4,27 @@ import { createPinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import ProductDetailView from '../ProductDetailView.vue'
 
+vi.mock('element-plus', async () => {
+  const actual = await vi.importActual('element-plus')
+  return {
+    ...actual as any,
+    ElMessage: { success: vi.fn(), error: vi.fn() },
+  }
+})
+
 let getProductDetailMock = vi.fn()
+let getFavoritesMock = vi.fn()
+let addFavoriteMock = vi.fn()
+let removeFavoriteMock = vi.fn()
 
 vi.mock('@/api/product', () => ({
   getProductDetail: (...args: any[]) => getProductDetailMock(...args),
+}))
+
+vi.mock('@/api/favorite', () => ({
+  getFavorites: (...args: any[]) => getFavoritesMock(...args),
+  addFavorite: (...args: any[]) => addFavoriteMock(...args),
+  removeFavorite: (...args: any[]) => removeFavoriteMock(...args),
 }))
 
 beforeEach(() => {
@@ -16,26 +33,75 @@ beforeEach(() => {
     price_min: 1000, price_max: 5000, status: 1, sales_count: 50,
     category: { id: 1, name: '名片' },
   }))
+  getFavoritesMock = vi.fn(() => Promise.resolve({ data: [], total: 0, current_page: 1, last_page: 1 }))
+  addFavoriteMock = vi.fn(() => Promise.resolve({ id: 10, product_id: 1, status: 1 }))
+  removeFavoriteMock = vi.fn(() => Promise.resolve({}))
 })
 
 describe('ProductDetailView', () => {
-  function mountComponent() {
-    const router = createRouter({ history: createWebHistory(), routes: [] })
+  async function mountComponent() {
+    const router = createRouter({
+      history: createWebHistory(),
+      routes: [
+        { path: '/product/:id', name: 'ProductDetail', component: ProductDetailView },
+      ],
+    })
+    await router.push('/product/1')
+    await router.isReady()
     return mount(ProductDetailView, {
       global: { plugins: [createPinia(), router] },
     })
   }
 
   it('renders product detail page', async () => {
-    const wrapper = mountComponent()
+    const wrapper = await mountComponent()
     await flushPromises()
-    expect(wrapper.find('.product-detail-view').exists() || wrapper.find('.product-detail-page').exists()).toBe(true)
+    expect(wrapper.find('.product-detail-view').exists()).toBe(true)
   })
 
   it('loads product detail on mount', async () => {
-    const wrapper = mountComponent()
+    const wrapper = await mountComponent()
     await flushPromises()
     expect(getProductDetailMock).toHaveBeenCalledTimes(1)
     expect((wrapper.vm as any).product?.name).toBe('名片')
+  })
+
+  it('checks favorite status on mount', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    expect(getFavoritesMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('marks product as favorited when in favorite list', async () => {
+    getFavoritesMock = vi.fn(() => Promise.resolve({
+      data: [{ id: 5, product_id: 1, status: 1, product: { id: 1, name: '名片' } }],
+      total: 1, current_page: 1, last_page: 1,
+    }))
+    const wrapper = await mountComponent()
+    await flushPromises()
+    expect((wrapper.vm as any).isFavorited).toBe(true)
+    expect((wrapper.vm as any).favoriteId).toBe(5)
+  })
+
+  it('adds favorite when not favorited', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    await (wrapper.vm as any).toggleFavorite()
+    await flushPromises()
+    expect(addFavoriteMock).toHaveBeenCalledWith({ product_id: 1 })
+    expect((wrapper.vm as any).isFavorited).toBe(true)
+  })
+
+  it('removes favorite when already favorited', async () => {
+    getFavoritesMock = vi.fn(() => Promise.resolve({
+      data: [{ id: 5, product_id: 1, status: 1, product: { id: 1, name: '名片' } }],
+      total: 1, current_page: 1, last_page: 1,
+    }))
+    const wrapper = await mountComponent()
+    await flushPromises()
+    await (wrapper.vm as any).toggleFavorite()
+    await flushPromises()
+    expect(removeFavoriteMock).toHaveBeenCalledWith(5)
+    expect((wrapper.vm as any).isFavorited).toBe(false)
   })
 })
