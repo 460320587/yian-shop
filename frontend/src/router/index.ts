@@ -14,6 +14,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/cart', name: 'Cart', component: () => import('@/views/cart/CartView.vue'), meta: { requiresAuth: true } },
       { path: '/checkout', name: 'Checkout', component: () => import('@/views/order/OrderCreateView.vue'), meta: { requiresAuth: true } },
       { path: '/orders', name: 'OrderList', component: () => import('@/views/order/OrderListView.vue'), meta: { requiresAuth: true } },
+      { path: '/order/:id', name: 'OrderDetail', component: () => import('@/views/order/OrderDetailView.vue'), meta: { requiresAuth: true } },
       { path: '/user', name: 'UserCenter', component: () => import('@/views/user/UserCenterView.vue'), meta: { requiresAuth: true } },
       { path: '/coupons', name: 'Coupons', component: () => import('@/views/coupon/CouponView.vue'), meta: { requiresAuth: true } },
       { path: '/my-coupons', name: 'MyCoupons', component: () => import('@/views/coupon/MyCouponsView.vue'), meta: { requiresAuth: true } },

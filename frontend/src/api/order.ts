@@ -25,3 +25,7 @@ export function createOrder(data: { address_id: number; items: Array<{ product_i
 export function cancelOrder(orderNo: string) {
   return put(`/orders/${orderNo}/cancel`)
 }
+
+export function reorder(orderId: number) {
+  return post(`/orders/${orderId}/reorder`)
+}
