@@ -12,6 +12,7 @@ const user = computed(() => userStore.userInfo)
     <div v-if="user">
       <p>手机号: {{ user.phone }}</p>
       <p>昵称: {{ user.nickname || '-' }}</p>
+      <p><router-link to="/notifications">消息通知</router-link></p>
     </div>
   </div>
 </template>
