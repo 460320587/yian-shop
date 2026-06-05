@@ -30,6 +30,11 @@ const canAfterSale = computed(() => {
   return [15, 17, 20, 54, 55, 60].includes(order.value.status)
 })
 
+const canTrackLogistics = computed(() => {
+  if (!order.value) return false
+  return [20, 54, 55, 60].includes(order.value.status)
+})
+
 async function loadOrder() {
   const id = Number(route.params.id)
   if (!id) {
@@ -81,6 +86,11 @@ function goToAfterSale() {
   router.push(`/after-sale-apply?orderId=${order.value.id}&orderNo=${order.value.order_no}`)
 }
 
+function goToLogistics() {
+  if (!order.value) return
+  router.push(`/order/${order.value.id}/track`)
+}
+
 onMounted(() => {
   loadOrder()
 })
@@ -92,10 +102,12 @@ defineExpose({
   canCancel,
   canReview,
   canAfterSale,
+  canTrackLogistics,
   loadOrder,
   goBack,
   handlePay,
   handleCancel,
+  goToLogistics,
 })
 </script>
 
@@ -168,6 +180,11 @@ defineExpose({
           data-testid="aftersale-btn"
           @click="goToAfterSale"
         >申请售后</el-button>
+        <el-button
+          v-if="canTrackLogistics"
+          data-testid="logistics-btn"
+          @click="goToLogistics"
+        >查看物流</el-button>
       </div>
     </div>
   </div>

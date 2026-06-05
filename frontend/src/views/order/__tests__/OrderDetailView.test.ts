@@ -141,6 +141,23 @@ describe('OrderDetailView', () => {
     expect(wrapper.find('[data-testid="aftersale-btn"]').exists()).toBe(true)
   })
 
+  it('shows track logistics button for shipped order', async () => {
+    getOrderDetailMock = vi.fn(() => Promise.resolve({ ...mockOrder, status: 20, customer_status: '已发货' }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="logistics-btn"]').exists()).toBe(true)
+  })
+
+  it('navigates to logistics page when track button clicked', async () => {
+    getOrderDetailMock = vi.fn(() => Promise.resolve({ ...mockOrder, status: 20, customer_status: '已发货' }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="logistics-btn"]').trigger('click')
+    expect(mockPush).toHaveBeenCalledWith('/order/5/track')
+  })
+
   it('navigates back on back button click', async () => {
     const wrapper = createWrapper()
     await flushPromises()
