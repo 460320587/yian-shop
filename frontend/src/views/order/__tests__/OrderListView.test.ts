@@ -83,4 +83,23 @@ describe('OrderListView', () => {
     ;(wrapper.vm as any).goToAfterSale({ id: 3, order_no: 'Y202601010003', status: 60 })
     expect(pushSpy).toHaveBeenCalledWith('/after-sale/apply?orderId=3&orderNo=Y202601010003')
   })
+
+  it('navigates to order detail when clicking order card', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const router = (wrapper.vm as any).$router
+    const pushSpy = vi.spyOn(router, 'push')
+    ;(wrapper.vm as any).goToDetail({ id: 1, order_no: 'Y202601010001' })
+    expect(pushSpy).toHaveBeenCalledWith('/order/1')
+  })
+
+  it('has clickable order detail on each card', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const cards = wrapper.findAll('.order-card')
+    expect(cards.length).toBe(3)
+    expect(cards[0].attributes('data-order-id')).toBe('1')
+    expect(cards[1].attributes('data-order-id')).toBe('2')
+    expect(cards[2].attributes('data-order-id')).toBe('3')
+  })
 })

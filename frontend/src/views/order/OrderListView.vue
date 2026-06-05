@@ -40,6 +40,10 @@ function goToAfterSale(order: any) {
   router.push('/after-sale/apply?orderId=' + order.id + '&orderNo=' + order.order_no)
 }
 
+function goToDetail(order: any) {
+  router.push('/order/' + order.id)
+}
+
 defineExpose({
   orders,
   loading,
@@ -49,6 +53,7 @@ defineExpose({
   goToReview,
   canApplyAfterSale,
   goToAfterSale,
+  goToDetail,
 })
 </script>
 
@@ -56,13 +61,19 @@ defineExpose({
   <div class="order-list-view page-container">
     <h2 class="page-title">我的订单</h2>
     <div v-loading="loading">
-      <div v-for="order in orders" :key="order.id" class="order-card">
+      <div
+        v-for="order in orders"
+        :key="order.id"
+        class="order-card"
+        :data-order-id="order.id"
+        @click="goToDetail(order)"
+      >
         <div class="order-info">
           <span>{{ order.order_no }} - {{ order.customer_status }}</span>
           <div class="order-actions">
-            <el-button v-if="canPay(order)" link type="primary" @click="goToPay(order)">去支付</el-button>
-            <el-button v-if="canApplyAfterSale(order)" link type="warning" @click="goToAfterSale(order)">申请售后</el-button>
-            <el-button v-if="canReview(order)" link type="primary" @click="goToReview(order)">去评价</el-button>
+            <el-button v-if="canPay(order)" link type="primary" @click.stop="goToPay(order)">去支付</el-button>
+            <el-button v-if="canApplyAfterSale(order)" link type="warning" @click.stop="goToAfterSale(order)">申请售后</el-button>
+            <el-button v-if="canReview(order)" link type="primary" @click.stop="goToReview(order)">去评价</el-button>
           </div>
         </div>
       </div>
@@ -71,6 +82,13 @@ defineExpose({
 </template>
 
 <style scoped>
+.order-card {
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.order-card:hover {
+  background: #f5f7fa;
+}
 .order-info {
   display: flex;
   justify-content: space-between;
