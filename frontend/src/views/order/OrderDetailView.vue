@@ -134,9 +134,37 @@ defineExpose({
           <span class="label">下单时间：</span>
           <span>{{ order.created_at }}</span>
         </div>
+        <div v-if="order.submitted_at" class="info-row">
+          <span class="label">提交时间：</span>
+          <span class="submitted-at">{{ order.submitted_at }}</span>
+        </div>
+        <div v-if="order.paid_at" class="info-row">
+          <span class="label">支付时间：</span>
+          <span class="paid-at">{{ order.paid_at }}</span>
+        </div>
         <div class="info-row">
           <span class="label">订单金额：</span>
           <span class="order-amount">¥{{ order.total_amount?.toFixed ? order.total_amount.toFixed(2) : order.total_amount }}</span>
+        </div>
+        <div v-if="order.deposit_sum" class="info-row">
+          <span class="label">定金：</span>
+          <span class="deposit-sum">¥{{ order.deposit_sum?.toFixed ? order.deposit_sum.toFixed(2) : order.deposit_sum }}</span>
+        </div>
+        <div v-if="order.discount_sum" class="info-row">
+          <span class="label">优惠金额：</span>
+          <span class="discount-sum">¥{{ order.discount_sum?.toFixed ? order.discount_sum.toFixed(2) : order.discount_sum }}</span>
+        </div>
+        <div v-if="order.express_company" class="info-row">
+          <span class="label">快递公司：</span>
+          <span class="express-company">{{ order.express_company }}</span>
+        </div>
+        <div v-if="order.delivery_type" class="info-row">
+          <span class="label">配送方式：</span>
+          <span class="delivery-type">{{ order.delivery_type }}</span>
+        </div>
+        <div v-if="order.remark" class="info-row">
+          <span class="label">订单备注：</span>
+          <span class="remark">{{ order.remark }}</span>
         </div>
       </div>
 

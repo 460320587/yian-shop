@@ -9,6 +9,13 @@ const mockOrder = {
   status: 11,
   customer_status: '待付款',
   total_amount: 4620.00,
+  deposit_sum: 1000.00,
+  discount_sum: 200.00,
+  express_company: '顺丰速运',
+  delivery_type: '快递',
+  remark: '请尽快发货',
+  paid_at: '2026-01-01T10:30:00Z',
+  submitted_at: '2026-01-01T10:00:00Z',
   created_at: '2026-01-01T10:00:00Z',
   items: [
     { id: 101, product_id: 1, product_name: '铜版纸名片', quantity: 1000, unit_price: 2.50, subtotal: 2500.00 },
@@ -164,6 +171,31 @@ describe('OrderDetailView', () => {
 
     await wrapper.find('[data-testid="back-btn"]').trigger('click')
     expect(mockBack).toHaveBeenCalled()
+  })
+
+  it('renders extended order info', async () => {
+    getOrderDetailMock = vi.fn(() => Promise.resolve({
+      ...mockOrder,
+      status: 20,
+      customer_status: '已发货',
+      deposit_sum: 1000.00,
+      discount_sum: 200.00,
+      express_company: '顺丰速运',
+      delivery_type: '快递',
+      remark: '请尽快发货',
+      paid_at: '2026-01-01T10:30:00Z',
+      submitted_at: '2026-01-01T10:00:00Z',
+    }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('.deposit-sum').text()).toContain('1000.00')
+    expect(wrapper.find('.discount-sum').text()).toContain('200.00')
+    expect(wrapper.find('.express-company').text()).toContain('顺丰速运')
+    expect(wrapper.find('.delivery-type').text()).toContain('快递')
+    expect(wrapper.find('.remark').text()).toContain('请尽快发货')
+    expect(wrapper.find('.paid-at').text()).toContain('2026-01-01')
+    expect(wrapper.find('.submitted-at').text()).toContain('2026-01-01')
   })
 
   it('exposes refs and methods', async () => {

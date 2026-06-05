@@ -153,6 +153,13 @@ class OrderController extends BaseController
             'status' => $order->status,
             'customer_status' => $order->out_status_name,
             'total_amount' => $order->total_amount->toYuan(),
+            'deposit_sum' => $order->deposit_sum?->toYuan(),
+            'discount_sum' => $order->discount_sum?->toYuan(),
+            'express_company' => $order->express_company,
+            'delivery_type' => $order->delivery_type,
+            'remark' => $order->remark,
+            'paid_at' => $order->paid_at,
+            'submitted_at' => $order->submitted_at,
             'created_at' => $order->created_at,
             'items' => $order->items->map(fn (OrderItem $item) => [
                 'id' => $item->id,
