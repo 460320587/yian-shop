@@ -100,6 +100,10 @@ Route::middleware('auth:sanctum')->prefix('payments')->group(function () {
     Route::post('/{id}/mock-callback', [\App\Http\Controllers\Api\PaymentController::class, 'mockCallback']);
 });
 
+// 支付回调（无需认证）
+Route::post('/webhooks/wechat-pay', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'wechatPay']);
+Route::post('/webhooks/alipay', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'alipay']);
+
 // 钱包 (Phase 5)
 Route::middleware('auth:sanctum')->prefix('wallet')->group(function () {
     Route::get('/balance', [\App\Http\Controllers\Api\PaymentController::class, 'balance']);

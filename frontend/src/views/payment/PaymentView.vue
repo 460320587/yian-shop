@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { createPayment, getPaymentStatus, mockPaymentCallback, type PaymentData } from '@/api/payment'
@@ -13,6 +13,12 @@ const selectedGateway = ref('wechat')
 const loading = ref(false)
 const errorMsg = ref('')
 const paymentData = ref<PaymentData | null>(null)
+const pollTimer = ref<ReturnType<typeof setInterval> | null>(null)
+const countdownTimer = ref<ReturnType<typeof setInterval> | null>(null)
+const countdownSeconds = ref(0)
+const isExpired = ref(false)
+
+const isDev = import.meta.env.DEV
 
 const gateways = [
   { key: 'wechat', label: '微信支付', icon: 'Wechat' },
@@ -34,6 +40,67 @@ function init() {
   amount.value = amt / 100
 }
 
+const countdownText = computed(() => {
+  const m = Math.floor(countdownSeconds.value / 60)
+  const s = countdownSeconds.value % 60
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+})
+
+function startCountdown(expireAt: string | null) {
+  stopCountdown()
+  if (!expireAt) {
+    countdownSeconds.value = 30 * 60
+  } else {
+    const diff = Math.floor((new Date(expireAt).getTime() - Date.now()) / 1000)
+    countdownSeconds.value = Math.max(0, diff)
+  }
+
+  countdownTimer.value = setInterval(() => {
+    countdownSeconds.value--
+    if (countdownSeconds.value <= 0) {
+      isExpired.value = true
+      stopCountdown()
+      stopPolling()
+    }
+  }, 1000)
+}
+
+function stopCountdown() {
+  if (countdownTimer.value) {
+    clearInterval(countdownTimer.value)
+    countdownTimer.value = null
+  }
+}
+
+function startPolling(paymentId: number) {
+  stopPolling()
+  pollTimer.value = setInterval(async () => {
+    if (isExpired.value || !paymentData.value) {
+      stopPolling()
+      return
+    }
+    try {
+      const res = await getPaymentStatus(paymentId)
+      if (res.status === 1) {
+        paymentData.value.status = 1
+        ElMessage.success('支付成功')
+        stopPolling()
+        stopCountdown()
+        router.push('/orders')
+      }
+    } catch {
+      // ignore polling errors
+    }
+  }, 3000)
+}
+
+function stopPolling() {
+  if (pollTimer.value) {
+    clearInterval(pollTimer.value)
+    pollTimer.value = null
+  }
+}
+
 async function createPay() {
   if (!orderNo.value) return
 
@@ -44,12 +111,16 @@ async function createPay() {
       gateway: selectedGateway.value,
     })
     paymentData.value = res
-    ElMessage.success('支付单创建成功')
 
     if (res.status === 1) {
       ElMessage.success('支付成功')
       router.push('/orders')
+      return
     }
+
+    ElMessage.success('支付单创建成功')
+    startPolling(res.payment_id)
+    startCountdown(res.expire_at)
   } catch (e) {
     console.error(e)
   } finally {
@@ -64,6 +135,8 @@ async function mockPaySuccess() {
   try {
     await mockPaymentCallback(paymentData.value.payment_id, { status: 'success' })
     ElMessage.success('支付成功')
+    stopPolling()
+    stopCountdown()
     router.push('/orders')
   } catch (e) {
     console.error(e)
@@ -80,6 +153,8 @@ async function checkStatus() {
     paymentData.value.status = res.status
     if (res.status === 1) {
       ElMessage.success('支付成功')
+      stopPolling()
+      stopCountdown()
       router.push('/orders')
     } else {
       ElMessage.info('等待支付中')
@@ -93,6 +168,11 @@ onMounted(() => {
   init()
 })
 
+onUnmounted(() => {
+  stopPolling()
+  stopCountdown()
+})
+
 defineExpose({
   orderNo,
   amount,
@@ -102,6 +182,8 @@ defineExpose({
   createPayment: createPay,
   mockPaySuccess,
   checkStatus,
+  countdownText,
+  isExpired,
 })
 </script>
 
@@ -145,15 +227,52 @@ defineExpose({
 
       <div v-else class="payment-result">
         <div v-if="paymentData.status === 0" class="pending-state">
-          <p class="pay-tip">请使用 {{ gateways.find(g => g.key === paymentData?.gateway)?.label }} 完成支付</p>
-          <div v-if="paymentData.credential?.qrcode_url" class="qrcode-box">
-            <img :src="paymentData.credential.qrcode_url" alt="支付二维码" />
+          <p class="pay-tip">
+            请使用 {{ gateways.find(g => g.key === paymentData?.gateway)?.label }} 完成支付
+          </p>
+
+          <div v-if="isExpired" class="expired-notice">
+            <p>支付单已过期，请重新发起支付</p>
+            <el-button type="primary" @click="paymentData = null">重新支付</el-button>
           </div>
-          <div class="mock-actions">
-            <el-button type="success" @click="mockPaySuccess">模拟支付成功</el-button>
-            <el-button @click="checkStatus">查询支付状态</el-button>
+
+          <div v-else>
+            <div class="countdown-box">
+              <span class="countdown-label">支付剩余时间</span>
+              <span class="countdown-value">{{ countdownText }}</span>
+            </div>
+
+            <!-- 二维码 -->
+            <div v-if="paymentData.credential?.qrcode_url" class="qrcode-box">
+              <img :src="paymentData.credential.qrcode_url" alt="支付二维码" />
+              <p class="qrcode-tip">请使用 {{ gateways.find(g => g.key === paymentData?.gateway)?.label }} 扫码</p>
+            </div>
+
+            <!-- H5 跳转 -->
+            <div v-else-if="paymentData.credential?.redirect_url" class="redirect-box">
+              <p>请在浏览器中完成支付</p>
+              <a :href="paymentData.credential.redirect_url" target="_blank" class="redirect-link">
+                <el-button type="primary">前往支付</el-button>
+              </a>
+            </div>
+
+            <!-- 表单支付 -->
+            <div v-else-if="paymentData.credential?.form_html" class="form-box">
+              <div v-html="paymentData.credential.form_html" />
+            </div>
+
+            <!-- 纯等待（如余额支付异步） -->
+            <div v-else class="waiting-box">
+              <p>正在处理支付，请勿关闭页面...</p>
+            </div>
+
+            <div class="mock-actions">
+              <el-button v-if="isDev" type="success" @click="mockPaySuccess">模拟支付成功</el-button>
+              <el-button @click="checkStatus">查询支付状态</el-button>
+            </div>
           </div>
         </div>
+
         <div v-else-if="paymentData.status === 1" class="success-state">
           <p>支付成功！</p>
           <el-button type="primary" @click="$router.push('/orders')">查看订单</el-button>
@@ -238,6 +357,27 @@ defineExpose({
   margin-bottom: 16px;
   color: #606266;
 }
+.countdown-box {
+  margin-bottom: 16px;
+}
+.countdown-label {
+  color: #909399;
+  font-size: 14px;
+  margin-right: 8px;
+}
+.countdown-value {
+  color: #f56c6c;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: monospace;
+}
+.expired-notice {
+  color: #f56c6c;
+  margin-bottom: 16px;
+}
+.expired-notice p {
+  margin-bottom: 12px;
+}
 .qrcode-box {
   margin-bottom: 20px;
 }
@@ -246,6 +386,28 @@ defineExpose({
   height: 200px;
   border: 1px solid #ebeef5;
   border-radius: 4px;
+}
+.qrcode-tip {
+  margin-top: 8px;
+  color: #909399;
+  font-size: 13px;
+}
+.redirect-box {
+  margin-bottom: 20px;
+}
+.redirect-box p {
+  color: #606266;
+  margin-bottom: 12px;
+}
+.redirect-link {
+  text-decoration: none;
+}
+.form-box {
+  margin-bottom: 20px;
+}
+.waiting-box {
+  margin-bottom: 20px;
+  color: #409eff;
 }
 .mock-actions {
   display: flex;

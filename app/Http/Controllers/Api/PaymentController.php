@@ -10,6 +10,7 @@ use App\Domains\Order\Models\Order;
 use App\Domains\Payment\Enums\PaymentStatus;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Models\WalletTransaction;
+use App\Domains\Payment\Services\PaymentService;
 use App\Domains\User\Models\Customer;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
@@ -19,6 +20,11 @@ use Illuminate\Support\Str;
 
 class PaymentController extends BaseController
 {
+    public function __construct(
+        private PaymentService $paymentService,
+    ) {
+    }
+
     public function create(Request $request): JsonResponse
     {
         $request->validate([
@@ -61,8 +67,10 @@ class PaymentController extends BaseController
                 'amount' => $amount,
                 'status' => PaymentStatus::Success->value,
                 'paid_at' => now(),
-                'expire_at' => now()->addMinutes(5),
+                'expire_at' => now()->addMinutes(30),
             ]);
+
+            $this->paymentService->recordCreated($payment);
 
             $order->update([
                 'status' => OrderStatus::Paid->value,
@@ -97,8 +105,10 @@ class PaymentController extends BaseController
             'amount' => $amount,
             'status' => PaymentStatus::Pending->value,
             'credential' => $credential,
-            'expire_at' => now()->addMinutes(5),
+            'expire_at' => now()->addMinutes(30),
         ]);
+
+        $this->paymentService->recordCreated($payment);
 
         return $this->success([
             'payment_id' => $payment->id,
@@ -144,7 +154,7 @@ class PaymentController extends BaseController
         $customer = Customer::find($customerId);
         $amount = (int) round($request->input('amount') * 100);
 
-        // 简化：直接增加余额（不经过真实支付渠道）
+        // 直接增加余额（mock 环境简化处理）
         $customer->balance = $customer->balance->add(new Money($amount));
         $customer->save();
 
@@ -157,8 +167,10 @@ class PaymentController extends BaseController
             'amount' => $amount,
             'status' => PaymentStatus::Success->value,
             'paid_at' => now(),
-            'expire_at' => now()->addMinutes(5),
+            'expire_at' => now()->addMinutes(30),
         ]);
+
+        $this->paymentService->recordCreated($payment);
 
         return $this->success([
             'payment_id' => $payment->id,
@@ -195,8 +207,10 @@ class PaymentController extends BaseController
             'amount' => $amount,
             'status' => PaymentStatus::Success->value,
             'paid_at' => now(),
-            'expire_at' => now()->addMinutes(5),
+            'expire_at' => now()->addMinutes(30),
         ]);
+
+        $this->paymentService->recordCreated($payment);
 
         return $this->success([
             'payment_id' => $payment->id,
@@ -251,25 +265,12 @@ class PaymentController extends BaseController
         ]);
 
         if ($request->input('status') === 'success') {
-            $payment->update([
-                'status' => PaymentStatus::Success->value,
-                'paid_at' => now(),
-            ]);
-
-            if ($payment->order_no) {
-                Order::where('order_no', $payment->order_no)->update([
-                    'status' => OrderStatus::Paid->value,
-                    'out_status_name' => OrderStatus::Paid->label(),
-                    'paid_at' => now(),
-                ]);
-            }
+            $this->paymentService->confirm($payment, 'MOCK' . now()->format('YmdHis'));
 
             return $this->success([], '支付成功');
         }
 
-        $payment->update([
-            'status' => PaymentStatus::Failed->value,
-        ]);
+        $this->paymentService->fail($payment, 'mock 回调失败');
 
         return $this->success([], '支付失败');
     }
