@@ -37,3 +37,11 @@ export function getUserInfo() {
 export function logout() {
   return post('/auth/logout')
 }
+
+export function forgotPassword(data: { phone: string }) {
+  return post<{ token: string }>('/auth/forgot-password', data)
+}
+
+export function resetPassword(data: { phone: string; token: string; password: string; password_confirmation: string }) {
+  return post('/auth/reset-password', data)
+}

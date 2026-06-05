@@ -40,6 +40,10 @@ async function handleLogin() {
         <el-form-item>
           <el-button type="primary" class="login-btn" :loading="loading" @click="handleLogin">登录</el-button>
         </el-form-item>
+        <div class="login-links">
+          <router-link to="/forgot-password">忘记密码</router-link>
+          <router-link to="/register">立即注册</router-link>
+        </div>
       </el-form>
     </div>
   </div>
@@ -51,4 +55,7 @@ async function handleLogin() {
 .login-header { text-align: center; margin-bottom: 32px; }
 .login-header h2 { font-size: 26px; font-weight: 600; margin-bottom: 8px; }
 .login-btn { width: 100%; height: 44px; font-size: 16px; border-radius: 22px; }
+.login-links { display: flex; justify-content: space-between; font-size: 14px; }
+.login-links a { color: #409eff; text-decoration: none; }
+.login-links a:hover { text-decoration: underline; }
 </style>
