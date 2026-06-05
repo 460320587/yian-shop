@@ -17,6 +17,7 @@ const user = computed(() => userStore.userInfo)
       <p><router-link to="/favorites">我的收藏</router-link></p>
       <p><router-link to="/my-reviews">我的评价</router-link></p>
       <p><router-link to="/enterprise-auth">企业认证</router-link></p>
+      <p><router-link to="/after-sales">我的售后</router-link></p>
     </div>
   </div>
 </template>

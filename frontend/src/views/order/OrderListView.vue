@@ -32,6 +32,14 @@ function goToReview(order: any) {
   router.push('/review?orderId=' + order.id)
 }
 
+function canApplyAfterSale(order: any): boolean {
+  return [15, 17, 20, 54, 55, 60].includes(order.status)
+}
+
+function goToAfterSale(order: any) {
+  router.push('/after-sale/apply?orderNo=' + order.order_no)
+}
+
 defineExpose({
   orders,
   loading,
@@ -39,6 +47,8 @@ defineExpose({
   goToPay,
   canReview,
   goToReview,
+  canApplyAfterSale,
+  goToAfterSale,
 })
 </script>
 
@@ -51,6 +61,7 @@ defineExpose({
           <span>{{ order.order_no }} - {{ order.customer_status }}</span>
           <div class="order-actions">
             <el-button v-if="canPay(order)" link type="primary" @click="goToPay(order)">去支付</el-button>
+            <el-button v-if="canApplyAfterSale(order)" link type="warning" @click="goToAfterSale(order)">申请售后</el-button>
             <el-button v-if="canReview(order)" link type="primary" @click="goToReview(order)">去评价</el-button>
           </div>
         </div>

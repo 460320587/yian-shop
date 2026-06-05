@@ -66,4 +66,12 @@ describe('OrderListView', () => {
     ;(wrapper.vm as any).goToPay({ id: 1, order_no: 'Y202601010001', total_amount: 5000 })
     expect(pushSpy).toHaveBeenCalledWith('/payment?orderNo=Y202601010001&amount=5000')
   })
+
+  it('shows after sale button for applicable orders', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    expect((wrapper.vm as any).canApplyAfterSale({ status: 60 })).toBe(true)
+    expect((wrapper.vm as any).canApplyAfterSale({ status: 20 })).toBe(true)
+    expect((wrapper.vm as any).canApplyAfterSale({ status: 11 })).toBe(false)
+  })
 })

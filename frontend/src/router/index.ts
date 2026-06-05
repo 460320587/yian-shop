@@ -23,6 +23,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/review', name: 'ReviewForm', component: () => import('@/views/review/ReviewFormView.vue'), meta: { requiresAuth: true } },
       { path: '/payment', name: 'Payment', component: () => import('@/views/payment/PaymentView.vue'), meta: { requiresAuth: true } },
       { path: '/enterprise-auth', name: 'EnterpriseAuth', component: () => import('@/views/enterprise/EnterpriseAuthView.vue'), meta: { requiresAuth: true } },
+      { path: '/after-sales', name: 'AfterSaleList', component: () => import('@/views/aftersale/AfterSaleListView.vue'), meta: { requiresAuth: true } },
       { path: '/notifications', name: 'Notifications', component: () => import('@/views/notification/NotificationCenterView.vue'), meta: { requiresAuth: true } },
     ],
   },
