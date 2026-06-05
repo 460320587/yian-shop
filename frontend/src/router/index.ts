@@ -30,6 +30,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/notifications', name: 'Notifications', component: () => import('@/views/notification/NotificationCenterView.vue'), meta: { requiresAuth: true } },
       { path: '/profile', name: 'ProfileEdit', component: () => import('@/views/profile/ProfileEditView.vue'), meta: { requiresAuth: true } },
       { path: '/vip', name: 'VipCenter', component: () => import('@/views/vip/VipCenterView.vue'), meta: { requiresAuth: true } },
+      { path: '/invoice-titles', name: 'InvoiceTitles', component: () => import('@/views/invoice/InvoiceTitleView.vue'), meta: { requiresAuth: true } },
     ],
   },
   { path: '/login', name: 'Login', component: () => import('@/views/auth/LoginView.vue'), meta: { guest: true } },
