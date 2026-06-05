@@ -11,6 +11,7 @@ use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Access\Authorizable as AuthorizableContract;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\Access\Authorizable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -28,7 +29,7 @@ class Admin extends BaseModel implements
     use Notifiable;
 
     protected $fillable = [
-        'username', 'password', 'real_name', 'phone', 'email', 'role', 'status',
+        'username', 'password', 'real_name', 'phone', 'email', 'role', 'role_id', 'status',
         'last_login_at', 'last_login_ip',
     ];
 
@@ -39,8 +40,14 @@ class Admin extends BaseModel implements
 
     protected $casts = [
         'status' => 'integer',
+        'role_id' => 'integer',
         'last_login_at' => 'datetime:Y-m-d H:i:s',
     ];
+
+    public function roleModel(): BelongsTo
+    {
+        return $this->belongsTo(AdminRole::class, 'role_id');
+    }
 
     public function isSuperAdmin(): bool
     {

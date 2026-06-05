@@ -85,6 +85,7 @@ Route::middleware('auth:sanctum')->prefix('orders')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\OrderController::class, 'index']);
     Route::post('/', [\App\Http\Controllers\Api\OrderController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Api\OrderController::class, 'show']);
+    Route::get('/{id}/status-logs', [\App\Http\Controllers\Api\OrderController::class, 'statusLogs']);
     Route::put('/{id}/cancel', [\App\Http\Controllers\Api\OrderController::class, 'cancel']);
     Route::post('/{id}/reorder', [\App\Http\Controllers\Api\OrderController::class, 'reorder']);
     Route::post('/{id}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
@@ -161,6 +162,12 @@ Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
     Route::put('/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markRead']);
     Route::put('/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllRead']);
     Route::get('/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
+});
+
+// 内容系统 (Phase 10)
+Route::prefix('articles')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\ContentController::class, 'articles']);
+    Route::get('/{slug}', [\App\Http\Controllers\Api\ContentController::class, 'show']);
 });
 
 // 企业认证 (Phase 2)
@@ -301,6 +308,32 @@ Route::prefix('admin')->group(function () {
         Route::post('/coupons', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'store']);
         Route::put('/coupons/{id}', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'update']);
         Route::put('/coupons/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'toggleStatus']);
+
+        // 角色权限管理 (RBAC)
+        Route::get('/roles', [\App\Http\Controllers\Api\Admin\AdminRoleController::class, 'index']);
+        Route::post('/roles', [\App\Http\Controllers\Api\Admin\AdminRoleController::class, 'store']);
+        Route::put('/roles/{id}', [\App\Http\Controllers\Api\Admin\AdminRoleController::class, 'update']);
+        Route::delete('/roles/{id}', [\App\Http\Controllers\Api\Admin\AdminRoleController::class, 'destroy']);
+        Route::put('/roles/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\AdminRoleController::class, 'toggleStatus']);
+        Route::get('/roles/{id}/permissions', [\App\Http\Controllers\Api\Admin\AdminRoleController::class, 'permissions']);
+        Route::put('/roles/{id}/permissions', [\App\Http\Controllers\Api\Admin\AdminRoleController::class, 'assignPermissions']);
+        Route::get('/permissions', [\App\Http\Controllers\Api\Admin\AdminPermissionController::class, 'index']);
+
+        // 管理员账号管理
+        Route::get('/admins', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'index']);
+        Route::post('/admins', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'store']);
+        Route::put('/admins/{id}', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'update']);
+        Route::put('/admins/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'toggleStatus']);
+        Route::delete('/admins/{id}', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'destroy']);
+        Route::put('/admins/{id}/reset-password', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'resetPassword']);
+
+        // 文章管理
+        Route::get('/articles', [\App\Http\Controllers\Api\Admin\AdminArticleController::class, 'index']);
+        Route::post('/articles', [\App\Http\Controllers\Api\Admin\AdminArticleController::class, 'store']);
+        Route::get('/articles/{id}', [\App\Http\Controllers\Api\Admin\AdminArticleController::class, 'show']);
+        Route::put('/articles/{id}', [\App\Http\Controllers\Api\Admin\AdminArticleController::class, 'update']);
+        Route::delete('/articles/{id}', [\App\Http\Controllers\Api\Admin\AdminArticleController::class, 'destroy']);
+        Route::put('/articles/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\AdminArticleController::class, 'toggleStatus']);
     });
 });
 

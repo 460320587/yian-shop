@@ -11,6 +11,7 @@ use App\Domains\Coupon\Services\CouponDiscountCalculator;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
 use App\Domains\Order\Models\OrderItem;
+use App\Domains\Order\Models\OrderStatusLog;
 use App\Domains\Product\Models\Product;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
@@ -207,6 +208,28 @@ class OrderController extends BaseController
         $this->updateCartSummary($cart);
 
         return $this->success([], '已加入购物车');
+    }
+
+    public function statusLogs(int $id): JsonResponse
+    {
+        $order = Order::where('customer_id', auth('sanctum')->id())->find($id);
+
+        if (! $order) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权访问该订单', null, 403);
+        }
+
+        $logs = OrderStatusLog::where('order_id', $order->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->success($logs->map(fn (OrderStatusLog $log) => [
+            'id' => $log->id,
+            'from_status' => $log->from_status,
+            'to_status' => $log->to_status,
+            'remark' => $log->remark,
+            'operator_type' => $log->operator_type,
+            'created_at' => $log->created_at,
+        ]));
     }
 
     public function cancel(int $id): JsonResponse
