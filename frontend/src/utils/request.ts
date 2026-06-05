@@ -40,7 +40,11 @@ const request: AxiosInstance = axios.create({
 request.interceptors.request.use(
   (config: AxiosRequestConfig) => {
     // 尝试从 localStorage 读取 token（优先），其次从 pinia 读取
-    const token = localStorage.getItem('access_token')
+    const url = config.url || ''
+    const isAdminApi = url.startsWith('/admin')
+    const token = isAdminApi
+      ? localStorage.getItem('admin_token')
+      : localStorage.getItem('access_token')
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`
     }

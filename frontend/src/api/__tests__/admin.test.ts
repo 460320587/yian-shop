@@ -9,25 +9,25 @@ import {
 
 vi.mock('@/utils/request', () => ({
   post: vi.fn((url: string) => {
-    if (url === '/auth/login') {
+    if (url === '/admin/auth/login') {
       return Promise.resolve({ admin: { id: 1, username: 'admin', real_name: '管理员', role: 'super' }, token: 'admin-token' })
     }
-    if (url === '/auth/logout') {
+    if (url === '/admin/auth/logout') {
       return Promise.resolve({})
     }
-    if (url === '/products') {
+    if (url === '/admin/products') {
       return Promise.resolve({ id: 2, name: '新产品', code: 'NEW-001', price_min: 1000, price_max: 5000, status: 1 })
     }
-    if (url === '/system-configs/batch') {
+    if (url === '/admin/system-configs/batch') {
       return Promise.resolve({})
     }
     return Promise.resolve({})
   }),
   get: vi.fn((url: string) => {
-    if (url === '/auth/profile') {
+    if (url === '/admin/auth/profile') {
       return Promise.resolve({ id: 1, username: 'admin', real_name: '管理员', phone: null, email: null, role: 'super', last_login_at: null })
     }
-    if (url === '/dashboard') {
+    if (url === '/admin/dashboard') {
       return Promise.resolve({
         today_orders: 5, today_sales: 50000, total_customers: 100, total_products: 20,
         pending_after_sales: 2, pending_invoices: 3,
@@ -35,40 +35,40 @@ vi.mock('@/utils/request', () => ({
         sales_trend: [{ date: '2026-01-01', amount: 50000, count: 5 }],
       })
     }
-    if (url === '/products') {
+    if (url === '/admin/products') {
       return Promise.resolve({
         data: [{ id: 1, name: '名片', code: 'CARD-001', price_min: 1000, price_max: 5000, status: 1, category: { id: 1, name: '名片' } }],
         total: 1, current_page: 1, last_page: 1,
       })
     }
-    if (url.startsWith('/products/')) {
+    if (url.startsWith('/admin/products/')) {
       return Promise.resolve({ id: 1, name: '名片', code: 'CARD-001', price_min: 1000, price_max: 5000, status: 1, category: { id: 1, name: '名片' } })
     }
-    if (url === '/audit-logs') {
+    if (url === '/admin/audit-logs') {
       return Promise.resolve({
         data: [{ id: 1, admin_id: 1, admin_name: '管理员', action: 'login', model_type: 'Admin', model_id: 1, ip: '127.0.0.1', result: 1, created_at: '2026-01-01' }],
         total: 1, current_page: 1, last_page: 1,
       })
     }
-    if (url.startsWith('/audit-logs/')) {
+    if (url.startsWith('/admin/audit-logs/')) {
       return Promise.resolve({ id: 1, admin_id: 1, admin_name: '管理员', action: 'login', model_type: 'Admin', model_id: 1, before_data: null, after_data: null, ip: '127.0.0.1', user_agent: 'Mozilla', result: 1, remark: '', created_at: '2026-01-01' })
     }
-    if (url === '/system-configs') {
+    if (url === '/admin/system-configs') {
       return Promise.resolve([
         { id: 1, config_key: 'site_name', config_value: '怡安印刷', type: 'string', description: '站点名称', group: 'basic' },
         { id: 2, config_key: 'maintenance_mode', config_value: '0', type: 'bool', description: '维护模式', group: 'system' },
       ])
     }
-    if (url.startsWith('/system-configs/') && !url.includes('/batch')) {
+    if (url.startsWith('/admin/system-configs/') && !url.includes('/batch')) {
       return Promise.resolve({ id: 1, config_key: 'site_name', config_value: '怡安印刷', type: 'string', description: '站点名称', group: 'basic' })
     }
     return Promise.resolve({})
   }),
   put: vi.fn((url: string) => {
-    if (url.startsWith('/products/')) {
+    if (url.startsWith('/admin/products/')) {
       return Promise.resolve({ status: 0 })
     }
-    if (url.startsWith('/system-configs/')) {
+    if (url.startsWith('/admin/system-configs/')) {
       return Promise.resolve({})
     }
     return Promise.resolve({})

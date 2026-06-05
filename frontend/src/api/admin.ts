@@ -1,13 +1,16 @@
 import { get, post, put, del } from '@/utils/request'
 
 function getAdmin<T>(url: string, params?: Record<string, unknown>): Promise<T> {
-  return get<T>(url, params) as Promise<T>
+  return get<T>('/admin' + url, params) as Promise<T>
 }
 function postAdmin<T>(url: string, data?: unknown): Promise<T> {
-  return post<T>(url, data) as Promise<T>
+  return post<T>('/admin' + url, data) as Promise<T>
 }
 function putAdmin<T>(url: string, data?: unknown): Promise<T> {
-  return put<T>(url, data) as Promise<T>
+  return put<T>('/admin' + url, data) as Promise<T>
+}
+function delAdmin<T>(url: string, params?: Record<string, unknown>): Promise<T> {
+  return del<T>('/admin' + url, params) as Promise<T>
 }
 
 // ===== Auth =====
@@ -130,7 +133,7 @@ export function updateBanner(id: number, data: Partial<Banner>) {
   return putAdmin<Banner>(`/banners/${id}`, data)
 }
 export function deleteBanner(id: number) {
-  return del(`/banners/${id}`)
+  return delAdmin(`/banners/${id}`)
 }
 
 // ===== Announcement =====
@@ -154,7 +157,7 @@ export function updateAnnouncement(id: number, data: Partial<Announcement>) {
   return putAdmin<Announcement>(`/announcements/${id}`, data)
 }
 export function deleteAnnouncement(id: number) {
-  return del(`/announcements/${id}`)
+  return delAdmin(`/announcements/${id}`)
 }
 
 // ===== Coupon =====
