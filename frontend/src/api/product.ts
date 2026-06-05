@@ -16,7 +16,7 @@ export interface ProductDetail extends Product {
   prices: any[]
 }
 
-export function getProducts(params?: { page?: number; category_id?: number; keyword?: string }) {
+export function getProducts(params?: { page?: number; category_id?: number; keyword?: string; min_price?: number; max_price?: number; sort?: string }) {
   return get<{ data: Product[]; total: number; current_page: number; last_page: number }>('/products', params)
 }
 
