@@ -16,6 +16,14 @@ onMounted(async () => {
   finally { loading.value = false }
 })
 
+function canPay(order: any): boolean {
+  return order.status === 1 || order.status === 11
+}
+
+function goToPay(order: any) {
+  router.push('/payment?orderNo=' + order.order_no + '&amount=' + order.total_amount)
+}
+
 function canReview(order: any): boolean {
   return order.status === 60
 }
@@ -27,6 +35,8 @@ function goToReview(order: any) {
 defineExpose({
   orders,
   loading,
+  canPay,
+  goToPay,
   canReview,
   goToReview,
 })
@@ -39,7 +49,10 @@ defineExpose({
       <div v-for="order in orders" :key="order.id" class="order-card">
         <div class="order-info">
           <span>{{ order.order_no }} - {{ order.customer_status }}</span>
-          <el-button v-if="canReview(order)" link type="primary" @click="goToReview(order)">去评价</el-button>
+          <div class="order-actions">
+            <el-button v-if="canPay(order)" link type="primary" @click="goToPay(order)">去支付</el-button>
+            <el-button v-if="canReview(order)" link type="primary" @click="goToReview(order)">去评价</el-button>
+          </div>
         </div>
       </div>
     </div>
@@ -51,5 +64,9 @@ defineExpose({
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.order-actions {
+  display: flex;
+  gap: 8px;
 }
 </style>

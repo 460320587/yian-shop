@@ -21,6 +21,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/favorites', name: 'Favorites', component: () => import('@/views/favorite/FavoriteView.vue'), meta: { requiresAuth: true } },
       { path: '/my-reviews', name: 'MyReviews', component: () => import('@/views/review/MyReviewsView.vue'), meta: { requiresAuth: true } },
       { path: '/review', name: 'ReviewForm', component: () => import('@/views/review/ReviewFormView.vue'), meta: { requiresAuth: true } },
+      { path: '/payment', name: 'Payment', component: () => import('@/views/payment/PaymentView.vue'), meta: { requiresAuth: true } },
       { path: '/notifications', name: 'Notifications', component: () => import('@/views/notification/NotificationCenterView.vue'), meta: { requiresAuth: true } },
     ],
   },
