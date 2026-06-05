@@ -14,6 +14,7 @@ const user = computed(() => userStore.userInfo)
       <p>昵称: {{ user.nickname || '-' }}</p>
       <p><router-link to="/profile">编辑资料</router-link></p>
       <p><router-link to="/vip">VIP中心</router-link></p>
+      <p><router-link to="/wallet">我的钱包</router-link></p>
       <p><router-link to="/invoice-titles">发票抬头</router-link></p>
       <p><router-link to="/notifications">消息通知</router-link></p>
       <p><router-link to="/addresses">收货地址</router-link></p>
