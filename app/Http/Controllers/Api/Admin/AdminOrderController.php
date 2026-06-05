@@ -68,6 +68,7 @@ class AdminOrderController extends BaseController
     {
         $validator = Validator::make($request->all(), [
             'express_company' => ['required', 'string', 'max:50'],
+            'tracking_no' => ['nullable', 'string', 'max:50'],
         ]);
 
         if ($validator->fails()) {
@@ -89,6 +90,17 @@ class AdminOrderController extends BaseController
             'out_status_name' => OrderStatus::Shipped->label(),
             'express_company' => $request->input('express_company'),
         ]);
+
+        // 创建物流配送记录
+        if ($request->filled('tracking_no')) {
+            \App\Domains\Logistics\Models\OrderDelivery::create([
+                'order_id' => $order->id,
+                'carrier_name' => $request->input('express_company'),
+                'tracking_no' => $request->input('tracking_no'),
+                'status' => 1,
+                'shipped_at' => now(),
+            ]);
+        }
 
         return $this->success([], '已发货');
     }

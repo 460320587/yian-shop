@@ -44,4 +44,16 @@ class AdminCustomerController extends BaseController
 
         return $this->success($customer);
     }
+
+    public function toggleStatus(int $id): JsonResponse
+    {
+        $customer = Customer::find($id);
+        if (! $customer) {
+            return $this->error(ErrorCode::NOT_FOUND, '客户不存在');
+        }
+
+        $customer->update(['status' => $customer->status === 1 ? 0 : 1]);
+
+        return $this->success(['status' => $customer->fresh()->status]);
+    }
 }

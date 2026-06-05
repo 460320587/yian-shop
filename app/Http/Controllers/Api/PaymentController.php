@@ -9,6 +9,7 @@ use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
 use App\Domains\Payment\Enums\PaymentStatus;
 use App\Domains\Payment\Models\Payment;
+use App\Domains\Payment\Models\WalletTransaction;
 use App\Domains\User\Models\Customer;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
@@ -204,6 +205,37 @@ class PaymentController extends BaseController
             'gateway' => 'withdraw',
             'status' => PaymentStatus::Success->value,
         ], '提现成功', 201);
+    }
+
+    public function transactions(Request $request): JsonResponse
+    {
+        $customerId = auth('sanctum')->id();
+
+        $query = WalletTransaction::where('customer_id', $customerId)
+            ->orderBy('created_at', 'desc');
+
+        if ($request->filled('type')) {
+            $query->where('type', (int) $request->input('type'));
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', (int) $request->input('status'));
+        }
+
+        $perPage = (int) $request->input('per_page', 10);
+        $perPage = max(1, min($perPage, 50));
+
+        return $this->paginated($query->paginate($perPage));
+    }
+
+    public function balance(): JsonResponse
+    {
+        $customer = Customer::find(auth('sanctum')->id());
+
+        return $this->success([
+            'balance' => $customer->balance->toYuan(),
+            'customer_id' => $customer->id,
+        ]);
     }
 
     public function mockCallback(Request $request, int $id): JsonResponse

@@ -41,6 +41,14 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::put('/profile', [\App\Http\Controllers\Api\AuthController::class, 'updateProfile']);
 });
 
+// 支付密码
+Route::middleware('auth:sanctum')->prefix('pay-password')->group(function () {
+    Route::post('/', [\App\Http\Controllers\Api\CustomerPayPasswordController::class, 'store']);
+    Route::put('/', [\App\Http\Controllers\Api\CustomerPayPasswordController::class, 'update']);
+    Route::post('/verify', [\App\Http\Controllers\Api\CustomerPayPasswordController::class, 'verify']);
+    Route::get('/status', [\App\Http\Controllers\Api\CustomerPayPasswordController::class, 'status']);
+});
+
 // 地址管理 (Phase 6)
 Route::middleware('auth:sanctum')->prefix('addresses')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\AddressController::class, 'index']);
@@ -91,9 +99,21 @@ Route::middleware('auth:sanctum')->prefix('payments')->group(function () {
     Route::post('/{id}/mock-callback', [\App\Http\Controllers\Api\PaymentController::class, 'mockCallback']);
 });
 
+// 钱包 (Phase 5)
+Route::middleware('auth:sanctum')->prefix('wallet')->group(function () {
+    Route::get('/balance', [\App\Http\Controllers\Api\PaymentController::class, 'balance']);
+    Route::get('/transactions', [\App\Http\Controllers\Api\PaymentController::class, 'transactions']);
+});
+
+// 上传 (Phase 6)
+Route::middleware('auth:sanctum')->prefix('upload')->group(function () {
+    Route::post('/review-images', [\App\Http\Controllers\Api\UploadController::class, 'reviewImages']);
+});
+
 // 物流 (Phase 6)
 Route::middleware('auth:sanctum')->prefix('logistics')->group(function () {
     Route::get('/{orderId}/tracks', [\App\Http\Controllers\Api\LogisticsController::class, 'tracks']);
+    Route::get('/{orderId}/map', [\App\Http\Controllers\Api\LogisticsController::class, 'map']);
     Route::get('/{orderId}/recommend', [\App\Http\Controllers\Api\LogisticsController::class, 'recommend']);
 });
 
@@ -103,6 +123,13 @@ Route::middleware('auth:sanctum')->prefix('after-sales')->group(function () {
     Route::post('/', [\App\Http\Controllers\Api\AfterSaleController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Api\AfterSaleController::class, 'show']);
     Route::put('/{id}/cancel', [\App\Http\Controllers\Api\AfterSaleController::class, 'cancel']);
+});
+
+// 退款记录 (Phase 6)
+Route::middleware('auth:sanctum')->prefix('refunds')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\RefundRecordController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\RefundRecordController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\RefundRecordController::class, 'show']);
 });
 
 // 发票抬头 (Phase 11)
@@ -187,6 +214,13 @@ Route::prefix('admin')->group(function () {
         Route::post('/auth/logout', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'logout']);
         Route::get('/auth/profile', [\App\Http\Controllers\Api\Admin\AdminAuthController::class, 'profile']);
 
+        // 分类管理
+        Route::get('/categories', [\App\Http\Controllers\Api\Admin\AdminCategoryController::class, 'index']);
+        Route::post('/categories', [\App\Http\Controllers\Api\Admin\AdminCategoryController::class, 'store']);
+        Route::put('/categories/{id}', [\App\Http\Controllers\Api\Admin\AdminCategoryController::class, 'update']);
+        Route::delete('/categories/{id}', [\App\Http\Controllers\Api\Admin\AdminCategoryController::class, 'destroy']);
+        Route::put('/categories/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\AdminCategoryController::class, 'toggleStatus']);
+
         // 商品管理
         Route::get('/products', [\App\Http\Controllers\Api\Admin\AdminProductController::class, 'index']);
         Route::get('/products/{id}', [\App\Http\Controllers\Api\Admin\AdminProductController::class, 'show']);
@@ -197,6 +231,12 @@ Route::prefix('admin')->group(function () {
         // 客户管理
         Route::get('/customers', [\App\Http\Controllers\Api\Admin\AdminCustomerController::class, 'index']);
         Route::get('/customers/{id}', [\App\Http\Controllers\Api\Admin\AdminCustomerController::class, 'show']);
+        Route::put('/customers/{id}/toggle-status', [\App\Http\Controllers\Api\Admin\AdminCustomerController::class, 'toggleStatus']);
+
+        // 企业认证审核
+        Route::get('/enterprise-auths', [\App\Http\Controllers\Api\Admin\AdminEnterpriseAuthController::class, 'index']);
+        Route::get('/enterprise-auths/{id}', [\App\Http\Controllers\Api\Admin\AdminEnterpriseAuthController::class, 'show']);
+        Route::put('/enterprise-auths/{id}/audit', [\App\Http\Controllers\Api\Admin\AdminEnterpriseAuthController::class, 'audit']);
 
         // 订单管理
         Route::get('/orders', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'index']);
@@ -214,6 +254,11 @@ Route::prefix('admin')->group(function () {
         Route::post('/announcements', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'announcementStore']);
         Route::put('/announcements/{id}', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'announcementUpdate']);
         Route::delete('/announcements/{id}', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'announcementDestroy']);
+
+        // 退款审核
+        Route::get('/refunds', [\App\Http\Controllers\Api\Admin\AdminRefundController::class, 'index']);
+        Route::get('/refunds/{id}', [\App\Http\Controllers\Api\Admin\AdminRefundController::class, 'show']);
+        Route::put('/refunds/{id}/audit', [\App\Http\Controllers\Api\Admin\AdminRefundController::class, 'audit']);
 
         // 售后审核
         Route::get('/after-sales', [\App\Http\Controllers\Api\Admin\AdminAfterSaleController::class, 'index']);
@@ -243,6 +288,13 @@ Route::prefix('admin')->group(function () {
         Route::put('/system-configs/batch', [\App\Http\Controllers\Api\Admin\AdminSystemConfigController::class, 'batchUpdate']);
         Route::get('/system-configs/{id}', [\App\Http\Controllers\Api\Admin\AdminSystemConfigController::class, 'show']);
         Route::put('/system-configs/{id}', [\App\Http\Controllers\Api\Admin\AdminSystemConfigController::class, 'update']);
+
+        // 评价管理
+        Route::get('/reviews', [\App\Http\Controllers\Api\Admin\AdminReviewController::class, 'index']);
+        Route::get('/reviews/{id}', [\App\Http\Controllers\Api\Admin\AdminReviewController::class, 'show']);
+        Route::put('/reviews/{id}/reply', [\App\Http\Controllers\Api\Admin\AdminReviewController::class, 'reply']);
+        Route::put('/reviews/{id}/toggle-show', [\App\Http\Controllers\Api\Admin\AdminReviewController::class, 'toggleShow']);
+        Route::delete('/reviews/{id}', [\App\Http\Controllers\Api\Admin\AdminReviewController::class, 'destroy']);
 
         // 优惠券管理
         Route::get('/coupons', [\App\Http\Controllers\Api\Admin\AdminCouponController::class, 'index']);

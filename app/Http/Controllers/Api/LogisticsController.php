@@ -44,6 +44,45 @@ class LogisticsController extends BaseController
         ]);
     }
 
+    public function map(int $orderId): JsonResponse
+    {
+        $order = Order::where('customer_id', auth('sanctum')->id())->find($orderId);
+
+        if (! $order) {
+            return $this->error(ErrorCode::NOT_FOUND, '订单不存在', null, 404);
+        }
+
+        $delivery = OrderDelivery::with('tracks')
+            ->where('order_id', $order->id)
+            ->first();
+
+        if (! $delivery) {
+            return $this->error(ErrorCode::NOT_FOUND, '暂无物流信息', null, 404);
+        }
+
+        $tracks = $delivery->tracks->sortBy('track_time')->values();
+
+        $points = $tracks->map(function ($track) {
+            return [
+                'time' => $track->track_time,
+                'location' => $track->location,
+                'latitude' => $track->latitude,
+                'longitude' => $track->longitude,
+                'description' => $track->description,
+            ];
+        });
+
+        return $this->success([
+            'carrier_name' => $delivery->carrier_name,
+            'tracking_no' => $delivery->tracking_no,
+            'status' => $delivery->status,
+            'shipped_at' => $delivery->shipped_at,
+            'delivered_at' => $delivery->delivered_at,
+            'current' => $points->last(),
+            'path' => $points,
+        ]);
+    }
+
     public function recommend(int $orderId): JsonResponse
     {
         $order = Order::where('customer_id', auth('sanctum')->id())->find($orderId);

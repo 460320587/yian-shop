@@ -18,6 +18,8 @@ class ExpressTrackFactory extends Factory
             'delivery_id' => OrderDelivery::factory(),
             'track_time' => $this->faker->dateTime(),
             'location' => $this->faker->city(),
+            'latitude' => $this->faker->latitude(18.0, 53.5),
+            'longitude' => $this->faker->longitude(73.5, 135.0),
             'description' => $this->faker->randomElement([
                 '快件已揽收',
                 '快件到达【' . $this->faker->city() . '转运中心】',

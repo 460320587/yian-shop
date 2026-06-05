@@ -48,6 +48,7 @@ enum ErrorCode: int
     case PAYMENT_AMOUNT_MISMATCH = 5002;
     case PAYMENT_REFUND_FAILED = 5003;
     case INSUFFICIENT_BALANCE = 5004;
+    case PAY_PASSWORD_LOCKED = 5005;
 
     // 优惠券模块 6000-6099
     case COUPON_NOT_FOUND = 6000;
@@ -91,6 +92,7 @@ enum ErrorCode: int
             self::PAYMENT_AMOUNT_MISMATCH => '支付金额不匹配',
             self::PAYMENT_REFUND_FAILED => '退款失败',
             self::INSUFFICIENT_BALANCE => '余额不足',
+            self::PAY_PASSWORD_LOCKED => '支付密码已锁定',
             self::COUPON_NOT_FOUND => '优惠券不存在',
             self::COUPON_EXPIRED => '优惠券已过期',
             self::COUPON_EXHAUSTED => '优惠券已领完',
