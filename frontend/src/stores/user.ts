@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
+import { getUserInfo as apiGetUserInfo } from '@/api/user'
 
 export interface User {
   id: number
@@ -39,6 +40,27 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem(USER_KEY, JSON.stringify(user))
   }
 
+  /**
+   * 从服务器获取用户信息
+   * - 未登录时不发起请求
+   * - 失败时不抛异常，保持 userInfo 原值
+   */
+  async function fetchUserInfo(): Promise<void> {
+    if (!token.value) {
+      return
+    }
+
+    try {
+      const res = await apiGetUserInfo()
+      if (res.data) {
+        setUserInfo(res.data)
+      }
+    } catch {
+      // 静默失败：网络异常或 token 过期时不中断用户体验
+      // 由 Axios 拦截器统一处理 401 跳转
+    }
+  }
+
   function loginSuccess(newToken: string, user: User) {
     setToken(newToken)
     setUserInfo(user)
@@ -51,5 +73,5 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem(USER_KEY)
   }
 
-  return { token, userInfo, isLoggedIn, setToken, setUserInfo, loginSuccess, logout }
+  return { token, userInfo, isLoggedIn, setToken, setUserInfo, fetchUserInfo, loginSuccess, logout }
 })
