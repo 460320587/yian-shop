@@ -15,6 +15,7 @@ const user = computed(() => userStore.userInfo)
       <p><router-link to="/notifications">消息通知</router-link></p>
       <p><router-link to="/addresses">收货地址</router-link></p>
       <p><router-link to="/favorites">我的收藏</router-link></p>
+      <p><router-link to="/my-reviews">我的评价</router-link></p>
     </div>
   </div>
 </template>

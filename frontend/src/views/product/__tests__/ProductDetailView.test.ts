@@ -16,6 +16,7 @@ let getProductDetailMock = vi.fn()
 let getFavoritesMock = vi.fn()
 let addFavoriteMock = vi.fn()
 let removeFavoriteMock = vi.fn()
+let getProductReviewsMock = vi.fn()
 
 vi.mock('@/api/product', () => ({
   getProductDetail: (...args: any[]) => getProductDetailMock(...args),
@@ -27,6 +28,10 @@ vi.mock('@/api/favorite', () => ({
   removeFavorite: (...args: any[]) => removeFavoriteMock(...args),
 }))
 
+vi.mock('@/api/review', () => ({
+  getProductReviews: (...args: any[]) => getProductReviewsMock(...args),
+}))
+
 beforeEach(() => {
   getProductDetailMock = vi.fn(() => Promise.resolve({
     id: 1, name: '名片', code: 'CARD-001', description: '高质量名片',
@@ -36,6 +41,13 @@ beforeEach(() => {
   getFavoritesMock = vi.fn(() => Promise.resolve({ data: [], total: 0, current_page: 1, last_page: 1 }))
   addFavoriteMock = vi.fn(() => Promise.resolve({ id: 10, product_id: 1, status: 1 }))
   removeFavoriteMock = vi.fn(() => Promise.resolve({}))
+  getProductReviewsMock = vi.fn(() => Promise.resolve({
+    data: [
+      { id: 1, customer_id: 1, product_id: 1, rating: 5, content: '质量很好', images: null, reply: null, reply_at: null, created_at: '2026-01-01', customer: { id: 1, nickname: '张三' } },
+      { id: 2, customer_id: 2, product_id: 1, rating: 4, content: '不错', images: null, reply: '感谢您的评价', reply_at: '2026-01-02', created_at: '2026-01-02', customer: { id: 2, nickname: null } },
+    ],
+    total: 2, current_page: 1, last_page: 1,
+  }))
 })
 
 describe('ProductDetailView', () => {
@@ -103,5 +115,18 @@ describe('ProductDetailView', () => {
     await flushPromises()
     expect(removeFavoriteMock).toHaveBeenCalledWith(5)
     expect((wrapper.vm as any).isFavorited).toBe(false)
+  })
+
+  it('loads product reviews on mount', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    expect(getProductReviewsMock).toHaveBeenCalledWith(1, expect.anything())
+    expect((wrapper.vm as any).reviews).toHaveLength(2)
+  })
+
+  it('displays review reply when available', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    expect((wrapper.vm as any).reviews[1].reply).toBe('感谢您的评价')
   })
 })
