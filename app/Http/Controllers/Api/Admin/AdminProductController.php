@@ -101,9 +101,17 @@ class AdminProductController extends BaseController
             'price_max' => 'nullable|integer|min:0',
             'status' => 'nullable|integer|in:0,1,2',
             'description' => 'nullable|string',
+            'pricing_params' => 'nullable|array',
         ]);
 
-        $product->update(array_filter($data, fn ($v) => $v !== null));
+        $updateData = array_filter($data, fn ($v) => $v !== null);
+
+        // pricing_params 允许显式设置为 null（清空）
+        if ($request->has('pricing_params') && $request->input('pricing_params') === null) {
+            $updateData['pricing_params'] = null;
+        }
+
+        $product->update($updateData);
 
         return $this->success([], '更新成功');
     }
