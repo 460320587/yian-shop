@@ -116,6 +116,7 @@ enum ErrorCode: int
             self::PRODUCT_NOT_FOUND => 404,
             self::ORDER_NOT_FOUND => 404,
             self::VALIDATION_ERROR => 422,
+            self::ORDER_STATUS_INVALID => 422,
             self::TOO_MANY_REQUESTS => 429,
             self::SYSTEM_ERROR => 500,
             self::AUTH_TOKEN_INVALID => 400,

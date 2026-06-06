@@ -14,7 +14,7 @@ abstract class BaseAction
     /**
      * 执行业务操作的主入口
      */
-    abstract public function handle(): mixed;
+    abstract public function handle();
 
     /**
      * 在数据库事务中执行回调

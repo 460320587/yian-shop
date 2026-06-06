@@ -8,6 +8,7 @@ use App\Domains\Cart\Models\Cart;
 use App\Domains\Common\ValueObjects\Money;
 use App\Domains\Coupon\Models\CustomerCoupon;
 use App\Domains\Coupon\Services\CouponDiscountCalculator;
+use App\Domains\Order\Actions\CancelOrderAction;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
 use App\Domains\Order\Models\OrderItem;
@@ -246,26 +247,7 @@ class OrderController extends BaseController
             return $this->error(ErrorCode::ORDER_STATUS_INVALID, '当前订单状态不允许取消', null, 422);
         }
 
-        $order->stateMachine()->transition($order, OrderStatus::Cancelled->value, [
-            'operator_type' => 'customer',
-            'operator_id' => null,
-            'remark' => '客户取消订单',
-        ]);
-
-        // 退还优惠券
-        if ($order->customer_coupon_id) {
-            $customerCoupon = CustomerCoupon::with('coupon')->find($order->customer_coupon_id);
-            if ($customerCoupon && $customerCoupon->status === 2) {
-                $customerCoupon->update([
-                    'status' => 1,
-                    'used_at' => null,
-                ]);
-
-                if ($customerCoupon->coupon) {
-                    $customerCoupon->coupon->decrement('used_count');
-                }
-            }
-        }
+        (new CancelOrderAction($order))->handle();
 
         return $this->success([], '订单取消成功');
     }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Domains\Order\Actions\ConfirmOrderPaymentAction;
+use App\Domains\Order\Actions\ShipOrderAction;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
 use App\Http\Controllers\BaseController;
@@ -51,15 +53,7 @@ class AdminOrderController extends BaseController
             return $this->error(ErrorCode::NOT_FOUND, '订单不存在');
         }
 
-        if ((int) $order->status !== OrderStatus::PendingPayment->value) {
-            return $this->error(ErrorCode::ORDER_STATUS_INVALID, '当前订单状态不允许确认付款', null, 422);
-        }
-
-        $order->stateMachine()->transition($order, OrderStatus::Paid->value, [
-            'operator_type' => 'admin',
-            'operator_id' => auth('admin')->id(),
-            'remark' => '管理员确认付款',
-        ]);
+        (new ConfirmOrderPaymentAction($order, auth('admin')->id()))->handle();
 
         return $this->success([], '已确认付款');
     }
@@ -81,32 +75,12 @@ class AdminOrderController extends BaseController
             return $this->error(ErrorCode::NOT_FOUND, '订单不存在');
         }
 
-        if ((int) $order->status !== OrderStatus::Paid->value) {
-            return $this->error(ErrorCode::ORDER_STATUS_INVALID, '当前订单状态不允许发货', null, 422);
-        }
-
-        $order->stateMachine()->transition($order, OrderStatus::Shipped->value, [
-            'operator_type' => 'admin',
-            'operator_id' => auth('admin')->id(),
-            'remark' => '管理员发货: ' . $request->input('express_company'),
-            'tracking_no' => $request->input('tracking_no'),
-        ]);
-
-        // 同步物流公司（状态机已更新 out_status_name）
-        $order->update([
-            'express_company' => $request->input('express_company'),
-        ]);
-
-        // 创建物流配送记录
-        if ($request->filled('tracking_no')) {
-            \App\Domains\Logistics\Models\OrderDelivery::create([
-                'order_id' => $order->id,
-                'carrier_name' => $request->input('express_company'),
-                'tracking_no' => $request->input('tracking_no'),
-                'status' => 1,
-                'shipped_at' => now(),
-            ]);
-        }
+        (new ShipOrderAction(
+            $order,
+            auth('admin')->id(),
+            $request->input('express_company'),
+            $request->input('tracking_no'),
+        ))->handle();
 
         return $this->success([], '已发货');
     }

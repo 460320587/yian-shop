@@ -35,7 +35,7 @@ class BusinessExceptionTest extends TestCase
 
     public function test_exception_returns_200_for_business_errors(): void
     {
-        $exception = new BusinessException(ErrorCode::ORDER_STATUS_INVALID);
+        $exception = new BusinessException(ErrorCode::ORDER_CREATE_FAILED);
 
         $this->assertSame(200, $exception->getHttpStatus());
     }
