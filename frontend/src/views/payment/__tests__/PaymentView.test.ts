@@ -103,6 +103,41 @@ describe('PaymentView', () => {
     expect((wrapper.vm as any).paymentData).not.toBeNull()
   })
 
+  it('shows pay password input when wallet selected', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    expect(wrapper.find('.pay-password-input').exists()).toBe(false)
+    ;(wrapper.vm as any).selectedGateway = 'wallet'
+    await flushPromises()
+    expect(wrapper.find('.pay-password-input').exists()).toBe(true)
+  })
+
+  it('hides pay password input when non-wallet selected', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).selectedGateway = 'wechat'
+    await flushPromises()
+    expect(wrapper.find('.pay-password-input').exists()).toBe(false)
+    ;(wrapper.vm as any).selectedGateway = 'alipay'
+    await flushPromises()
+    expect(wrapper.find('.pay-password-input').exists()).toBe(false)
+  })
+
+  it('sends pay_password when wallet payment', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).selectedGateway = 'wallet'
+    ;(wrapper.vm as any).payPassword = '123456'
+    await flushPromises()
+    await (wrapper.vm as any).createPayment()
+    await flushPromises()
+    expect(createPaymentMock).toHaveBeenCalledWith({
+      order_no: 'Y202601010001',
+      gateway: 'wallet',
+      pay_password: '123456',
+    })
+  })
+
   it('auto-polls payment status every 3 seconds', async () => {
     const wrapper = await mountComponent()
     await flushPromises()
@@ -199,9 +234,14 @@ describe('PaymentView', () => {
     const pushSpy = vi.spyOn(router, 'push')
 
     ;(wrapper.vm as any).selectedGateway = 'wallet'
+    ;(wrapper.vm as any).payPassword = '123456'
     await (wrapper.vm as any).createPayment()
     await flushPromises()
 
+    expect(createPaymentMock).toHaveBeenCalledWith(expect.objectContaining({
+      gateway: 'wallet',
+      pay_password: '123456',
+    }))
     expect(pushSpy).toHaveBeenCalledWith('/orders')
   })
 

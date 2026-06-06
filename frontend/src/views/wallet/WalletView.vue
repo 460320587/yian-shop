@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { recharge, withdraw } from '@/api/wallet'
+import { recharge, withdraw, getWalletTransactions, type WalletTransaction } from '@/api/wallet'
 
 const userStore = useUserStore()
 
@@ -25,6 +25,43 @@ const rechargeForm = ref({
 
 const withdrawForm = ref({
   amount: 0,
+  pay_password: '',
+})
+
+const activeTab = ref('overview')
+const transactions = ref<WalletTransaction[]>([])
+const transactionLoading = ref(false)
+const transactionType = ref<number | undefined>(undefined)
+
+const typeMap: Record<number, string> = {
+  1: '充值',
+  2: '消费',
+  3: '提现',
+  4: '退款',
+}
+
+function formatAmount(amount: number): string {
+  return (amount / 100).toFixed(2)
+}
+
+async function loadTransactions() {
+  transactionLoading.value = true
+  try {
+    const res = await getWalletTransactions({
+      type: transactionType.value,
+      page: 1,
+      per_page: 20,
+    })
+    transactions.value = res.list || []
+  } catch (e) {
+    console.error(e)
+  } finally {
+    transactionLoading.value = false
+  }
+}
+
+onMounted(() => {
+  loadTransactions()
 })
 
 function openRechargeDialog() {
@@ -33,7 +70,7 @@ function openRechargeDialog() {
 }
 
 function openWithdrawDialog() {
-  withdrawForm.value = { amount: 0 }
+  withdrawForm.value = { amount: 0, pay_password: '' }
   withdrawVisible.value = true
 }
 
@@ -80,8 +117,9 @@ async function submitWithdraw() {
 
   submitting.value = true
   try {
-    await withdraw({ amount })
+    await withdraw({ amount, pay_password: withdrawForm.value.pay_password })
     ElMessage.success('提现成功')
+    loadTransactions()
     withdrawVisible.value = false
   } catch (e) {
     console.error(e)
@@ -96,6 +134,10 @@ defineExpose({
   withdrawVisible,
   rechargeForm,
   withdrawForm,
+  activeTab,
+  transactions,
+  transactionType,
+  loadTransactions,
   openRechargeDialog,
   openWithdrawDialog,
   submitRecharge,
@@ -143,12 +185,49 @@ defineExpose({
         <el-form-item>
           <span class="tip">可提现金额：¥{{ balance.toFixed(2) }}</span>
         </el-form-item>
+        <el-form-item label="支付密码" required class="withdraw-pay-password">
+          <el-input
+            v-model="withdrawForm.pay_password"
+            type="password"
+            placeholder="请输入支付密码"
+            show-password
+            maxlength="20"
+          />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="withdrawVisible = false">取消</el-button>
         <el-button type="primary" :loading="submitting" @click="submitWithdraw">确认提现</el-button>
       </template>
     </el-dialog>
+
+    <div class="transaction-tab">
+      <el-tabs v-model="activeTab">
+        <el-tab-pane label="交易明细" name="transactions">
+          <div class="transaction-filter">
+            <el-select v-model="transactionType" clearable placeholder="全部类型" @change="loadTransactions">
+              <el-option label="充值" :value="1" />
+              <el-option label="消费" :value="2" />
+              <el-option label="提现" :value="3" />
+              <el-option label="退款" :value="4" />
+            </el-select>
+          </div>
+          <div v-if="transactionLoading" class="transaction-loading">加载中...</div>
+          <div v-else class="transaction-list">
+            <div v-for="tx in transactions" :key="tx.id" class="transaction-row">
+              <span class="tx-time">{{ tx.created_at }}</span>
+              <span class="tx-type">{{ typeMap[tx.type] || '其他' }}</span>
+              <span :class="['tx-amount', tx.amount > 0 ? 'amount-positive' : 'amount-negative']">
+                {{ tx.amount > 0 ? '+' : '' }}{{ formatAmount(tx.amount) }}
+              </span>
+              <span class="tx-balance">{{ formatAmount(tx.balance_after) }}</span>
+              <span class="tx-remark">{{ tx.remark || '-' }}</span>
+            </div>
+            <div v-if="transactions.length === 0" class="transaction-empty">暂无交易记录</div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+    </div>
   </div>
 </template>
 
@@ -186,5 +265,65 @@ defineExpose({
 .tip {
   font-size: 13px;
   color: #909399;
+}
+.transaction-tab {
+  margin-top: 24px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+.transaction-filter {
+  margin-bottom: 12px;
+}
+.amount-positive {
+  color: #67c23a;
+}
+.amount-negative {
+  color: #f56c6c;
+}
+.transaction-list {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+.transaction-row {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+  font-size: 14px;
+}
+.transaction-row:last-child {
+  border-bottom: none;
+}
+.transaction-row > span {
+  flex: 1;
+}
+.transaction-row .tx-time {
+  flex: 1.4;
+  color: #606266;
+}
+.transaction-row .tx-type {
+  flex: 0.6;
+  color: #606266;
+}
+.transaction-row .tx-amount {
+  flex: 0.8;
+  font-weight: 600;
+}
+.transaction-row .tx-balance {
+  flex: 0.8;
+  color: #909399;
+}
+.transaction-row .tx-remark {
+  flex: 1.2;
+  color: #909399;
+}
+.transaction-empty,
+.transaction-loading {
+  padding: 40px;
+  text-align: center;
+  color: #909399;
+  font-size: 14px;
 }
 </style>

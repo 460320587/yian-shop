@@ -3,6 +3,8 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import WalletView from '../WalletView.vue'
 
+let getTransactionsMock = vi.fn()
+
 const mockUser = {
   id: 1,
   phone: '13800138000',
@@ -20,6 +22,7 @@ let withdrawMock = vi.fn()
 vi.mock('@/api/wallet', () => ({
   recharge: (...args: any[]) => rechargeMock(...args),
   withdraw: (...args: any[]) => withdrawMock(...args),
+  getWalletTransactions: (...args: any[]) => getTransactionsMock(...args),
 }))
 
 vi.mock('@/stores/user', () => ({
@@ -44,6 +47,10 @@ describe('WalletView', () => {
     vi.clearAllMocks()
     rechargeMock = vi.fn(() => Promise.resolve({ payment_no: 'P202601010001', amount: 100, status: 1 }))
     withdrawMock = vi.fn(() => Promise.resolve({ payment_no: 'P202601010002', amount: 50, status: 1 }))
+    getTransactionsMock = vi.fn(() => Promise.resolve({ list: [
+      { id: 1, type: 1, amount: 10000, balance_before: 0, balance_after: 10000, remark: '充值', status: 1, created_at: '2026-01-01 10:00:00' },
+      { id: 2, type: 2, amount: -5000, balance_before: 10000, balance_after: 5000, remark: '消费', status: 1, created_at: '2026-01-02 10:00:00' },
+    ], total: 2 }))
   })
 
   it('renders balance from user store', () => {
@@ -80,12 +87,31 @@ describe('WalletView', () => {
     expect(vm.withdrawVisible).toBe(true)
 
     vm.withdrawForm.amount = 50
+    vm.withdrawForm.pay_password = '123456'
     await nextTick()
 
     await vm.submitWithdraw()
     await flushPromises()
 
-    expect(withdrawMock).toHaveBeenCalledWith({ amount: 50 })
+    expect(withdrawMock).toHaveBeenCalledWith({ amount: 50, pay_password: '123456' })
+  })
+
+  it('shows pay password input in withdraw dialog', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as any
+
+    vm.openWithdrawDialog()
+    await nextTick()
+
+    expect(wrapper.find('.withdraw-pay-password').exists()).toBe(true)
+  })
+
+  it('shows transaction list tab', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('.transaction-tab').exists()).toBe(true)
+    expect(wrapper.findAll('.transaction-row').length).toBe(2)
   })
 
   it('shows error when withdraw amount exceeds balance', async () => {
@@ -124,5 +150,18 @@ describe('WalletView', () => {
     expect(typeof vm.openWithdrawDialog).toBe('function')
     expect(typeof vm.submitRecharge).toBe('function')
     expect(typeof vm.submitWithdraw).toBe('function')
+  })
+
+  it('filters transactions by type', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as any
+    await flushPromises()
+
+    vm.transactionType = 1
+    await nextTick()
+    await vm.loadTransactions()
+    await flushPromises()
+
+    expect(getTransactionsMock).toHaveBeenCalledWith(expect.objectContaining({ type: 1 }))
   })
 })

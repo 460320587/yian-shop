@@ -30,7 +30,7 @@ export interface PaymentStatusResponse {
   expire_at: string | null
 }
 
-export function createPayment(data: { order_no: string; gateway: string }) {
+export function createPayment(data: { order_no: string; gateway: string; pay_password?: string }) {
   return post<PaymentData>('/payments/create', data)
 }
 

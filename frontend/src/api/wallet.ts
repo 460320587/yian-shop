@@ -7,13 +7,21 @@ export interface RechargeData {
 
 export interface WithdrawData {
   amount: number
+  pay_password: string
 }
 
 export interface WalletTransaction {
-  payment_no: string
+  id: number
+  customer_id: number
+  type: number
   amount: number
+  balance_before: number
+  balance_after: number
+  order_no: string | null
+  payment_no: string | null
+  remark: string | null
   status: number
-  gateway: string
+  created_at: string
 }
 
 export interface WalletBalance {
@@ -31,4 +39,8 @@ export function recharge(data: RechargeData) {
 
 export function withdraw(data: WithdrawData) {
   return request.post<WalletTransaction>('/payments/wallet/withdraw', data)
+}
+
+export function getWalletTransactions(params?: { type?: number; page?: number; per_page?: number }) {
+  return request.get<{ list: WalletTransaction[]; total: number }>('/wallet/transactions', { params })
 }

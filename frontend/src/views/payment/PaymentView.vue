@@ -18,6 +18,7 @@ const countdownTimer = ref<ReturnType<typeof setInterval> | null>(null)
 const countdownSeconds = ref(0)
 const isExpired = ref(false)
 
+const payPassword = ref('')
 const isDev = import.meta.env.DEV
 
 const gateways = [
@@ -106,10 +107,14 @@ async function createPay() {
 
   loading.value = true
   try {
-    const res = await createPayment({
+    const payload: { order_no: string; gateway: string; pay_password?: string } = {
       order_no: orderNo.value,
       gateway: selectedGateway.value,
-    })
+    }
+    if (selectedGateway.value === 'wallet') {
+      payload.pay_password = payPassword.value
+    }
+    const res = await createPayment(payload)
     paymentData.value = res
 
     if (res.status === 1) {
@@ -177,6 +182,7 @@ defineExpose({
   orderNo,
   amount,
   selectedGateway,
+  payPassword,
   errorMsg,
   paymentData,
   createPayment: createPay,
@@ -219,6 +225,15 @@ defineExpose({
             <span class="gateway-label">{{ gw.label }}</span>
             <el-icon v-if="selectedGateway === gw.key"><Check /></el-icon>
           </div>
+        </div>
+        <div v-if="selectedGateway === 'wallet'" class="pay-password-input">
+          <el-input
+            v-model="payPassword"
+            type="password"
+            placeholder="请输入支付密码"
+            show-password
+            maxlength="20"
+          />
         </div>
         <el-button type="primary" class="pay-btn" :loading="loading" @click="createPay">
           确认支付 ¥{{ amount.toFixed(2) }}
@@ -343,6 +358,13 @@ defineExpose({
 .gateway-item.active {
   border-color: #409eff;
   background: #ecf5ff;
+}
+.pay-password-input {
+  margin-bottom: 16px;
+}
+.pay-password-input :deep(.el-input__inner) {
+  height: 44px;
+  font-size: 15px;
 }
 .pay-btn {
   width: 100%;
