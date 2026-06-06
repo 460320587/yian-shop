@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Order\StateMachines;
 
 use App\Domains\Common\StateMachines\BaseStateMachine;
+use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\OrderStatusLog;
 use Illuminate\Database\Eloquent\Model;
 
@@ -23,7 +24,7 @@ class OrderStateMachine extends BaseStateMachine
             // 待付款
             11 => [12, 61],
             // 已付款
-            12 => [13, 62],
+            12 => [13, 20, 62],
             // 生产中
             13 => [15],
             // 生产完成
@@ -31,7 +32,7 @@ class OrderStateMachine extends BaseStateMachine
             // 待发货
             17 => [20],
             // 已发货
-            20 => [54, 62],
+            20 => [54, 60, 62],
             // 待收货
             54 => [55],
             // 已收货
@@ -66,6 +67,7 @@ class OrderStateMachine extends BaseStateMachine
 
     protected function afterTransition(Model $model, int $from, int $to, array $context): void
     {
+        $this->syncDisplayFields($model, $to, $context);
         $this->recordStatusLog($model, $from, $to, $context);
 
         // 触发对应事件
@@ -74,6 +76,25 @@ class OrderStateMachine extends BaseStateMachine
             20 => \App\Events\OrderDelivered::dispatch($model, $context['tracking_no'] ?? ''),
             default => null,
         };
+    }
+
+    private function syncDisplayFields(Model $model, int $to, array $context): void
+    {
+        $updates = [];
+
+        $status = OrderStatus::tryFrom($to);
+        if ($status !== null) {
+            $updates['out_status_name'] = $status->label();
+        }
+
+        // 付款成功时自动记录 paid_at（支持上下文传入，否则取当前时间）
+        if ($to === OrderStatus::Paid->value && $model->getAttribute('paid_at') === null) {
+            $updates['paid_at'] = $context['paid_at'] ?? now();
+        }
+
+        if ($updates !== []) {
+            $model->update($updates);
+        }
     }
 
     private function recordStatusLog(Model $model, int $from, int $to, array $context): void

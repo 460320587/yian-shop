@@ -37,6 +37,13 @@ class OrderStateMachineTest extends TestCase
         $this->assertTrue($this->sm->canTransition(55, 60)); // 已收货 → 已完成
     }
 
+    public function test_admin_shortcut_transitions(): void
+    {
+        // 管理后台快捷流转（兼容当前简化流程）
+        $this->assertTrue($this->sm->canTransition(12, 20)); // 已付款 → 已发货（跳過生產環節）
+        $this->assertTrue($this->sm->canTransition(20, 60)); // 已发货 → 已完成（跳过收货环节）
+    }
+
     public function test_cancel_transitions(): void
     {
         $this->assertTrue($this->sm->canTransition(0, 61));  // 待提交 → 已取消
@@ -81,6 +88,25 @@ class OrderStateMachineTest extends TestCase
             'from_status' => 11,
             'to_status' => 12,
         ]);
+    }
+
+    public function test_transition_syncs_out_status_name(): void
+    {
+        $order = Order::factory()->create(['status' => 11, 'out_status_name' => '待付款']);
+        $this->sm->transition($order, 12);
+
+        $order->refresh();
+        $this->assertEquals('已付款', $order->out_status_name);
+    }
+
+    public function test_transition_to_paid_records_paid_at(): void
+    {
+        $order = Order::factory()->create(['status' => 11, 'paid_at' => null]);
+        $paidAt = now()->subMinute();
+        $this->sm->transition($order, 12, ['paid_at' => $paidAt]);
+
+        $order->refresh();
+        $this->assertNotNull($order->paid_at);
     }
 
     public function test_get_available_transitions_for_pending_payment(): void

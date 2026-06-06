@@ -7,6 +7,7 @@ namespace App\Domains\Order\Models;
 use App\Domains\Common\Models\BaseModel;
 use App\Domains\Common\ValueObjects\Money;
 use App\Domains\User\Models\Customer;
+use App\Domains\Order\StateMachines\OrderStateMachine;
 use App\Events\OrderStatusChanged;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -62,5 +63,10 @@ class Order extends BaseModel
     public function items(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function stateMachine(): OrderStateMachine
+    {
+        return new OrderStateMachine();
     }
 }

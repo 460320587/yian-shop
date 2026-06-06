@@ -172,6 +172,13 @@ class OrderTest extends TestCase
             'id' => $order->id,
             'status' => OrderStatus::Cancelled->value,
         ]);
+
+        $this->assertDatabaseHas('order_status_logs', [
+            'order_id' => $order->id,
+            'from_status' => OrderStatus::PendingPayment->value,
+            'to_status' => OrderStatus::Cancelled->value,
+            'operator_type' => 'customer',
+        ]);
     }
 
     public function test_user_cannot_cancel_paid_order(): void

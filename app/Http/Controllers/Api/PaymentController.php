@@ -72,9 +72,10 @@ class PaymentController extends BaseController
 
             $this->paymentService->recordCreated($payment);
 
-            $order->update([
-                'status' => OrderStatus::Paid->value,
-                'out_status_name' => OrderStatus::Paid->label(),
+            $order->stateMachine()->transition($order, OrderStatus::Paid->value, [
+                'operator_type' => 'customer',
+                'operator_id' => null,
+                'remark' => '钱包支付成功',
                 'paid_at' => now(),
             ]);
 

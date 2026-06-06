@@ -55,10 +55,10 @@ class AdminOrderController extends BaseController
             return $this->error(ErrorCode::ORDER_STATUS_INVALID, '当前订单状态不允许确认付款', null, 422);
         }
 
-        $order->update([
-            'status' => OrderStatus::Paid->value,
-            'out_status_name' => OrderStatus::Paid->label(),
-            'paid_at' => now(),
+        $order->stateMachine()->transition($order, OrderStatus::Paid->value, [
+            'operator_type' => 'admin',
+            'operator_id' => auth('admin')->id(),
+            'remark' => '管理员确认付款',
         ]);
 
         return $this->success([], '已确认付款');
@@ -85,9 +85,15 @@ class AdminOrderController extends BaseController
             return $this->error(ErrorCode::ORDER_STATUS_INVALID, '当前订单状态不允许发货', null, 422);
         }
 
+        $order->stateMachine()->transition($order, OrderStatus::Shipped->value, [
+            'operator_type' => 'admin',
+            'operator_id' => auth('admin')->id(),
+            'remark' => '管理员发货: ' . $request->input('express_company'),
+            'tracking_no' => $request->input('tracking_no'),
+        ]);
+
+        // 同步物流公司（状态机已更新 out_status_name）
         $order->update([
-            'status' => OrderStatus::Shipped->value,
-            'out_status_name' => OrderStatus::Shipped->label(),
             'express_company' => $request->input('express_company'),
         ]);
 
@@ -117,9 +123,10 @@ class AdminOrderController extends BaseController
             return $this->error(ErrorCode::ORDER_STATUS_INVALID, '当前订单状态不允许完成', null, 422);
         }
 
-        $order->update([
-            'status' => OrderStatus::Completed->value,
-            'out_status_name' => OrderStatus::Completed->label(),
+        $order->stateMachine()->transition($order, OrderStatus::Completed->value, [
+            'operator_type' => 'admin',
+            'operator_id' => auth('admin')->id(),
+            'remark' => '管理员完成订单',
         ]);
 
         return $this->success([], '订单已完成');

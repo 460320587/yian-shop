@@ -133,4 +133,48 @@ class AdminOrderStatusTest extends TestCase
             'title' => '订单已付款',
         ]);
     }
+
+    public function test_confirm_payment_creates_status_log(): void
+    {
+        $admin = $this->authAdmin();
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::PendingPayment->value,
+            'out_status_name' => OrderStatus::PendingPayment->label(),
+        ]);
+
+        $this->putJson("/api/v1/admin/orders/{$order->id}/confirm-payment");
+
+        $this->assertDatabaseHas('order_status_logs', [
+            'order_id' => $order->id,
+            'from_status' => OrderStatus::PendingPayment->value,
+            'to_status' => OrderStatus::Paid->value,
+            'operator_type' => 'admin',
+            'operator_id' => $admin->id,
+        ]);
+    }
+
+    public function test_ship_creates_status_log(): void
+    {
+        $admin = $this->authAdmin();
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::Paid->value,
+            'out_status_name' => OrderStatus::Paid->label(),
+        ]);
+
+        $this->putJson("/api/v1/admin/orders/{$order->id}/ship", [
+            'express_company' => '顺丰速运',
+        ]);
+
+        $this->assertDatabaseHas('order_status_logs', [
+            'order_id' => $order->id,
+            'from_status' => OrderStatus::Paid->value,
+            'to_status' => OrderStatus::Shipped->value,
+            'operator_type' => 'admin',
+            'operator_id' => $admin->id,
+        ]);
+    }
 }

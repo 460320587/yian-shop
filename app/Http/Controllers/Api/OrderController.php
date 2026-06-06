@@ -246,9 +246,10 @@ class OrderController extends BaseController
             return $this->error(ErrorCode::ORDER_STATUS_INVALID, '当前订单状态不允许取消', null, 422);
         }
 
-        $order->update([
-            'status' => OrderStatus::Cancelled->value,
-            'out_status_name' => OrderStatus::Cancelled->label(),
+        $order->stateMachine()->transition($order, OrderStatus::Cancelled->value, [
+            'operator_type' => 'customer',
+            'operator_id' => null,
+            'remark' => '客户取消订单',
         ]);
 
         // 退还优惠券
