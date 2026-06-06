@@ -16,6 +16,15 @@ export interface WalletTransaction {
   gateway: string
 }
 
+export interface WalletBalance {
+  balance: number
+  customer_id: number
+}
+
+export function getWalletBalance() {
+  return request.get<WalletBalance>('/wallet/balance')
+}
+
 export function recharge(data: RechargeData) {
   return request.post<WalletTransaction>('/payments/wallet/recharge', data)
 }

@@ -10,9 +10,16 @@ let getAddressesMock = vi.fn()
 let getMyCouponsMock = vi.fn()
 let getInvoiceTitlesMock = vi.fn()
 let getUserInfoMock = vi.fn()
+let getWalletBalanceMock = vi.fn()
+let calculateOrderPricingMock = vi.fn()
 
 vi.mock('@/api/order', () => ({
   createOrder: (...args: any[]) => createOrderMock(...args),
+  calculateOrderPricing: (...args: any[]) => calculateOrderPricingMock(...args),
+}))
+
+vi.mock('@/api/wallet', () => ({
+  getWalletBalance: () => getWalletBalanceMock(),
 }))
 
 vi.mock('@/api/cart', () => ({
@@ -162,6 +169,18 @@ beforeEach(() => {
       auth_status: 0,
       vip_level: 0,
       balance: 5000,
+    })
+  )
+  getWalletBalanceMock = vi.fn(() =>
+    Promise.resolve({ balance: 5000, customer_id: 1 })
+  )
+  calculateOrderPricingMock = vi.fn(() =>
+    Promise.resolve({
+      freight_amount: 10,
+      goods_amount: 10,
+      free_threshold: 500,
+      carrier_name: '顺丰速运',
+      calculation_type: 1,
     })
   )
 })
@@ -347,5 +366,51 @@ describe('OrderCreateView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('去添加地址')
+  })
+
+  it('loads wallet balance from api', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.walletBalance).toBe(5000)
+    expect(getWalletBalanceMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('calls pricing api when address selected', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    expect(calculateOrderPricingMock).toHaveBeenCalledTimes(1)
+    const vm = wrapper.vm as any
+    expect(vm.freight).toBe(10)
+  })
+
+  it('shows free shipping when freight is zero', async () => {
+    calculateOrderPricingMock = vi.fn(() =>
+      Promise.resolve({
+        freight_amount: 0,
+        goods_amount: 10,
+        free_threshold: 500,
+        carrier_name: '顺丰速运',
+        calculation_type: 1,
+      })
+    )
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('包邮')
+  })
+
+  it('use balance affects total amount', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    expect(vm.total).toBe(1000 + 10 - 0) // subtotal + freight - discount
+
+    vm.useBalance = 200
+    await flushPromises()
+    expect(vm.total).toBe(1000 + 10 - 200)
   })
 })

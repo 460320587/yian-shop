@@ -2,11 +2,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { createOrder, type CreateOrderData } from '@/api/order'
+import { createOrder, calculateOrderPricing, type CreateOrderData } from '@/api/order'
 import { getCart, type CartItem } from '@/api/cart'
 import { getAddresses, type Address } from '@/api/address'
 import { getMyCoupons, type CustomerCoupon } from '@/api/coupon'
 import { getInvoiceTitles, type InvoiceTitle } from '@/api/invoice'
+import { getWalletBalance } from '@/api/wallet'
 import { getUserInfo } from '@/api/user'
 
 const router = useRouter()
@@ -19,6 +20,8 @@ const addresses = ref<Address[]>([])
 const coupons = ref<CustomerCoupon[]>([])
 const invoiceTitles = ref<InvoiceTitle[]>([])
 const userInfo = ref<{ balance: number; points?: number } | null>(null)
+const walletBalance = ref(0)
+const freight = ref(0)
 
 const selectedAddressId = ref<number | null>(null)
 const selectedCouponCode = ref<string | null>(null)
@@ -52,10 +55,26 @@ const discount = computed(() => {
   return coupon.max_discount ? Math.min(pct, coupon.max_discount) : pct
 })
 
-const freight = computed(() => 0)
 const total = computed(() =>
   Math.max(0, subtotal.value + freight.value - discount.value - useBalance.value)
 )
+
+async function loadPricing() {
+  if (!selectedAddressId.value || selectedItems.value.length === 0) {
+    freight.value = 0
+    return
+  }
+  try {
+    const res = await calculateOrderPricing({
+      address_id: selectedAddressId.value,
+      items: selectedItems.value.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
+    })
+    freight.value = res.freight_amount
+  } catch (e) {
+    console.error('运费计算失败', e)
+    freight.value = 0
+  }
+}
 const canSubmit = computed(
   () =>
     selectedAddressId.value !== null &&
@@ -69,6 +88,7 @@ function formatPrice(price: number): string {
 
 function selectAddress(id: number) {
   selectedAddressId.value = id
+  loadPricing()
 }
 
 function selectInvoiceTitle(title: InvoiceTitle) {
@@ -87,18 +107,20 @@ function onInvoiceTypeChange() {
 async function loadData() {
   loading.value = true
   try {
-    const [cartRes, addrRes, couponRes, invRes, userRes] = await Promise.all([
+    const [cartRes, addrRes, couponRes, invRes, userRes, walletRes] = await Promise.all([
       getCart(),
       getAddresses({ page: 1, per_page: 50 }),
       getMyCoupons(1),
       getInvoiceTitles(),
       getUserInfo(),
+      getWalletBalance(),
     ])
     cartItems.value = cartRes.items || []
     addresses.value = addrRes.data || []
     coupons.value = couponRes.data || []
     invoiceTitles.value = invRes || []
     userInfo.value = userRes
+    walletBalance.value = walletRes.balance
 
     const defaultAddr = addresses.value.find((a) => a.is_default)
     if (defaultAddr) {
@@ -106,6 +128,8 @@ async function loadData() {
     } else if (addresses.value.length > 0) {
       selectedAddressId.value = addresses.value[0].id
     }
+
+    await loadPricing()
   } catch (e) {
     console.error(e)
     ElMessage.error('加载结算信息失败')
@@ -340,6 +364,19 @@ defineExpose({
           <template #header>
             <span class="section-title">结算信息</span>
           </template>
+
+          <!-- 余额抵扣 -->
+          <div v-if="walletBalance > 0" class="summary-row">
+            <span>余额抵扣 (可用 ¥{{ formatPrice(walletBalance) }})</span>
+            <el-input-number
+              v-model="useBalance"
+              :min="0"
+              :max="Math.min(walletBalance, subtotal + freight - discount)"
+              :step="100"
+              size="small"
+              class="balance-input"
+            />
+          </div>
 
           <!-- 优惠券 -->
           <div class="summary-row">

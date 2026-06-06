@@ -40,8 +40,20 @@ export interface CreateOrderResponse {
   items?: any[]
 }
 
+export interface OrderPricingResponse {
+  freight_amount: number
+  goods_amount: number
+  free_threshold: number | null
+  carrier_name: string | null
+  calculation_type: number | null
+}
+
 export function createOrder(data: CreateOrderData) {
   return post<CreateOrderResponse>('/orders', data)
+}
+
+export function calculateOrderPricing(data: { address_id: number; items: Array<{ product_id: number; quantity: number }> }) {
+  return post<OrderPricingResponse>('/orders/pricing', data)
 }
 
 export function cancelOrder(orderNo: string) {
