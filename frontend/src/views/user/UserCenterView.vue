@@ -28,6 +28,7 @@ const menuGroups = [
       { label: '我的收藏', icon: 'Star', path: '/favorites' },
       { label: '我的优惠券', icon: 'Ticket', path: '/my-coupons' },
       { label: '我的钱包', icon: 'Wallet', path: '/wallet' },
+      { label: '支付密码', icon: 'Lock', path: '/pay-password' },
     ],
   },
   {
