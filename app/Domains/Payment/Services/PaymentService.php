@@ -12,6 +12,7 @@ use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Models\PaymentLog;
 use App\Domains\Payment\Models\WalletTransaction;
 use App\Domains\User\Models\Customer;
+use App\Events\PaymentSuccess;
 
 class PaymentService
 {
@@ -42,6 +43,8 @@ class PaymentService
         if ($payment->gateway === 'wallet' && $payment->order_no) {
             $this->recordWalletTransaction($payment, 2); // 2=消费
         }
+
+        PaymentSuccess::dispatch($payment);
 
         $this->writeLog($payment, 'callback', $fromStatus, PaymentStatus::Success->value, $gatewayResponse);
     }
@@ -95,7 +98,7 @@ class PaymentService
             'customer_id' => $payment->customer_id,
             'type' => $type,
             'amount' => $payment->amount->amount,
-            'direction' => -1,
+            'direction' => -1, // 软保留，Model 不 fillable 会被忽略
             'balance_before' => $customer->balance->amount + $payment->amount->amount,
             'balance_after' => $customer->balance->amount,
             'order_no' => $payment->order_no,

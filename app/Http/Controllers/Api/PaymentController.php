@@ -12,9 +12,11 @@ use App\Domains\Payment\Actions\WithdrawWalletAction;
 use App\Events\PaymentSuccess;
 use App\Domains\Payment\Enums\PaymentStatus;
 use App\Domains\Payment\Models\Payment;
+use App\Domains\Payment\Models\CustomerPayPassword;
 use App\Domains\Payment\Models\WalletTransaction;
 use App\Domains\Payment\Services\PaymentService;
 use App\Domains\User\Models\Customer;
+use App\Exceptions\BusinessException;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
@@ -30,10 +32,16 @@ class PaymentController extends BaseController
 
     public function create(Request $request): JsonResponse
     {
-        $request->validate([
+        $rules = [
             'order_no' => ['required', 'string'],
             'gateway' => ['required', 'string', 'in:wechat,alipay,unionpay,wallet'],
-        ]);
+        ];
+
+        if ($request->input('gateway') === 'wallet') {
+            $rules['pay_password'] = ['required', 'string'];
+        }
+
+        $request->validate($rules);
 
         $customerId = auth('sanctum')->id();
         $order = Order::where('order_no', $request->input('order_no'))
@@ -52,8 +60,10 @@ class PaymentController extends BaseController
         $amount = $order->total_amount->amount;
         $paymentNo = 'P' . now()->format('Ymd') . strtoupper(Str::random(6));
 
-        // wallet 支付：直接扣减余额
+        // wallet 支付：校验支付密码后扣减余额
         if ($request->input('gateway') === 'wallet') {
+            $this->verifyPayPassword($customerId, $request->input('pay_password'));
+
             $customer = Customer::find($customerId);
             $payment = (new PayWithWalletAction($customer, $order, $this->paymentService))->handle();
 
@@ -149,9 +159,13 @@ class PaymentController extends BaseController
     {
         $request->validate([
             'amount' => ['required', 'numeric', 'min:0.01', 'max:50000'],
+            'pay_password' => ['required', 'string'],
         ]);
 
-        $customer = Customer::find(auth('sanctum')->id());
+        $customerId = auth('sanctum')->id();
+        $this->verifyPayPassword($customerId, $request->input('pay_password'));
+
+        $customer = Customer::find($customerId);
         $amount = (int) round($request->input('amount') * 100);
 
         $payment = (new WithdrawWalletAction($customer, $amount, $this->paymentService))->handle();
@@ -217,5 +231,22 @@ class PaymentController extends BaseController
         $this->paymentService->fail($payment, 'mock 回调失败');
 
         return $this->success([], '支付失败');
+    }
+
+    private function verifyPayPassword(int $customerId, string $payPassword): void
+    {
+        $record = CustomerPayPassword::where('customer_id', $customerId)->first();
+
+        if (! $record) {
+            throw new BusinessException(ErrorCode::PAY_PASSWORD_NOT_SET, '请先设置支付密码');
+        }
+
+        if (! $record->verify($payPassword)) {
+            if ($record->isLocked()) {
+                throw new BusinessException(ErrorCode::PAY_PASSWORD_LOCKED, '支付密码已锁定，请稍后再试');
+            }
+
+            throw new BusinessException(ErrorCode::PAY_PASSWORD_ERROR, '支付密码错误');
+        }
     }
 }

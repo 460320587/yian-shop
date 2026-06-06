@@ -58,4 +58,28 @@ class CustomerWalletTest extends TestCase
         $this->expectException(\Illuminate\Database\QueryException::class);
         CustomerWallet::factory()->create(['customer_id' => $customer->id]);
     }
+
+    public function test_customer_can_access_wallet_relation(): void
+    {
+        $customer = Customer::factory()->create();
+        $wallet = CustomerWallet::factory()->create(['customer_id' => $customer->id]);
+
+        $relatedWallet = $customer->wallet;
+
+        $this->assertInstanceOf(CustomerWallet::class, $relatedWallet);
+        $this->assertEquals($wallet->id, $relatedWallet->id);
+    }
+
+    public function test_wallet_relation_creates_wallet_when_not_exists(): void
+    {
+        $customer = Customer::factory()->create();
+
+        $this->assertDatabaseMissing('customer_wallets', ['customer_id' => $customer->id]);
+
+        $wallet = $customer->wallet;
+
+        $this->assertInstanceOf(CustomerWallet::class, $wallet);
+        $this->assertDatabaseHas('customer_wallets', ['customer_id' => $customer->id]);
+        $this->assertEquals(0, $wallet->balance->amount);
+    }
 }

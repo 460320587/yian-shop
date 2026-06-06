@@ -8,10 +8,9 @@ use App\Domains\Common\ValueObjects\Money;
 use App\Domains\Payment\Enums\PaymentStatus;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Services\PaymentService;
+use App\Domains\Payment\Services\WalletService;
 use App\Domains\User\Models\Customer;
-use App\Exceptions\BusinessException;
 use App\Infrastructure\Actions\BaseAction;
-use App\Support\ErrorCode;
 use Illuminate\Support\Str;
 
 class WithdrawWalletAction extends BaseAction
@@ -25,16 +24,21 @@ class WithdrawWalletAction extends BaseAction
 
     public function handle(): Payment
     {
-        if ($this->customer->balance->amount < $this->amount) {
-            throw new BusinessException(ErrorCode::INSUFFICIENT_BALANCE);
-        }
+        $paymentNo = 'P' . now()->format('Ymd') . strtoupper(Str::random(6));
 
-        return $this->transaction(function (): Payment {
-            $this->customer->balance = $this->customer->balance->subtract(new Money($this->amount));
-            $this->customer->save();
+        return $this->transaction(function () use ($paymentNo): Payment {
+            $walletService = new WalletService();
+            $walletService->debit(
+                $this->customer,
+                new Money($this->amount),
+                'withdraw',
+                null,
+                $paymentNo,
+                '余额提现',
+            );
 
             $payment = Payment::create([
-                'payment_no' => 'P' . now()->format('Ymd') . strtoupper(Str::random(6)),
+                'payment_no' => $paymentNo,
                 'order_no' => null,
                 'customer_id' => $this->customer->id,
                 'gateway' => 'withdraw',

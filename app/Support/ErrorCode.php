@@ -52,6 +52,8 @@ enum ErrorCode: int
     case PAYMENT_REFUND_FAILED = 5003;
     case INSUFFICIENT_BALANCE = 5004;
     case PAY_PASSWORD_LOCKED = 5005;
+    case PAY_PASSWORD_NOT_SET = 5006;
+    case PAY_PASSWORD_ERROR = 5007;
 
     // 优惠券模块 6000-6099
     case COUPON_NOT_FOUND = 6000;
@@ -99,6 +101,8 @@ enum ErrorCode: int
             self::PAYMENT_REFUND_FAILED => '退款失败',
             self::INSUFFICIENT_BALANCE => '余额不足',
             self::PAY_PASSWORD_LOCKED => '支付密码已锁定',
+            self::PAY_PASSWORD_NOT_SET => '请先设置支付密码',
+            self::PAY_PASSWORD_ERROR => '支付密码错误',
             self::COUPON_NOT_FOUND => '优惠券不存在',
             self::COUPON_EXPIRED => '优惠券已过期',
             self::COUPON_EXHAUSTED => '优惠券已领完',
@@ -125,6 +129,9 @@ enum ErrorCode: int
             self::VALIDATION_ERROR => 422,
             self::ORDER_STATUS_INVALID => 422,
             self::INSUFFICIENT_BALANCE => 422,
+            self::PAY_PASSWORD_NOT_SET => 422,
+            self::PAY_PASSWORD_ERROR => 422,
+            self::PAY_PASSWORD_LOCKED => 422,
             self::TOO_MANY_REQUESTS => 429,
             self::SMS_SEND_TOO_FREQUENT => 429,
             self::SMS_CODE_INVALID => 400,

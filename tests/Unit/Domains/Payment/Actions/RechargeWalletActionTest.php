@@ -40,4 +40,31 @@ class RechargeWalletActionTest extends TestCase
             'event' => 'create',
         ]);
     }
+
+    public function test_creates_customer_wallet_record(): void
+    {
+        $customer = Customer::factory()->create(['balance' => 0]);
+        $service = new PaymentService();
+
+        $payment = (new RechargeWalletAction($customer, 5000, 'wechat', $service))->handle();
+
+        $this->assertDatabaseHas('customer_wallets', [
+            'customer_id' => $customer->id,
+        ]);
+    }
+
+    public function test_creates_recharge_wallet_transaction(): void
+    {
+        $customer = Customer::factory()->create(['balance' => 0]);
+        $service = new PaymentService();
+
+        $payment = (new RechargeWalletAction($customer, 5000, 'wechat', $service))->handle();
+
+        $this->assertDatabaseHas('wallet_transactions', [
+            'customer_id' => $customer->id,
+            'type' => 1, // recharge
+            'amount' => 5000,
+            'payment_no' => $payment->payment_no,
+        ]);
+    }
 }

@@ -7,6 +7,7 @@ namespace Tests\Feature\Payment;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
 use App\Domains\Payment\Enums\PaymentStatus;
+use App\Domains\Payment\Models\CustomerPayPassword;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\User\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -90,6 +91,11 @@ class PaymentLogTest extends TestCase
     public function test_wallet_payment_writes_log(): void
     {
         $customer = $this->authCustomer(['balance' => 10000]);
+        $payPassword = new CustomerPayPassword();
+        $payPassword->customer_id = $customer->id;
+        $payPassword->setPayPassword('123456');
+        $payPassword->save();
+
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
             'status' => OrderStatus::PendingPayment->value,
@@ -99,9 +105,11 @@ class PaymentLogTest extends TestCase
         $this->postJson('/api/v1/payments/create', [
             'order_no' => $order->order_no,
             'gateway' => 'wallet',
+            'pay_password' => '123456',
         ]);
 
         $payment = Payment::where('order_no', $order->order_no)->first();
+        $this->assertNotNull($payment);
 
         $this->assertDatabaseHas('payment_logs', [
             'payment_id' => $payment->id,

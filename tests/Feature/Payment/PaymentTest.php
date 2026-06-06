@@ -7,6 +7,7 @@ namespace Tests\Feature\Payment;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
 use App\Domains\Payment\Enums\PaymentStatus;
+use App\Domains\Payment\Models\CustomerPayPassword;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\User\Models\Customer;
 use App\Support\ErrorCode;
@@ -24,9 +25,20 @@ class PaymentTest extends TestCase
         return $customer;
     }
 
+    private function createPayPassword(Customer $customer, string $password): CustomerPayPassword
+    {
+        $payPassword = new CustomerPayPassword();
+        $payPassword->customer_id = $customer->id;
+        $payPassword->setPayPassword($password);
+        $payPassword->save();
+        return $payPassword;
+    }
+
     public function test_user_can_create_wallet_payment(): void
     {
         $customer = $this->authCustomer(['balance' => 10000]);
+        $this->createPayPassword($customer, '123456');
+
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
             'status' => OrderStatus::PendingPayment->value,
@@ -36,6 +48,7 @@ class PaymentTest extends TestCase
         $response = $this->postJson('/api/v1/payments/create', [
             'order_no' => $order->order_no,
             'gateway' => 'wallet',
+            'pay_password' => '123456',
         ]);
 
         $response->assertStatus(201)
@@ -86,7 +99,7 @@ class PaymentTest extends TestCase
 
         $response = $this->postJson('/api/v1/payments/create', [
             'order_no' => 'Y99999999000000',
-            'gateway' => 'wallet',
+            'gateway' => 'wechat',
         ]);
 
         $response->assertStatus(404)
@@ -104,7 +117,7 @@ class PaymentTest extends TestCase
 
         $response = $this->postJson('/api/v1/payments/create', [
             'order_no' => $order->order_no,
-            'gateway' => 'wallet',
+            'gateway' => 'wechat',
         ]);
 
         $response->assertStatus(404);
@@ -120,7 +133,7 @@ class PaymentTest extends TestCase
 
         $response = $this->postJson('/api/v1/payments/create', [
             'order_no' => $order->order_no,
-            'gateway' => 'wallet',
+            'gateway' => 'wechat',
         ]);
 
         $response->assertStatus(422)
@@ -155,6 +168,87 @@ class PaymentTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_wallet_payment_requires_pay_password(): void
+    {
+        $customer = $this->authCustomer(['balance' => 10000]);
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::PendingPayment->value,
+            'total_amount' => 5000,
+        ]);
+
+        $response = $this->postJson('/api/v1/payments/create', [
+            'order_no' => $order->order_no,
+            'gateway' => 'wallet',
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_wallet_payment_fails_without_pay_password_set(): void
+    {
+        $customer = $this->authCustomer(['balance' => 10000]);
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::PendingPayment->value,
+            'total_amount' => 5000,
+        ]);
+
+        $response = $this->postJson('/api/v1/payments/create', [
+            'order_no' => $order->order_no,
+            'gateway' => 'wallet',
+            'pay_password' => '123456',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('code', ErrorCode::PAY_PASSWORD_NOT_SET->value);
+    }
+
+    public function test_wallet_payment_fails_with_wrong_pay_password(): void
+    {
+        $customer = $this->authCustomer(['balance' => 10000]);
+        $this->createPayPassword($customer, '123456');
+
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::PendingPayment->value,
+            'total_amount' => 5000,
+        ]);
+
+        $response = $this->postJson('/api/v1/payments/create', [
+            'order_no' => $order->order_no,
+            'gateway' => 'wallet',
+            'pay_password' => '000000',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('code', ErrorCode::PAY_PASSWORD_ERROR->value);
+    }
+
+    public function test_wallet_payment_fails_when_pay_password_locked(): void
+    {
+        $customer = $this->authCustomer(['balance' => 10000]);
+        $payPassword = $this->createPayPassword($customer, '123456');
+        $payPassword->fail_count = 5;
+        $payPassword->locked_until = now()->addHour();
+        $payPassword->save();
+
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::PendingPayment->value,
+            'total_amount' => 5000,
+        ]);
+
+        $response = $this->postJson('/api/v1/payments/create', [
+            'order_no' => $order->order_no,
+            'gateway' => 'wallet',
+            'pay_password' => '123456',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('code', ErrorCode::PAY_PASSWORD_LOCKED->value);
+    }
+
     public function test_user_can_recharge_wallet(): void
     {
         $customer = $this->authCustomer(['balance' => 1000]);
@@ -174,6 +268,8 @@ class PaymentTest extends TestCase
     public function test_wallet_payment_fails_with_insufficient_balance(): void
     {
         $customer = $this->authCustomer(['balance' => 1000]);
+        $this->createPayPassword($customer, '123456');
+
         $order = Order::factory()->create([
             'customer_id' => $customer->id,
             'status' => OrderStatus::PendingPayment->value,
@@ -183,6 +279,7 @@ class PaymentTest extends TestCase
         $response = $this->postJson('/api/v1/payments/create', [
             'order_no' => $order->order_no,
             'gateway' => 'wallet',
+            'pay_password' => '123456',
         ]);
 
         $response->assertStatus(422)
@@ -245,9 +342,11 @@ class PaymentTest extends TestCase
     public function test_user_can_withdraw_wallet_balance(): void
     {
         $customer = $this->authCustomer(['balance' => 10000]);
+        $this->createPayPassword($customer, '123456');
 
         $response = $this->postJson('/api/v1/payments/wallet/withdraw', [
             'amount' => 50,
+            'pay_password' => '123456',
         ]);
 
         $response->assertStatus(201)
@@ -269,9 +368,11 @@ class PaymentTest extends TestCase
     public function test_withdraw_fails_with_insufficient_balance(): void
     {
         $customer = $this->authCustomer(['balance' => 1000]);
+        $this->createPayPassword($customer, '123456');
 
         $response = $this->postJson('/api/v1/payments/wallet/withdraw', [
             'amount' => 50,
+            'pay_password' => '123456',
         ]);
 
         $response->assertStatus(422)
@@ -281,11 +382,51 @@ class PaymentTest extends TestCase
     public function test_withdraw_fails_with_invalid_amount(): void
     {
         $customer = $this->authCustomer(['balance' => 10000]);
+        $this->createPayPassword($customer, '123456');
 
         $response = $this->postJson('/api/v1/payments/wallet/withdraw', [
             'amount' => 0,
+            'pay_password' => '123456',
         ]);
 
         $response->assertStatus(422);
+    }
+
+    public function test_withdraw_requires_pay_password(): void
+    {
+        $customer = $this->authCustomer(['balance' => 10000]);
+
+        $response = $this->postJson('/api/v1/payments/wallet/withdraw', [
+            'amount' => 50,
+        ]);
+
+        $response->assertStatus(422);
+    }
+
+    public function test_withdraw_fails_without_pay_password_set(): void
+    {
+        $customer = $this->authCustomer(['balance' => 10000]);
+
+        $response = $this->postJson('/api/v1/payments/wallet/withdraw', [
+            'amount' => 50,
+            'pay_password' => '123456',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('code', ErrorCode::PAY_PASSWORD_NOT_SET->value);
+    }
+
+    public function test_withdraw_fails_with_wrong_pay_password(): void
+    {
+        $customer = $this->authCustomer(['balance' => 10000]);
+        $this->createPayPassword($customer, '123456');
+
+        $response = $this->postJson('/api/v1/payments/wallet/withdraw', [
+            'amount' => 50,
+            'pay_password' => '000000',
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('code', ErrorCode::PAY_PASSWORD_ERROR->value);
     }
 }

@@ -50,4 +50,19 @@ class WithdrawWalletActionTest extends TestCase
             'event' => 'create',
         ]);
     }
+
+    public function test_creates_withdraw_wallet_transaction(): void
+    {
+        $customer = Customer::factory()->create(['balance' => 10000]);
+        $service = new PaymentService();
+
+        $payment = (new WithdrawWalletAction($customer, 3000, $service))->handle();
+
+        $this->assertDatabaseHas('wallet_transactions', [
+            'customer_id' => $customer->id,
+            'type' => 4, // withdraw
+            'amount' => -3000,
+            'payment_no' => $payment->payment_no,
+        ]);
+    }
 }

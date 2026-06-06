@@ -10,10 +10,9 @@ use App\Domains\Order\Models\Order;
 use App\Domains\Payment\Enums\PaymentStatus;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Services\PaymentService;
+use App\Domains\Payment\Services\WalletService;
 use App\Domains\User\Models\Customer;
-use App\Exceptions\BusinessException;
 use App\Infrastructure\Actions\BaseAction;
-use App\Support\ErrorCode;
 use Illuminate\Support\Str;
 
 class PayWithWalletAction extends BaseAction
@@ -28,17 +27,21 @@ class PayWithWalletAction extends BaseAction
     public function handle(): Payment
     {
         $amount = $this->order->total_amount->amount;
+        $paymentNo = 'P' . now()->format('Ymd') . strtoupper(Str::random(6));
 
-        if ($this->customer->balance->amount < $amount) {
-            throw new BusinessException(ErrorCode::INSUFFICIENT_BALANCE);
-        }
-
-        return $this->transaction(function () use ($amount): Payment {
-            $this->customer->balance = $this->customer->balance->subtract(new Money($amount));
-            $this->customer->save();
+        return $this->transaction(function () use ($amount, $paymentNo): Payment {
+            $walletService = new WalletService();
+            $walletService->debit(
+                $this->customer,
+                new Money($amount),
+                'consume',
+                $this->order->order_no,
+                $paymentNo,
+                '钱包支付订单',
+            );
 
             $payment = Payment::create([
-                'payment_no' => 'P' . now()->format('Ymd') . strtoupper(Str::random(6)),
+                'payment_no' => $paymentNo,
                 'order_no' => $this->order->order_no,
                 'customer_id' => $this->customer->id,
                 'gateway' => 'wallet',

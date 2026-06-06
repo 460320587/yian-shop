@@ -85,4 +85,62 @@ class PayWithWalletActionTest extends TestCase
         $this->expectException(BusinessException::class);
         (new PayWithWalletAction($customer, $order, $service))->handle();
     }
+
+    public function test_creates_customer_wallet_record(): void
+    {
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::PendingPayment->value,
+            'total_amount' => 5000,
+        ]);
+        $service = new PaymentService();
+
+        // Pre-create wallet with enough balance
+        \App\Domains\User\Models\CustomerWallet::create([
+            'customer_id' => $customer->id,
+            'balance' => 10000,
+            'frozen_amount' => 0,
+            'total_recharge' => 0,
+            'total_consume' => 0,
+            'status' => 1,
+            'version' => 0,
+        ]);
+
+        $payment = (new PayWithWalletAction($customer, $order, $service))->handle();
+
+        $this->assertDatabaseHas('customer_wallets', [
+            'customer_id' => $customer->id,
+        ]);
+    }
+
+    public function test_creates_wallet_transaction_on_payment(): void
+    {
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::PendingPayment->value,
+            'total_amount' => 5000,
+        ]);
+        $service = new PaymentService();
+
+        \App\Domains\User\Models\CustomerWallet::create([
+            'customer_id' => $customer->id,
+            'balance' => 10000,
+            'frozen_amount' => 0,
+            'total_recharge' => 0,
+            'total_consume' => 0,
+            'status' => 1,
+            'version' => 0,
+        ]);
+
+        $payment = (new PayWithWalletAction($customer, $order, $service))->handle();
+
+        $this->assertDatabaseHas('wallet_transactions', [
+            'customer_id' => $customer->id,
+            'type' => 2, // consume
+            'amount' => -5000,
+            'payment_no' => $payment->payment_no,
+        ]);
+    }
 }
