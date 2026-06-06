@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
-use App\Domains\Common\ValueObjects\Money;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
+use App\Domains\Payment\Actions\PayWithWalletAction;
+use App\Domains\Payment\Actions\RechargeWalletAction;
+use App\Domains\Payment\Actions\WithdrawWalletAction;
 use App\Domains\Payment\Enums\PaymentStatus;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Models\WalletTransaction;
@@ -52,38 +54,13 @@ class PaymentController extends BaseController
         // wallet 支付：直接扣减余额
         if ($request->input('gateway') === 'wallet') {
             $customer = Customer::find($customerId);
-            if ($customer->balance->amount < $amount) {
-                return $this->error(ErrorCode::INSUFFICIENT_BALANCE, null, null, 422);
-            }
-
-            $customer->balance = $customer->balance->subtract(new Money($amount));
-            $customer->save();
-
-            $payment = Payment::create([
-                'payment_no' => $paymentNo,
-                'order_no' => $order->order_no,
-                'customer_id' => $customerId,
-                'gateway' => 'wallet',
-                'amount' => $amount,
-                'status' => PaymentStatus::Success->value,
-                'paid_at' => now(),
-                'expire_at' => now()->addMinutes(30),
-            ]);
-
-            $this->paymentService->recordCreated($payment);
-
-            $order->stateMachine()->transition($order, OrderStatus::Paid->value, [
-                'operator_type' => 'customer',
-                'operator_id' => null,
-                'remark' => '钱包支付成功',
-                'paid_at' => now(),
-            ]);
+            $payment = (new PayWithWalletAction($customer, $order, $this->paymentService))->handle();
 
             return $this->success([
                 'payment_id' => $payment->id,
                 'payment_no' => $payment->payment_no,
                 'order_no' => $order->order_no,
-                'amount' => $amount / 100,
+                'amount' => $payment->amount->toYuan(),
                 'gateway' => 'wallet',
                 'status' => PaymentStatus::Success->value,
                 'paid_at' => $payment->paid_at,
@@ -151,33 +128,16 @@ class PaymentController extends BaseController
             'gateway' => ['required', 'string', 'in:wechat,alipay,unionpay'],
         ]);
 
-        $customerId = auth('sanctum')->id();
-        $customer = Customer::find($customerId);
+        $customer = Customer::find(auth('sanctum')->id());
         $amount = (int) round($request->input('amount') * 100);
 
-        // 直接增加余额（mock 环境简化处理）
-        $customer->balance = $customer->balance->add(new Money($amount));
-        $customer->save();
-
-        $paymentNo = 'P' . now()->format('Ymd') . strtoupper(Str::random(6));
-        $payment = Payment::create([
-            'payment_no' => $paymentNo,
-            'order_no' => null,
-            'customer_id' => $customerId,
-            'gateway' => $request->input('gateway'),
-            'amount' => $amount,
-            'status' => PaymentStatus::Success->value,
-            'paid_at' => now(),
-            'expire_at' => now()->addMinutes(30),
-        ]);
-
-        $this->paymentService->recordCreated($payment);
+        $payment = (new RechargeWalletAction($customer, $amount, $request->input('gateway'), $this->paymentService))->handle();
 
         return $this->success([
             'payment_id' => $payment->id,
             'payment_no' => $payment->payment_no,
-            'amount' => $amount / 100,
-            'gateway' => $request->input('gateway'),
+            'amount' => $payment->amount->toYuan(),
+            'gateway' => $payment->gateway,
             'status' => PaymentStatus::Success->value,
         ], '充值成功', 201);
     }
@@ -188,35 +148,15 @@ class PaymentController extends BaseController
             'amount' => ['required', 'numeric', 'min:0.01', 'max:50000'],
         ]);
 
-        $customerId = auth('sanctum')->id();
-        $customer = Customer::find($customerId);
+        $customer = Customer::find(auth('sanctum')->id());
         $amount = (int) round($request->input('amount') * 100);
 
-        if ($customer->balance->amount < $amount) {
-            return $this->error(ErrorCode::INSUFFICIENT_BALANCE, null, null, 422);
-        }
-
-        $customer->balance = $customer->balance->subtract(new Money($amount));
-        $customer->save();
-
-        $paymentNo = 'P' . now()->format('Ymd') . strtoupper(Str::random(6));
-        $payment = Payment::create([
-            'payment_no' => $paymentNo,
-            'order_no' => null,
-            'customer_id' => $customerId,
-            'gateway' => 'withdraw',
-            'amount' => $amount,
-            'status' => PaymentStatus::Success->value,
-            'paid_at' => now(),
-            'expire_at' => now()->addMinutes(30),
-        ]);
-
-        $this->paymentService->recordCreated($payment);
+        $payment = (new WithdrawWalletAction($customer, $amount, $this->paymentService))->handle();
 
         return $this->success([
             'payment_id' => $payment->id,
             'payment_no' => $payment->payment_no,
-            'amount' => $amount / 100,
+            'amount' => $payment->amount->toYuan(),
             'gateway' => 'withdraw',
             'status' => PaymentStatus::Success->value,
         ], '提现成功', 201);
