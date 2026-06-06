@@ -8,6 +8,7 @@ use App\Domains\Admin\Models\Admin;
 use App\Domains\Common\Models\BaseModel;
 use App\Domains\Common\ValueObjects\Money;
 use App\Domains\Order\Models\Order;
+use App\Domains\Payment\StateMachines\RefundStateMachine;
 use App\Domains\User\Models\Customer;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -84,5 +85,10 @@ class RefundRecord extends BaseModel
     public function isCompleted(): bool
     {
         return $this->status === 4;
+    }
+
+    public function stateMachine(): RefundStateMachine
+    {
+        return new RefundStateMachine();
     }
 }

@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Domains\Order\Models\Order;
+use App\Domains\Payment\Actions\ApplyRefundAction;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Models\RefundRecord;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class RefundRecordController extends BaseController
 {
@@ -55,16 +55,7 @@ class RefundRecordController extends BaseController
             return $this->error(ErrorCode::FORBIDDEN, '无权操作该支付记录');
         }
 
-        $refund = RefundRecord::create([
-            'order_id' => $validated['order_id'],
-            'payment_id' => $validated['payment_id'],
-            'customer_id' => $customerId,
-            'refund_no' => $this->generateRefundNo(),
-            'amount' => $validated['amount'],
-            'reason' => $validated['reason'],
-            'status' => 0,
-            'refund_path' => 'original',
-        ]);
+        $refund = (new ApplyRefundAction($customerId, $validated))->handle();
 
         return $this->success($this->transformRefund($refund), '退款申请已提交', 201);
     }

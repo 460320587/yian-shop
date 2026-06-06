@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domains\AfterSale\Models;
 
+use App\Domains\AfterSale\StateMachines\AfterSaleStateMachine;
 use App\Domains\Common\Models\BaseModel;
 use App\Domains\Common\ValueObjects\Money;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -51,5 +52,10 @@ class AfterSale extends BaseModel
     public function canCancel(): bool
     {
         return in_array($this->status, [1, 2], true);
+    }
+
+    public function stateMachine(): AfterSaleStateMachine
+    {
+        return new AfterSaleStateMachine();
     }
 }
