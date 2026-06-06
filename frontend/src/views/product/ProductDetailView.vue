@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getProductDetail } from '@/api/product'
+import { getProductDetail, calculatePrice, type PriceResult } from '@/api/product'
 import { getFavorites, addFavorite, removeFavorite } from '@/api/favorite'
 import { getProductReviews, type ReviewItem } from '@/api/review'
+import { addToCart } from '@/api/cart'
 
 const route = useRoute()
 const product = ref<any>(null)
@@ -13,6 +14,20 @@ const isFavorited = ref(false)
 const favoriteId = ref<number | null>(null)
 const reviews = ref<ReviewItem[]>([])
 const reviewTotal = ref(0)
+
+// 参数选择
+const selectedParams = ref({
+  paper_id: null as number | null,
+  color_id: null as number | null,
+  quantity: 1,
+  process_ids: [] as number[],
+})
+
+const priceResult = ref<PriceResult | null>(null)
+const loadingPrice = ref(false)
+
+// 防抖计时器
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 async function loadProduct() {
   loading.value = true
@@ -72,8 +87,71 @@ async function toggleFavorite() {
   }
 }
 
+// 防抖实时计价
+function triggerPriceCalculation() {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
+  debounceTimer = setTimeout(() => {
+    doCalculatePrice()
+  }, 500)
+}
+
+async function doCalculatePrice() {
+  if (!product.value || !product.value.pricing_params) return
+  if (!selectedParams.value.paper_id || !selectedParams.value.color_id || selectedParams.value.quantity < 1) return
+
+  loadingPrice.value = true
+  try {
+    priceResult.value = await calculatePrice(product.value.id, {
+      quantity: selectedParams.value.quantity,
+      paper_id: selectedParams.value.paper_id,
+      color_id: selectedParams.value.color_id,
+      process_ids: selectedParams.value.process_ids,
+    })
+  } catch (e) {
+    console.error(e)
+    priceResult.value = null
+  } finally {
+    loadingPrice.value = false
+  }
+}
+
+// 监听参数变化
+watch(
+  selectedParams,
+  () => {
+    triggerPriceCalculation()
+  },
+  { deep: true }
+)
+
+async function handleAddToCart() {
+  if (!product.value) return
+  if (!priceResult.value) {
+    ElMessage.warning('请先选择参数并计算价格')
+    return
+  }
+  try {
+    await addToCart({
+      product_id: product.value.id,
+      quantity: selectedParams.value.quantity,
+      spec_id: null,
+    })
+    ElMessage.success('已加入购物车')
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 onMounted(() => {
   loadProduct()
+})
+
+onUnmounted(() => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
 })
 
 defineExpose({
@@ -86,23 +164,131 @@ defineExpose({
   toggleFavorite,
   checkFavoriteStatus,
   loadReviews,
+  selectedParams,
+  priceResult,
+  loadingPrice,
+  handleAddToCart,
 })
 </script>
 
 <template>
   <div class="product-detail-view page-container">
     <div v-loading="loading">
-      <div v-if="product" class="product-header">
-        <h2>{{ product.name }}</h2>
-        <el-button
-          :type="isFavorited ? 'danger' : 'default'"
-          @click="toggleFavorite"
-        >
-          {{ isFavorited ? '已收藏' : '收藏' }}
-        </el-button>
-      </div>
-      <p v-if="product">{{ product.description }}</p>
+      <div v-if="product" class="product-main">
+        <!-- 商品头部 -->
+        <div class="product-header">
+          <h2>{{ product.name }}</h2>
+          <el-button
+            :type="isFavorited ? 'danger' : 'default'"
+            @click="toggleFavorite"
+          >
+            {{ isFavorited ? '已收藏' : '收藏' }}
+          </el-button>
+        </div>
+        <p class="product-description">{{ product.description }}</p>
 
+        <!-- 参数选择区 -->
+        <div v-if="product.pricing_params" class="param-form-section">
+          <!-- 纸张选择 -->
+          <div class="param-row paper-options">
+            <label class="param-label">纸张类型：</label>
+            <el-radio-group v-model="selectedParams.paper_id">
+              <el-radio-button
+                v-for="opt in product.pricing_params.paper_options"
+                :key="opt.id"
+                :label="opt.id"
+              >
+                {{ opt.name }}
+              </el-radio-button>
+            </el-radio-group>
+          </div>
+
+          <!-- 颜色选择 -->
+          <div class="param-row color-options">
+            <label class="param-label">印刷颜色：</label>
+            <el-radio-group v-model="selectedParams.color_id">
+              <el-radio-button
+                v-for="opt in product.pricing_params.color_options"
+                :key="opt.id"
+                :label="opt.id"
+              >
+                {{ opt.name }}
+              </el-radio-button>
+            </el-radio-group>
+          </div>
+
+          <!-- 数量输入 -->
+          <div class="param-row quantity-input">
+            <label class="param-label">数量：</label>
+            <el-input-number v-model="selectedParams.quantity" :min="1" :max="100000" />
+            <span v-if="product.pricing_params.unit" class="unit-text">{{ product.pricing_params.unit }}</span>
+          </div>
+
+          <!-- 工艺选择 -->
+          <div v-if="product.pricing_params.process_options?.length" class="param-row process-options">
+            <label class="param-label">加工工艺：</label>
+            <el-checkbox-group v-model="selectedParams.process_ids">
+              <el-checkbox
+                v-for="opt in product.pricing_params.process_options"
+                :key="opt.id"
+                :label="opt.id"
+              >
+                {{ opt.name }}
+              </el-checkbox>
+            </el-checkbox-group>
+          </div>
+
+          <!-- 实时计价 -->
+          <div class="price-section">
+            <div v-if="priceResult" class="price-result">
+              <div class="price-main">
+                <span class="price-label">单价：</span>
+                <span class="price-value">¥{{ priceResult.unit_price.toFixed(2) }}</span>
+                <span class="price-unit">/{{ product.pricing_params.unit }}</span>
+              </div>
+              <el-collapse>
+                <el-collapse-item title="计价明细">
+                  <div class="breakdown-item">
+                    <span>基础金额：</span>
+                    <span>¥{{ priceResult.breakdown.base_amount.toFixed(2) }}</span>
+                  </div>
+                  <div v-if="priceResult.breakdown.process_amount > 0" class="breakdown-item">
+                    <span>工艺费用：</span>
+                    <span>¥{{ priceResult.breakdown.process_amount.toFixed(2) }}</span>
+                  </div>
+                  <div class="breakdown-item breakdown-total">
+                    <span>合计：</span>
+                    <span>¥{{ priceResult.breakdown.total_amount.toFixed(2) }}</span>
+                  </div>
+                </el-collapse-item>
+              </el-collapse>
+              <div class="total-price">
+                <span>总价：</span>
+                <span class="total-value">¥{{ priceResult.breakdown.total_amount.toFixed(2) }}</span>
+              </div>
+            </div>
+            <div v-else-if="loadingPrice" class="price-loading">
+              计算中...
+            </div>
+            <div v-else class="price-hint">
+              请选择参数查看价格
+            </div>
+          </div>
+
+          <!-- 加入购物车 -->
+          <div class="action-row">
+            <el-button type="primary" size="large" @click="handleAddToCart">
+              加入购物车
+            </el-button>
+          </div>
+        </div>
+
+        <div v-else class="no-params-tip">
+          <el-alert title="该商品暂无规格参数，请联系客服咨询" type="info" :closable="false" />
+        </div>
+      </div>
+
+      <!-- 评价区 -->
       <div v-if="reviews.length > 0" class="review-section">
         <h3>用户评价（{{ reviewTotal }}）</h3>
         <div v-for="review in reviews" :key="review.id" class="review-item">
@@ -122,11 +308,97 @@ defineExpose({
 </template>
 
 <style scoped>
+.product-detail-view {
+  padding: 20px;
+}
 .product-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+}
+.product-description {
+  color: #606266;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+.param-form-section {
+  background: #f5f7fa;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+.param-row {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.param-label {
+  font-weight: 600;
+  color: #303133;
+  min-width: 80px;
+}
+.unit-text {
+  color: #606266;
+  margin-left: 8px;
+}
+.price-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e4e7ed;
+}
+.price-result {
+  margin-bottom: 16px;
+}
+.price-main {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+.price-value {
+  color: #f56c6c;
+  font-size: 24px;
+  font-weight: 700;
+}
+.price-unit {
+  color: #909399;
+  font-size: 14px;
+}
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  color: #606266;
+}
+.breakdown-total {
+  font-weight: 600;
+  color: #303133;
+  border-top: 1px solid #e4e7ed;
+  padding-top: 8px;
+  margin-top: 4px;
+}
+.total-price {
+  margin-top: 12px;
+  font-size: 18px;
+}
+.total-value {
+  color: #f56c6c;
+  font-size: 28px;
+  font-weight: 700;
+}
+.price-loading {
+  color: #909399;
+  padding: 12px 0;
+}
+.price-hint {
+  color: #909399;
+  padding: 12px 0;
+}
+.action-row {
+  margin-top: 20px;
+}
+.no-params-tip {
+  margin-bottom: 24px;
 }
 .review-section {
   margin-top: 32px;

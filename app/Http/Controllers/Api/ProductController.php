@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Domains\Product\Models\Product;
+use App\Domains\Product\Services\PricingCalculator;
+use App\Exceptions\BusinessException;
 use App\Http\Controllers\BaseController;
 use App\Http\Requests\Product\CalculatePriceRequest;
 use App\Support\ErrorCode;
@@ -72,6 +74,7 @@ class ProductController extends BaseController
             'price_max' => $product->price_max,
             'status' => $product->status,
             'sort' => $product->sort,
+            'pricing_params' => $product->pricing_params,
             'category' => $product->category ? [
                 'id' => $product->category->id,
                 'name' => $product->category->name,
@@ -101,82 +104,21 @@ class ProductController extends BaseController
             return $this->error(ErrorCode::PRODUCT_NOT_FOUND);
         }
 
-        $params = $product->pricing_params ?? [];
-        $quantity = (int) $request->input('quantity');
-        $paperId = (int) $request->input('paper_id');
-        $colorId = (int) $request->input('color_id');
-        $processIds = $request->input('process_ids', []);
-
-        $priceTiers = $params['price_tiers'] ?? [];
-        $paperOptions = $params['paper_options'] ?? [];
-        $colorOptions = $params['color_options'] ?? [];
-        $processOptions = $params['process_options'] ?? [];
-
-        // 找到对应的 price tier
-        $tierPrice = null;
-        foreach (array_reverse($priceTiers) as $tier) {
-            if ($quantity >= $tier['min_qty']) {
-                $tierPrice = (int) $tier['price'];
-                break;
-            }
+        try {
+            $calculator = new PricingCalculator();
+            $result = $calculator->calculate($product, $request->validated());
+        } catch (BusinessException $e) {
+            return $this->error($e->getErrorCode(), $e->getMessage());
         }
-        if ($tierPrice === null) {
-            $tierPrice = (int) ($params['base_price'] ?? 0);
-        }
-
-        // 找到 paper factor
-        $paperFound = false;
-        $paperFactor = 1.0;
-        foreach ($paperOptions as $option) {
-            if ($option['id'] === $paperId) {
-                $paperFactor = (float) $option['price_factor'];
-                $paperFound = true;
-                break;
-            }
-        }
-        if (! $paperFound && ! empty($paperOptions)) {
-            return $this->error(ErrorCode::VALIDATION_ERROR, '无效的纸张选项');
-        }
-
-        // 找到 color factor
-        $colorFound = false;
-        $colorFactor = 1.0;
-        foreach ($colorOptions as $option) {
-            if ($option['id'] === $colorId) {
-                $colorFactor = (float) $option['price_factor'];
-                $colorFound = true;
-                break;
-            }
-        }
-        if (! $colorFound && ! empty($colorOptions)) {
-            return $this->error(ErrorCode::VALIDATION_ERROR, '无效的颜色选项');
-        }
-
-        // 计算单价（分）
-        $unitPrice = (int) round($tierPrice * $paperFactor * $colorFactor);
-        $baseAmount = $unitPrice * $quantity;
-
-        // 计算工艺费用
-        $processAmount = 0;
-        foreach ($processIds as $pid) {
-            foreach ($processOptions as $option) {
-                if ($option['id'] === $pid) {
-                    $processAmount += (int) ($option['price'] ?? 0);
-                    break;
-                }
-            }
-        }
-
-        $totalAmount = $baseAmount + $processAmount;
 
         return $this->success([
             'product_id' => $product->id,
-            'quantity' => $quantity,
-            'unit_price' => $unitPrice / 100,
+            'quantity' => (int) $request->input('quantity'),
+            'unit_price' => $result->unitPrice->toYuan(),
             'breakdown' => [
-                'base_amount' => $baseAmount / 100,
-                'process_amount' => $processAmount / 100,
-                'total_amount' => $totalAmount / 100,
+                'base_amount' => $result->breakdown['base_amount'] / 100,
+                'process_amount' => $result->breakdown['process_amount'] / 100,
+                'total_amount' => $result->breakdown['total_amount'] / 100,
             ],
         ]);
     }

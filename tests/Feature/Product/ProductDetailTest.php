@@ -85,4 +85,54 @@ class ProductDetailTest extends TestCase
         $response->assertStatus(404)
             ->assertJsonPath('code', 3000);
     }
+
+    public function test_detail_includes_pricing_params(): void
+    {
+        $category = ProductCategory::factory()->create(['name' => '宣传册']);
+        $pricingParams = [
+            'base_price' => 250,
+            'unit' => '本',
+            'price_tiers' => [
+                ['min_qty' => 100, 'price' => 250],
+            ],
+            'paper_options' => [
+                ['id' => 1, 'name' => '128g铜版纸', 'price_factor' => 0.85],
+            ],
+            'color_options' => [
+                ['id' => 1, 'name' => '单色', 'price_factor' => 0.35],
+            ],
+            'process_options' => [],
+        ];
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'name' => 'A4企业宣传册',
+            'code' => 'PROD-001',
+            'status' => 1,
+            'pricing_params' => $pricingParams,
+        ]);
+
+        $response = $this->getJson('/api/v1/products/' . $product->id);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.pricing_params.base_price', 250)
+            ->assertJsonPath('data.pricing_params.unit', '本')
+            ->assertJsonCount(1, 'data.pricing_params.price_tiers')
+            ->assertJsonCount(1, 'data.pricing_params.paper_options')
+            ->assertJsonCount(1, 'data.pricing_params.color_options');
+    }
+
+    public function test_detail_pricing_params_is_null_when_not_set(): void
+    {
+        $category = ProductCategory::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'name' => '未配置计价商品',
+            'status' => 1,
+        ]);
+
+        $response = $this->getJson('/api/v1/products/' . $product->id);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.pricing_params', null);
+    }
 }

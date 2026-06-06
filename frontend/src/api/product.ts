@@ -1,4 +1,4 @@
-import { get } from '@/utils/request'
+import { get, post } from '@/utils/request'
 
 export interface Product {
   id: number
@@ -10,10 +10,29 @@ export interface Product {
   category?: { id: number; name: string }
 }
 
+export interface PricingParams {
+  base_price: number
+  unit: string
+  price_tiers: Array<{ min_qty: number; price: number }>
+  paper_options: Array<{ id: number; name: string; price_factor: number }>
+  color_options: Array<{ id: number; name: string; price_factor: number }>
+  process_options: Array<{ id: number; name: string; price: number; unit: string }>
+}
+
 export interface ProductDetail extends Product {
   description: string
-  specs: any[]
-  prices: any[]
+  pricing_params: PricingParams | null
+}
+
+export interface PriceResult {
+  product_id: number
+  quantity: number
+  unit_price: number
+  breakdown: {
+    base_amount: number
+    process_amount: number
+    total_amount: number
+  }
 }
 
 export function getProducts(params?: { page?: number; category_id?: number; keyword?: string; min_price?: number; max_price?: number; sort?: string }) {
@@ -22,4 +41,13 @@ export function getProducts(params?: { page?: number; category_id?: number; keyw
 
 export function getProductDetail(id: number) {
   return get<ProductDetail>(`/products/${id}`)
+}
+
+export function calculatePrice(id: number, data: {
+  quantity: number
+  paper_id: number
+  color_id: number
+  process_ids?: number[]
+}) {
+  return post<PriceResult>(`/products/${id}/price`, data)
 }

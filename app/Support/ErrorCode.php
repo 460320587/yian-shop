@@ -120,6 +120,7 @@ enum ErrorCode: int
             self::NOT_FOUND => 404,
             self::NOT_FOUND => 404,
             self::PRODUCT_NOT_FOUND => 404,
+            self::PRODUCT_PRICE_CHANGED => 422,
             self::ORDER_NOT_FOUND => 404,
             self::VALIDATION_ERROR => 422,
             self::ORDER_STATUS_INVALID => 422,

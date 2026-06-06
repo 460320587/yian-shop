@@ -335,6 +335,10 @@ Route::prefix('admin')->group(function () {
         Route::delete('/admins/{id}', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'destroy']);
         Route::put('/admins/{id}/reset-password', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'resetPassword']);
 
+        // 参数模板管理
+        Route::get('/param-templates', [\App\Http\Controllers\Api\Admin\AdminParamTemplateController::class, 'index']);
+        Route::get('/param-templates/{id}', [\App\Http\Controllers\Api\Admin\AdminParamTemplateController::class, 'show']);
+
         // 文章管理
         Route::get('/articles', [\App\Http\Controllers\Api\Admin\AdminArticleController::class, 'index']);
         Route::post('/articles', [\App\Http\Controllers\Api\Admin\AdminArticleController::class, 'store']);

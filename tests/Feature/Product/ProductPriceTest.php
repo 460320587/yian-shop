@@ -163,4 +163,49 @@ class ProductPriceTest extends TestCase
 
         $response->assertStatus(422);
     }
+
+    public function test_price_calculation_uses_price_tier_table_when_available(): void
+    {
+        $product = $this->createProductWithPricingParams();
+
+        // PriceTier 表中的价格优先于 JSON
+        \App\Domains\Product\Models\PriceTier::factory()->create([
+            'product_id' => $product->id,
+            'min_qty' => 100,
+            'max_qty' => 499,
+            'unit_price' => 1.50, // 1.50元 = 150分（JSON中100本tier=250分）
+            'status' => 1,
+        ]);
+
+        $response = $this->postJson('/api/v1/products/' . $product->id . '/price', [
+            'quantity' => 100,
+            'paper_id' => 2, // factor=1.00
+            'color_id' => 2, // factor=1.00
+        ]);
+
+        // 应该使用 PriceTier 的 150分，而不是 JSON 的 250分
+        $response->assertStatus(200)
+            ->assertJsonPath('data.unit_price', 1.5)
+            ->assertJsonPath('data.breakdown.total_amount', 150);
+    }
+
+    public function test_price_returns_error_when_pricing_params_is_null(): void
+    {
+        $category = ProductCategory::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'name' => '未配置计价商品',
+            'status' => 1,
+        ]);
+
+        $response = $this->postJson('/api/v1/products/' . $product->id . '/price', [
+            'quantity' => 100,
+            'paper_id' => 1,
+            'color_id' => 1,
+        ]);
+
+        $response->assertStatus(422)
+            ->assertJsonPath('code', 3002)
+            ->assertJsonPath('message', '商品暂未配置计价参数');
+    }
 }

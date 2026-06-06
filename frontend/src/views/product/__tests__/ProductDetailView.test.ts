@@ -8,7 +8,7 @@ vi.mock('element-plus', async () => {
   const actual = await vi.importActual('element-plus')
   return {
     ...actual as any,
-    ElMessage: { success: vi.fn(), error: vi.fn() },
+    ElMessage: { success: vi.fn(), error: vi.fn(), warning: vi.fn() },
   }
 })
 
@@ -17,9 +17,33 @@ let getFavoritesMock = vi.fn()
 let addFavoriteMock = vi.fn()
 let removeFavoriteMock = vi.fn()
 let getProductReviewsMock = vi.fn()
+let calculatePriceMock = vi.fn()
+let addToCartMock = vi.fn()
+
+const mockPricingParams = {
+  base_price: 250,
+  unit: '本',
+  price_tiers: [
+    { min_qty: 100, price: 250 },
+    { min_qty: 500, price: 200 },
+  ],
+  paper_options: [
+    { id: 1, name: '128g铜版纸', price_factor: 0.85 },
+    { id: 2, name: '157g铜版纸', price_factor: 1.00 },
+  ],
+  color_options: [
+    { id: 1, name: '单色', price_factor: 0.35 },
+    { id: 2, name: '四色', price_factor: 1.00 },
+  ],
+  process_options: [
+    { id: 1, name: '覆膜', price: 60, unit: '㎡' },
+    { id: 2, name: '烫金', price: 200, unit: '㎡' },
+  ],
+}
 
 vi.mock('@/api/product', () => ({
   getProductDetail: (...args: any[]) => getProductDetailMock(...args),
+  calculatePrice: (...args: any[]) => calculatePriceMock(...args),
 }))
 
 vi.mock('@/api/favorite', () => ({
@@ -32,11 +56,16 @@ vi.mock('@/api/review', () => ({
   getProductReviews: (...args: any[]) => getProductReviewsMock(...args),
 }))
 
+vi.mock('@/api/cart', () => ({
+  addToCart: (...args: any[]) => addToCartMock(...args),
+}))
+
 beforeEach(() => {
   getProductDetailMock = vi.fn(() => Promise.resolve({
     id: 1, name: '名片', code: 'CARD-001', description: '高质量名片',
     price_min: 1000, price_max: 5000, status: 1, sales_count: 50,
     category: { id: 1, name: '名片' },
+    pricing_params: mockPricingParams,
   }))
   getFavoritesMock = vi.fn(() => Promise.resolve({ data: [], total: 0, current_page: 1, last_page: 1 }))
   addFavoriteMock = vi.fn(() => Promise.resolve({ id: 10, product_id: 1, status: 1 }))
@@ -48,7 +77,18 @@ beforeEach(() => {
     ],
     total: 2, current_page: 1, last_page: 1,
   }))
+  calculatePriceMock = vi.fn(() => Promise.resolve({
+    product_id: 1,
+    quantity: 100,
+    unit_price: 2.5,
+    breakdown: { base_amount: 250, process_amount: 0, total_amount: 250 },
+  }))
+  addToCartMock = vi.fn(() => Promise.resolve({
+    id: 1, product_id: 1, product_name: '名片', thumbnail: '', quantity: 100, unit_price: 2.5, subtotal: 250, selected: true,
+  }))
 })
+
+
 
 describe('ProductDetailView', () => {
   async function mountComponent() {
@@ -128,5 +168,99 @@ describe('ProductDetailView', () => {
     const wrapper = await mountComponent()
     await flushPromises()
     expect((wrapper.vm as any).reviews[1].reply).toBe('感谢您的评价')
+  })
+
+  // === 新增测试：参数模板 + 实时计价 ===
+
+  it('renders pricing parameter form when pricing_params exists', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    expect(wrapper.find('.param-form-section').exists()).toBe(true)
+    expect(wrapper.find('.paper-options').exists()).toBe(true)
+    expect(wrapper.find('.color-options').exists()).toBe(true)
+    expect(wrapper.find('.quantity-input').exists()).toBe(true)
+    expect(wrapper.find('.process-options').exists()).toBe(true)
+  })
+
+  it('does not render param form when pricing_params is null', async () => {
+    getProductDetailMock = vi.fn(() => Promise.resolve({
+      id: 1, name: '名片', code: 'CARD-001', description: '暂无规格',
+      price_min: 1000, price_max: 5000, status: 1, sales_count: 50,
+      category: { id: 1, name: '名片' },
+      pricing_params: null,
+    }))
+    const wrapper = await mountComponent()
+    await flushPromises()
+    expect(wrapper.find('.param-form-section').exists()).toBe(false)
+    expect(wrapper.find('.no-params-tip').exists()).toBe(true)
+  })
+
+  it('calculates price when parameters change', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    vm.selectedParams.paper_id = 2
+    vm.selectedParams.color_id = 2
+    vm.selectedParams.quantity = 100
+
+    await vm.doCalculatePrice()
+    await flushPromises()
+
+    expect(calculatePriceMock).toHaveBeenCalledWith(1, expect.objectContaining({
+      quantity: 100,
+      paper_id: 2,
+      color_id: 2,
+      process_ids: [],
+    }))
+  })
+
+  it('displays price breakdown after calculation', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    vm.selectedParams.paper_id = 2
+    vm.selectedParams.color_id = 2
+    vm.selectedParams.quantity = 100
+
+    await vm.doCalculatePrice()
+    await flushPromises()
+
+    expect(vm.priceResult).not.toBeNull()
+    expect(vm.priceResult.unit_price).toBe(2.5)
+    expect(wrapper.find('.price-section').exists()).toBe(true)
+  })
+
+  it('adds to cart with selected quantity', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    vm.selectedParams.paper_id = 2
+    vm.selectedParams.color_id = 2
+    vm.selectedParams.quantity = 100
+
+    await vm.doCalculatePrice()
+    await flushPromises()
+
+    await vm.handleAddToCart()
+    await flushPromises()
+
+    expect(addToCartMock).toHaveBeenCalledWith(expect.objectContaining({
+      product_id: 1,
+      quantity: 100,
+    }))
+  })
+
+  it('shows error when adding to cart without calculating price', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+
+    const vm = wrapper.vm as any
+    await vm.handleAddToCart()
+    await flushPromises()
+
+    expect(addToCartMock).not.toHaveBeenCalled()
   })
 })
