@@ -21,6 +21,9 @@ enum ErrorCode: int
     case AUTH_TOKEN_EXPIRED = 1001;
     case AUTH_TOKEN_INVALID = 1002;
     case AUTH_LOGOUT_FAILED = 1003;
+    case SMS_SEND_TOO_FREQUENT = 1010;
+    case SMS_CODE_INVALID = 1011;
+    case SMS_SEND_FAILED = 1012;
 
     // 用户模块 2000-2099
     case USER_NOT_FOUND = 2000;
@@ -75,6 +78,9 @@ enum ErrorCode: int
             self::AUTH_TOKEN_EXPIRED => 'Token已过期',
             self::AUTH_TOKEN_INVALID => 'Token无效',
             self::AUTH_LOGOUT_FAILED => '退出登录失败',
+            self::SMS_SEND_TOO_FREQUENT => '短信发送过于频繁，请稍后再试',
+            self::SMS_CODE_INVALID => '短信验证码错误或已过期',
+            self::SMS_SEND_FAILED => '短信发送失败',
             self::USER_NOT_FOUND => '用户不存在',
             self::USER_ALREADY_EXISTS => '用户已存在',
             self::USER_PASSWORD_ERROR => '密码错误',
@@ -119,6 +125,9 @@ enum ErrorCode: int
             self::ORDER_STATUS_INVALID => 422,
             self::INSUFFICIENT_BALANCE => 422,
             self::TOO_MANY_REQUESTS => 429,
+            self::SMS_SEND_TOO_FREQUENT => 429,
+            self::SMS_CODE_INVALID => 400,
+            self::SMS_SEND_FAILED => 500,
             self::SYSTEM_ERROR => 500,
             self::AUTH_TOKEN_INVALID => 400,
             self::AUTH_TOKEN_EXPIRED => 400,

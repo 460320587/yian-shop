@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { login, register, getUserInfo, logout } from '../user'
+import { login, register, getUserInfo, logout, sendSmsCode, loginBySms, checkPhone } from '../user'
 
 vi.mock('@/utils/request', () => ({
   post: vi.fn((url: string) => {
@@ -12,11 +12,20 @@ vi.mock('@/utils/request', () => ({
     if (url === '/auth/logout') {
       return Promise.resolve({})
     }
+    if (url === '/auth/sms-code') {
+      return Promise.resolve({})
+    }
+    if (url === '/auth/login-sms') {
+      return Promise.resolve({ token: 'sms-token', user: { id: 3, phone: '13800138001', nickname: '短信用户', avatar: null } })
+    }
     return Promise.resolve({})
   }),
-  get: vi.fn((url: string) => {
+  get: vi.fn((url: string, params?: any) => {
     if (url === '/user/profile') {
       return Promise.resolve({ id: 1, phone: '13800138000', nickname: '测试用户', avatar: null, type: 1, auth_status: 0, vip_level: 1, balance: 100 })
+    }
+    if (url === '/auth/check-phone') {
+      return Promise.resolve({ available: params?.phone !== '13800138000' })
     }
     return Promise.resolve({})
   }),
@@ -44,5 +53,23 @@ describe('User API', () => {
   it('logout calls logout endpoint', async () => {
     const res = await logout()
     expect(res).toEqual({})
+  })
+
+  it('sendSmsCode calls sms-code endpoint', async () => {
+    const res = await sendSmsCode({ phone: '13800138000', captcha_key: 'key', captcha_code: '1234' })
+    expect(res).toEqual({})
+  })
+
+  it('loginBySms returns token and user', async () => {
+    const res = await loginBySms({ phone: '13800138001', sms_code: '123456' })
+    expect(res.token).toBe('sms-token')
+    expect(res.user.phone).toBe('13800138001')
+  })
+
+  it('checkPhone returns availability', async () => {
+    const res1 = await checkPhone('13800138000')
+    expect(res1.available).toBe(false)
+    const res2 = await checkPhone('13800138099')
+    expect(res2.available).toBe(true)
   })
 })

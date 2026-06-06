@@ -48,3 +48,15 @@ export function forgotPassword(data: { phone: string }) {
 export function resetPassword(data: { phone: string; token: string; password: string; password_confirmation: string }) {
   return post('/auth/reset-password', data)
 }
+
+export function sendSmsCode(data: { phone: string; captcha_key: string; captcha_code: string }) {
+  return post('/auth/sms-code', data)
+}
+
+export function loginBySms(data: { phone: string; sms_code: string }) {
+  return post<{ token: string; user: User }>('/auth/login-sms', data)
+}
+
+export function checkPhone(phone: string) {
+  return get<{ available: boolean }>('/auth/check-phone', { phone })
+}

@@ -5,9 +5,11 @@ import { createRouter, createWebHistory } from 'vue-router'
 import RegisterView from '../RegisterView.vue'
 
 let registerMock = vi.fn()
+let sendSmsCodeMock = vi.fn()
 
 vi.mock('@/api/user', () => ({
   register: (...args: any[]) => registerMock(...args),
+  sendSmsCode: (...args: any[]) => sendSmsCodeMock(...args),
 }))
 
 vi.mock('@/api/captcha', () => ({
@@ -25,6 +27,7 @@ beforeEach(() => {
       user: { id: 1, phone: '13800138000', nickname: '测试用户' },
     })
   )
+  sendSmsCodeMock = vi.fn(() => Promise.resolve({}))
 })
 
 describe('RegisterView', () => {
@@ -57,6 +60,22 @@ describe('RegisterView', () => {
     await flushPromises()
     const vm = wrapper.vm as any
     vm.form.phone = '123'
+    vm.form.sms_code = '123456'
+    vm.form.password = 'Abc12345'
+    vm.form.password_confirmation = 'Abc12345'
+    vm.form.captcha = '1234'
+    vm.captchaValid = true
+    vm.agreed = true
+    await vm.handleRegister()
+    expect(registerMock).not.toHaveBeenCalled()
+  })
+
+  it('validates sms code required', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    vm.form.phone = '13800138000'
+    vm.form.sms_code = ''
     vm.form.password = 'Abc12345'
     vm.form.password_confirmation = 'Abc12345'
     vm.form.captcha = '1234'
@@ -71,6 +90,7 @@ describe('RegisterView', () => {
     await flushPromises()
     const vm = wrapper.vm as any
     vm.form.phone = '13800138000'
+    vm.form.sms_code = '123456'
     vm.form.password = 'Abc12345'
     vm.form.password_confirmation = 'Abc12346'
     vm.form.captcha = '1234'
@@ -85,6 +105,7 @@ describe('RegisterView', () => {
     await flushPromises()
     const vm = wrapper.vm as any
     vm.form.phone = '13800138000'
+    vm.form.sms_code = '123456'
     vm.form.password = 'Abc12345'
     vm.form.password_confirmation = 'Abc12345'
     vm.form.captcha = '1234'
@@ -99,6 +120,7 @@ describe('RegisterView', () => {
     await flushPromises()
     const vm = wrapper.vm as any
     vm.form.phone = '13800138000'
+    vm.form.sms_code = '123456'
     vm.form.password = 'Abc12345'
     vm.form.password_confirmation = 'Abc12345'
     vm.form.nickname = '测试昵称'
@@ -124,6 +146,7 @@ describe('RegisterView', () => {
     await flushPromises()
     const vm = wrapper.vm as any
     vm.form.phone = '13800138000'
+    vm.form.sms_code = '123456'
     vm.form.password = 'Abc12345'
     vm.form.password_confirmation = 'Abc12345'
     vm.form.captcha = '1234'
@@ -138,5 +161,54 @@ describe('RegisterView', () => {
     expect(payload.nickname).toBeUndefined()
     expect(payload.link_person).toBeUndefined()
     expect(payload.qq).toBeUndefined()
+  })
+
+  it('sends sms code with valid phone and captcha', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    vm.form.phone = '13800138000'
+    vm.form.captcha = '1234'
+    vm.captchaValid = true
+    vm.captchaKey = 'key_1'
+    await vm.handleSendSmsCode()
+    await flushPromises()
+
+    expect(sendSmsCodeMock).toHaveBeenCalledTimes(1)
+    expect(sendSmsCodeMock.mock.calls[0][0]).toEqual({
+      phone: '13800138000',
+      captcha_key: 'key_1',
+      captcha_code: '1234',
+    })
+    expect(vm.smsCountdown).toBe(60)
+  })
+
+  it('does not send sms code without phone', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    vm.form.phone = ''
+    await vm.handleSendSmsCode()
+    expect(sendSmsCodeMock).not.toHaveBeenCalled()
+  })
+
+  it('does not send sms code with invalid phone', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    vm.form.phone = '123'
+    await vm.handleSendSmsCode()
+    expect(sendSmsCodeMock).not.toHaveBeenCalled()
+  })
+
+  it('does not send sms code without captcha', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    vm.form.phone = '13800138000'
+    vm.form.captcha = ''
+    vm.captchaValid = false
+    await vm.handleSendSmsCode()
+    expect(sendSmsCodeMock).not.toHaveBeenCalled()
   })
 })

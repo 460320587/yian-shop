@@ -33,6 +33,9 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [\App\Http\Controllers\Api\AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [\App\Http\Controllers\Api\AuthController::class, 'resetPassword']);
     Route::get('/captcha', [\App\Http\Controllers\Api\AuthController::class, 'captcha']);
+    Route::post('/sms-code', [\App\Http\Controllers\Api\AuthController::class, 'sendSmsCode']);
+    Route::post('/login-sms', [\App\Http\Controllers\Api\AuthController::class, 'loginSms']);
+    Route::get('/check-phone', [\App\Http\Controllers\Api\AuthController::class, 'checkPhone']);
 });
 
 // 用户中心

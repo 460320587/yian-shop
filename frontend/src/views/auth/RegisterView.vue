@@ -3,7 +3,7 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { register } from '@/api/user'
+import { register, sendSmsCode } from '@/api/user'
 import AppCaptcha from '@/components/Common/AppCaptcha/AppCaptcha.vue'
 
 const router = useRouter()
@@ -13,6 +13,9 @@ const agreed = ref(false)
 const captchaRef = ref<InstanceType<typeof AppCaptcha>>()
 const captchaValid = ref(false)
 const captchaKey = ref('')
+const smsCountdown = ref(0)
+const smsLoading = ref(false)
+let smsTimer: ReturnType<typeof setInterval> | null = null
 
 const form = reactive({
   phone: '',
@@ -22,6 +25,7 @@ const form = reactive({
   link_person: '',
   qq: '',
   captcha: '',
+  sms_code: '',
 })
 
 const passwordStrength = computed(() => {
@@ -55,6 +59,10 @@ function validate(): boolean {
     ElMessage.warning('手机号格式不正确')
     return false
   }
+  if (!form.sms_code) {
+    ElMessage.warning('请输入短信验证码')
+    return false
+  }
   if (!form.password) {
     ElMessage.warning('请输入密码')
     return false
@@ -80,6 +88,48 @@ function validate(): boolean {
     return false
   }
   return true
+}
+
+async function handleSendSmsCode() {
+  if (!form.phone) {
+    ElMessage.warning('请输入手机号')
+    return
+  }
+  if (!/^1[3-9]\d{9}$/.test(form.phone)) {
+    ElMessage.warning('手机号格式不正确')
+    return
+  }
+  if (!form.captcha) {
+    ElMessage.warning('请先输入图形验证码')
+    return
+  }
+  if (!captchaValid.value) {
+    ElMessage.warning('图形验证码不正确')
+    return
+  }
+  smsLoading.value = true
+  try {
+    await sendSmsCode({
+      phone: form.phone,
+      captcha_key: captchaKey.value,
+      captcha_code: form.captcha,
+    })
+    ElMessage.success('验证码已发送')
+    smsCountdown.value = 60
+    if (smsTimer) clearInterval(smsTimer)
+    smsTimer = setInterval(() => {
+      smsCountdown.value--
+      if (smsCountdown.value <= 0) {
+        if (smsTimer) clearInterval(smsTimer)
+        smsTimer = null
+      }
+    }, 1000)
+  } catch (e: any) {
+    const msg = e?.response?.data?.message || '发送失败'
+    ElMessage.error(msg)
+  } finally {
+    smsLoading.value = false
+  }
 }
 
 async function handleRegister() {
@@ -134,6 +184,9 @@ defineExpose({
   strengthColor,
   validate,
   handleRegister,
+  handleSendSmsCode,
+  smsCountdown,
+  smsLoading,
 })
 </script>
 
@@ -183,6 +236,25 @@ defineExpose({
 
         <el-form-item label="QQ">
           <el-input v-model="form.qq" placeholder="请输入QQ号（选填）" maxlength="20" />
+        </el-form-item>
+
+        <el-form-item label="短信验证码">
+          <div class="sms-code-row">
+            <el-input
+              v-model="form.sms_code"
+              placeholder="请输入短信验证码"
+              maxlength="6"
+              class="sms-input"
+            />
+            <el-button
+              type="primary"
+              :disabled="smsCountdown > 0"
+              :loading="smsLoading"
+              @click="handleSendSmsCode"
+            >
+              {{ smsCountdown > 0 ? `${smsCountdown}s后重发` : '获取验证码' }}
+            </el-button>
+          </div>
         </el-form-item>
 
         <el-form-item label="验证码">
@@ -273,5 +345,12 @@ defineExpose({
   font-size: 14px;
   color: #606266;
   margin-top: 8px;
+}
+.sms-code-row {
+  display: flex;
+  gap: 12px;
+}
+.sms-input {
+  flex: 1;
 }
 </style>

@@ -8,11 +8,15 @@ use App\Domains\User\Models\Customer;
 use App\Http\Controllers\BaseController;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\LoginSmsRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Auth\SendSmsCodeRequest;
 use App\Http\Requests\Auth\UpdateProfileRequest;
+use App\Services\SmsCodeService;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends BaseController
@@ -183,5 +187,64 @@ class AuthController extends BaseController
             'captcha_key' => $key,
             'captcha_code' => $code,
         ]);
+    }
+
+    public function sendSmsCode(SendSmsCodeRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        (new SmsCodeService())->send(
+            $data['phone'],
+            $data['captcha_key'],
+            $data['captcha_code'],
+        );
+
+        return $this->success([], '验证码已发送');
+    }
+
+    public function loginSms(LoginSmsRequest $request): JsonResponse
+    {
+        $data = $request->validated();
+
+        $verified = (new SmsCodeService())->verify($data['phone'], $data['sms_code']);
+
+        if (! $verified) {
+            return $this->error(ErrorCode::SMS_CODE_INVALID, '短信验证码错误或已过期');
+        }
+
+        $customer = Customer::where('phone', $data['phone'])->first();
+
+        if (! $customer) {
+            $customer = Customer::create([
+                'phone' => $data['phone'],
+                'password' => Hash::make(bin2hex(random_bytes(16))),
+                'nickname' => '用户' . substr($data['phone'], -4),
+                'register_ip' => $request->ip(),
+            ]);
+        } else {
+            $customer->update(['last_login_at' => now()]);
+        }
+
+        $token = $customer->createToken('api')->plainTextToken;
+
+        return $this->success([
+            'token' => $token,
+            'user' => [
+                'id' => $customer->id,
+                'phone' => $customer->phone,
+                'nickname' => $customer->nickname,
+            ],
+        ]);
+    }
+
+    public function checkPhone(Request $request): JsonResponse
+    {
+        $request->validate([
+            'phone' => ['required', 'regex:/^1[3-9]\d{9}$/'],
+        ]);
+
+        $exists = Customer::where('phone', $request->input('phone'))->exists();
+
+        return $this->success(['available' => ! $exists]);
     }
 }
