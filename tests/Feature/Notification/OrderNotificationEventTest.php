@@ -79,6 +79,14 @@ class OrderNotificationEventTest extends TestCase
             'out_status_name' => OrderStatus::Paid->label(),
         ]);
 
+        $notifications = \App\Domains\Notification\Models\CustomerNotification::all();
+        foreach ($notifications as $n) {
+            fwrite(STDERR, $n->title . ' | ' . $n->content . "\n");
+        }
+        fwrite(STDERR, 'Status logs: ' . \App\Domains\Order\Models\OrderStatusLog::count() . "\n");
+        foreach (\App\Domains\Order\Models\OrderStatusLog::all() as $log) {
+            fwrite(STDERR, 'Log: from=' . $log->from_status . ' to=' . $log->to_status . "\n");
+        }
         $this->assertDatabaseCount('customer_notifications', 1);
     }
 

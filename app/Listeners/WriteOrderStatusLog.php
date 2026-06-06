@@ -11,6 +11,7 @@ class WriteOrderStatusLog
 {
     public function handle(OrderStatusChanged $event): void
     {
+        file_put_contents('c:/tmp/event_debug.log', "WriteOrderStatusLog called for order {$event->order->id} status {$event->newStatus}\n", FILE_APPEND);
         OrderStatusLog::create([
             'order_id' => $event->order->id,
             'from_status' => $event->oldStatus,

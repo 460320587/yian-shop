@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 ->group(__DIR__.'/../routes/admin.php');
         },
     )
+    ->withEvents(discover: false)
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(prepend: [
             \App\Support\Middleware\ForceJsonMiddleware::class,

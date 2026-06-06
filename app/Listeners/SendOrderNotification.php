@@ -12,6 +12,7 @@ class SendOrderNotification
 {
     public function handle(OrderStatusChanged $event): void
     {
+        file_put_contents('c:/tmp/event_debug.log', "SendOrderNotification called for order {$event->order->id} status {$event->newStatus}\n", FILE_APPEND);
         $order = $event->order;
         $newStatus = OrderStatus::tryFrom($event->newStatus);
 

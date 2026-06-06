@@ -173,6 +173,8 @@ class OrderController extends BaseController
 
         $cart->items()->forceDelete();
 
+        \App\Events\OrderCreated::dispatch($order);
+
         return $this->success([
             'order_no' => $order->order_no,
             'status' => OrderStatus::PendingPayment->value,

@@ -9,6 +9,7 @@ use App\Domains\Order\Models\Order;
 use App\Domains\Payment\Actions\PayWithWalletAction;
 use App\Domains\Payment\Actions\RechargeWalletAction;
 use App\Domains\Payment\Actions\WithdrawWalletAction;
+use App\Events\PaymentSuccess;
 use App\Domains\Payment\Enums\PaymentStatus;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Models\WalletTransaction;
@@ -55,6 +56,8 @@ class PaymentController extends BaseController
         if ($request->input('gateway') === 'wallet') {
             $customer = Customer::find($customerId);
             $payment = (new PayWithWalletAction($customer, $order, $this->paymentService))->handle();
+
+            PaymentSuccess::dispatch($payment);
 
             return $this->success([
                 'payment_id' => $payment->id,
