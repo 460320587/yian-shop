@@ -8,6 +8,7 @@ use App\Domains\Cart\Models\Cart;
 use App\Domains\Common\ValueObjects\Money;
 use App\Domains\Coupon\Models\CustomerCoupon;
 use App\Domains\Coupon\Services\CouponDiscountCalculator;
+use App\Domains\Logistics\Models\FreightTemplate;
 use App\Domains\Order\Actions\CancelOrderAction;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
@@ -37,6 +38,55 @@ class OrderController extends BaseController
         $perPage = max(1, min($perPage, 50));
 
         return $this->paginated($query->paginate($perPage));
+    }
+
+    public function pricing(Request $request): JsonResponse
+    {
+        $request->validate([
+            'address_id' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $customerId = auth('sanctum')->id();
+        $cart = Cart::where('customer_id', $customerId)
+            ->with('items')
+            ->first();
+
+        if (! $cart || $cart->items->isEmpty()) {
+            return $this->error(ErrorCode::CART_EMPTY, '购物车为空', null, 422);
+        }
+
+        $goodsAmount = $cart->items->sum('subtotal');
+        $totalQuantity = $cart->items->sum('quantity');
+
+        $template = FreightTemplate::where('status', 1)
+            ->with('carrier')
+            ->first();
+
+        $freightAmount = 0.0;
+        $carrierName = null;
+        $freeThreshold = null;
+
+        if ($template) {
+            $carrierName = $template->carrier?->name;
+            $freeThreshold = $template->free_threshold;
+
+            if ($freeThreshold !== null && $goodsAmount >= (int) round((float) $freeThreshold * 100)) {
+                $freightAmount = 0;
+            } else {
+                $firstPrice = (float) $template->first_price;
+                $continuePrice = (float) $template->continue_price;
+                $extraQty = max(0, $totalQuantity - 1);
+                $freightAmount = (float) round($firstPrice + $extraQty * $continuePrice, 2);
+            }
+        }
+
+        return $this->success([
+            'freight_amount' => $freightAmount,
+            'goods_amount' => (new Money($goodsAmount))->toYuan(),
+            'free_threshold' => $freeThreshold,
+            'carrier_name' => $carrierName,
+            'calculation_type' => $template?->calculation_type,
+        ]);
     }
 
     public function store(Request $request): JsonResponse

@@ -83,6 +83,7 @@ Route::middleware('auth:sanctum')->prefix('cart')->group(function () {
 // 订单系统 (Phase 4)
 Route::middleware('auth:sanctum')->prefix('orders')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\OrderController::class, 'index']);
+    Route::post('/pricing', [\App\Http\Controllers\Api\OrderController::class, 'pricing']);
     Route::post('/', [\App\Http\Controllers\Api\OrderController::class, 'store']);
     Route::get('/{id}', [\App\Http\Controllers\Api\OrderController::class, 'show']);
     Route::get('/{id}/status-logs', [\App\Http\Controllers\Api\OrderController::class, 'statusLogs']);
