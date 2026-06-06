@@ -8,6 +8,7 @@ use App\Domains\Order\Actions\ConfirmOrderPaymentAction;
 use App\Domains\Order\Actions\ShipOrderAction;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
+use App\Domains\Order\Queries\OrderQuery;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
@@ -18,21 +19,11 @@ class AdminOrderController extends BaseController
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Order::with('customer');
+        $query = (new OrderQuery($request->all()))
+            ->with(['customer'])
+            ->perPage((int) $request->input('per_page', 15));
 
-        if ($request->filled('order_no')) {
-            $query->where('order_no', 'like', '%' . $request->input('order_no') . '%');
-        }
-
-        if ($request->has('status')) {
-            $query->where('status', (int) $request->input('status'));
-        }
-
-        if ($request->has('customer_id')) {
-            $query->where('customer_id', (int) $request->input('customer_id'));
-        }
-
-        return $this->paginated($query->orderBy('created_at', 'desc')->paginate());
+        return $this->paginated($query->paginate());
     }
 
     public function show(int $id): JsonResponse

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Domains\User\Models\Customer;
+use App\Domains\User\Queries\CustomerQuery;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
@@ -14,25 +15,10 @@ class AdminCustomerController extends BaseController
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Customer::query();
+        $query = (new CustomerQuery($request->all()))
+            ->perPage((int) $request->input('per_page', 15));
 
-        if ($request->filled('keyword')) {
-            $keyword = $request->input('keyword');
-            $query->where(function ($q) use ($keyword): void {
-                $q->where('phone', 'like', "%{$keyword}%")
-                    ->orWhere('nickname', 'like', "%{$keyword}%");
-            });
-        }
-
-        if ($request->has('status')) {
-            $query->where('status', (int) $request->input('status'));
-        }
-
-        if ($request->has('vip_level')) {
-            $query->where('vip_level', (int) $request->input('vip_level'));
-        }
-
-        return $this->paginated($query->orderBy('created_at', 'desc')->paginate());
+        return $this->paginated($query->paginate());
     }
 
     public function show(int $id): JsonResponse
