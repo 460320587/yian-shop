@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Domains\Payment\Actions\ProcessRefundAction;
 use App\Domains\Payment\Models\RefundRecord;
+use App\Domains\Payment\Services\WalletService;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
@@ -89,9 +91,14 @@ class AdminRefundController extends BaseController
             'approved_at' => now(),
         ]);
 
+        if ($data['action'] === 'approve') {
+            $processAction = new ProcessRefundAction($refund, new WalletService());
+            $processAction->handle();
+        }
+
         return $this->success([
             'id' => $refund->id,
-            'status' => $refund->status,
+            'status' => $refund->fresh()->status,
             'approved_by' => $refund->approved_by,
             'approved_at' => $refund->approved_at,
         ], '审核完成');

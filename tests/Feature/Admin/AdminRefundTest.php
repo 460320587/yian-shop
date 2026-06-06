@@ -9,6 +9,7 @@ use App\Domains\Order\Models\Order;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Models\RefundRecord;
 use App\Domains\User\Models\Customer;
+use App\Domains\User\Models\CustomerWallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -73,7 +74,10 @@ class AdminRefundTest extends TestCase
     public function test_admin_can_approve_refund(): void
     {
         $admin = $this->authAdmin();
-        $refund = RefundRecord::factory()->create(['status' => 0]);
+        $refund = RefundRecord::factory()->create([
+            'status' => 0,
+            'refund_path' => 'original',
+        ]);
 
         $response = $this->putJson("/api/v1/admin/refunds/{$refund->id}/audit", [
             'action' => 'approve',
@@ -85,9 +89,51 @@ class AdminRefundTest extends TestCase
 
         $this->assertDatabaseHas('refund_records', [
             'id' => $refund->id,
-            'status' => 1,
+            'status' => 4,
             'approved_by' => $admin->id,
         ]);
+    }
+
+    public function test_admin_approve_refund_credits_customer_wallet(): void
+    {
+        $admin = $this->authAdmin();
+        $customer = Customer::factory()->create(['balance' => 10000]);
+        CustomerWallet::create([
+            'customer_id' => $customer->id,
+            'balance' => 10000,
+            'frozen_amount' => 0,
+            'total_recharge' => 0,
+            'total_consume' => 0,
+            'status' => 1,
+            'version' => 0,
+        ]);
+        $refund = RefundRecord::factory()->create([
+            'customer_id' => $customer->id,
+            'amount' => 5000,
+            'status' => 0,
+            'refund_path' => 'wallet',
+        ]);
+
+        $response = $this->putJson("/api/v1/admin/refunds/{$refund->id}/audit", [
+            'action' => 'approve',
+            'remark' => '同意退款',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('code', 0);
+
+        $this->assertDatabaseHas('refund_records', [
+            'id' => $refund->id,
+            'status' => 4,
+        ]);
+        $this->assertDatabaseHas('wallet_transactions', [
+            'customer_id' => $customer->id,
+            'type' => 3, // refund
+            'amount' => 5000,
+            'payment_no' => $refund->refund_no,
+        ]);
+        $customer->refresh();
+        $this->assertEquals(15000, $customer->wallet->fresh()->balance->amount);
     }
 
     public function test_admin_can_reject_refund(): void
