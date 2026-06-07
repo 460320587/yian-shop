@@ -31,6 +31,7 @@ const routes: RouteRecordRaw[] = [
       { path: '/profile', name: 'ProfileEdit', component: () => import('@/views/profile/ProfileEditView.vue'), meta: { requiresAuth: true } },
       { path: '/vip', name: 'VipCenter', component: () => import('@/views/vip/VipCenterView.vue'), meta: { requiresAuth: true } },
       { path: '/wallet', name: 'Wallet', component: () => import('@/views/wallet/WalletView.vue'), meta: { requiresAuth: true } },
+      { path: '/points', name: 'Points', component: () => import('@/views/points/PointsView.vue'), meta: { requiresAuth: true } },
       { path: '/pay-password', name: 'PayPassword', component: () => import('@/views/payment/PayPasswordView.vue'), meta: { requiresAuth: true } },
       { path: '/invoices', name: 'InvoiceList', component: () => import('@/views/invoice/InvoiceListView.vue'), meta: { requiresAuth: true } },
       { path: '/invoice-apply', name: 'InvoiceApply', component: () => import('@/views/invoice/InvoiceApplyView.vue'), meta: { requiresAuth: true } },

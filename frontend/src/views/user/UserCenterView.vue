@@ -103,7 +103,7 @@ defineExpose({
         <div class="asset-value">¥{{ formatPrice(user?.balance || 0) }}</div>
         <div class="asset-label">余额</div>
       </div>
-      <div class="asset-item" @click="goTo('/my-coupons')">
+      <div class="asset-item" @click="goTo('/points')">
         <div class="asset-value">{{ user?.points || 0 }}</div>
         <div class="asset-label">积分</div>
       </div>
