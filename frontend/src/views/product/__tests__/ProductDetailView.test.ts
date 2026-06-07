@@ -19,6 +19,7 @@ let removeFavoriteMock = vi.fn()
 let getProductReviewsMock = vi.fn()
 let calculatePriceMock = vi.fn()
 let addToCartMock = vi.fn()
+let createSampleOrderMock = vi.fn()
 
 const mockPricingParams = {
   base_price: 250,
@@ -60,6 +61,10 @@ vi.mock('@/api/cart', () => ({
   addToCart: (...args: any[]) => addToCartMock(...args),
 }))
 
+vi.mock('@/api/sample', () => ({
+  createSampleOrder: (...args: any[]) => createSampleOrderMock(...args),
+}))
+
 beforeEach(() => {
   getProductDetailMock = vi.fn(() => Promise.resolve({
     id: 1, name: '名片', code: 'CARD-001', description: '高质量名片',
@@ -85,6 +90,9 @@ beforeEach(() => {
   }))
   addToCartMock = vi.fn(() => Promise.resolve({
     id: 1, product_id: 1, product_name: '名片', thumbnail: '', quantity: 100, unit_price: 2.5, subtotal: 250, selected: true,
+  }))
+  createSampleOrderMock = vi.fn(() => Promise.resolve({
+    id: 1, order_no: 'S202601010001', product_id: 1, quantity: 1, status: 100, total_amount: 5000,
   }))
 })
 
@@ -262,5 +270,43 @@ describe('ProductDetailView', () => {
     await flushPromises()
 
     expect(addToCartMock).not.toHaveBeenCalled()
+  })
+
+  it('opens sample order dialog', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    vm.openSampleDialog()
+    expect(vm.sampleDialogVisible).toBe(true)
+    expect(vm.sampleForm.quantity).toBe(1)
+    expect(vm.sampleForm.remark).toBe('')
+  })
+
+  it('submits sample order', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    vm.openSampleDialog()
+    vm.sampleForm.quantity = 2
+    vm.sampleForm.remark = '加急'
+    await vm.submitSampleOrder()
+    await flushPromises()
+    expect(createSampleOrderMock).toHaveBeenCalledWith(expect.objectContaining({
+      product_id: 1,
+      quantity: 2,
+      remark: '加急',
+    }))
+    expect(vm.sampleDialogVisible).toBe(false)
+  })
+
+  it('validates sample quantity', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    vm.openSampleDialog()
+    vm.sampleForm.quantity = 0
+    const valid = await vm.validateSampleForm()
+    expect(valid).toBe(false)
+    expect(createSampleOrderMock).not.toHaveBeenCalled()
   })
 })

@@ -6,6 +6,7 @@ import { getProductDetail, calculatePrice, type PriceResult } from '@/api/produc
 import { getFavorites, addFavorite, removeFavorite } from '@/api/favorite'
 import { getProductReviews, type ReviewItem } from '@/api/review'
 import { addToCart } from '@/api/cart'
+import { createSampleOrder } from '@/api/sample'
 
 const route = useRoute()
 const product = ref<any>(null)
@@ -25,6 +26,14 @@ const selectedParams = ref({
 
 const priceResult = ref<PriceResult | null>(null)
 const loadingPrice = ref(false)
+
+// 样品单
+const sampleDialogVisible = ref(false)
+const sampleForm = ref({
+  quantity: 1,
+  remark: '',
+})
+const sampleLoading = ref(false)
 
 // 防抖计时器
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -144,6 +153,42 @@ async function handleAddToCart() {
   }
 }
 
+function openSampleDialog() {
+  sampleDialogVisible.value = true
+  sampleForm.value = { quantity: 1, remark: '' }
+}
+
+function validateSampleForm(): boolean {
+  if (!sampleForm.value.quantity || sampleForm.value.quantity < 1) {
+    ElMessage.warning('数量至少为 1')
+    return false
+  }
+  if (sampleForm.value.quantity > 100) {
+    ElMessage.warning('样品数量不能超过 100')
+    return false
+  }
+  return true
+}
+
+async function submitSampleOrder() {
+  if (!product.value) return
+  if (!validateSampleForm()) return
+  sampleLoading.value = true
+  try {
+    await createSampleOrder({
+      product_id: product.value.id,
+      quantity: sampleForm.value.quantity,
+      remark: sampleForm.value.remark || undefined,
+    })
+    ElMessage.success('样品订单已提交')
+    sampleDialogVisible.value = false
+  } catch (e) {
+    console.error(e)
+  } finally {
+    sampleLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadProduct()
 })
@@ -168,6 +213,12 @@ defineExpose({
   priceResult,
   loadingPrice,
   handleAddToCart,
+  sampleDialogVisible,
+  sampleForm,
+  sampleLoading,
+  openSampleDialog,
+  validateSampleForm,
+  submitSampleOrder,
 })
 </script>
 
@@ -275,10 +326,13 @@ defineExpose({
             </div>
           </div>
 
-          <!-- 加入购物车 -->
+          <!-- 加入购物车 / 样品单 -->
           <div class="action-row">
             <el-button type="primary" size="large" @click="handleAddToCart">
               加入购物车
+            </el-button>
+            <el-button type="success" size="large" @click="openSampleDialog">
+              下样品单
             </el-button>
           </div>
         </div>
@@ -288,7 +342,23 @@ defineExpose({
         </div>
       </div>
 
-      <!-- 评价区 -->
+      <!-- 样品单对话框 -->
+    <el-dialog v-model="sampleDialogVisible" title="下样品单" width="480px">
+      <el-form :model="sampleForm" label-width="80px">
+        <el-form-item label="数量" required>
+          <el-input-number v-model="sampleForm.quantity" :min="1" :max="100" />
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model="sampleForm.remark" type="textarea" :rows="2" placeholder="选填：如加急、指定颜色等" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="sampleDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="sampleLoading" @click="submitSampleOrder">确认</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 评价区 -->
       <div v-if="reviews.length > 0" class="review-section">
         <h3>用户评价（{{ reviewTotal }}）</h3>
         <div v-for="review in reviews" :key="review.id" class="review-item">
