@@ -26,8 +26,8 @@ class RefundStateMachine extends BaseStateMachine
 
     protected function beforeTransition(Model $model, int $from, int $to, array $context): void
     {
-        // 审核通过时记录审核人
-        if ($to === 1 && isset($context['approved_by'])) {
+        // 审核通过或拒绝时记录审核人
+        if (in_array($to, [1, 2], true) && isset($context['approved_by'])) {
             $model->setAttribute('approved_by', $context['approved_by']);
             $model->setAttribute('approved_at', now());
         }

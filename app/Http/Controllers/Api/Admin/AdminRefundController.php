@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\Admin;
 
+use App\Domains\Common\StateMachines\Exceptions\InvalidTransitionException;
 use App\Domains\Payment\Actions\ProcessRefundAction;
 use App\Domains\Payment\Models\RefundRecord;
 use App\Domains\Payment\Services\WalletService;
@@ -72,33 +73,39 @@ class AdminRefundController extends BaseController
             return $this->error(ErrorCode::NOT_FOUND, '退款记录不存在');
         }
 
-        if (! $refund->isPending()) {
-            throw ValidationException::withMessages([
-                'refund' => ['该退款记录不在待审核状态'],
-            ]);
-        }
-
         $data = $request->validate([
             'action' => ['required', 'string', 'in:approve,reject'],
             'remark' => ['required', 'string', 'max:500'],
         ]);
 
-        $status = $data['action'] === 'approve' ? 1 : 2;
+        try {
+            if ($data['action'] === 'approve') {
+                // 使用状态机流转到审核通过（beforeTransition 自动设置 approved_by/approved_at）
+                $refund->stateMachine()->transition($refund, 1, [
+                    'approved_by' => auth('admin')->id(),
+                    'remark' => $data['remark'],
+                ]);
 
-        $refund->update([
-            'status' => $status,
-            'approved_by' => auth('admin')->id(),
-            'approved_at' => now(),
-        ]);
-
-        if ($data['action'] === 'approve') {
-            $processAction = new ProcessRefundAction($refund, new WalletService());
-            $processAction->handle();
+                $processAction = new ProcessRefundAction($refund, new WalletService());
+                $processAction->handle();
+            } else {
+                // 使用状态机流转到审核拒绝
+                $refund->stateMachine()->transition($refund, 2, [
+                    'approved_by' => auth('admin')->id(),
+                    'remark' => $data['remark'],
+                ]);
+            }
+        } catch (InvalidTransitionException $e) {
+            throw ValidationException::withMessages([
+                'refund' => ['该退款记录不在待审核状态'],
+            ]);
         }
+
+        $refund->refresh();
 
         return $this->success([
             'id' => $refund->id,
-            'status' => $refund->fresh()->status,
+            'status' => $refund->status,
             'approved_by' => $refund->approved_by,
             'approved_at' => $refund->approved_at,
         ], '审核完成');
