@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getAdminOrders, getAdminOrderDetail } from '@/api/admin'
-import { ElMessage } from 'element-plus'
+import { getAdminOrders, getAdminOrderDetail, getAdminOrderFiles, deleteAdminOrderFile } from '@/api/admin'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const orders = ref<any[]>([])
 const total = ref(0)
@@ -12,6 +12,10 @@ const keyword = ref('')
 const statusFilter = ref('')
 const detailVisible = ref(false)
 const detail = ref<any>(null)
+const fileDialogVisible = ref(false)
+const fileDialogLoading = ref(false)
+const orderFiles = ref<any[]>([])
+const currentOrderId = ref<number | null>(null)
 
 const statusOptions = [
   { label: '全部', value: '' },
@@ -55,11 +59,71 @@ async function openDetail(row: any) {
   }
 }
 
+async function openFileDialog(row: any) {
+  currentOrderId.value = row.id
+  fileDialogVisible.value = true
+  fileDialogLoading.value = true
+  try {
+    const res = await getAdminOrderFiles(row.id)
+    orderFiles.value = res.data || []
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('加载订单文件失败')
+  } finally {
+    fileDialogLoading.value = false
+  }
+}
+
+async function handleDeleteFile(row: any) {
+  try {
+    await ElMessageBox.confirm(`确认删除文件 ${row.file_name} 吗？`, '提示', { type: 'warning' })
+    await deleteAdminOrderFile(row.id)
+    ElMessage.success('文件已删除')
+    if (currentOrderId.value !== null) {
+      const res = await getAdminOrderFiles(currentOrderId.value)
+      orderFiles.value = res.data || []
+    }
+  } catch (e) {
+    if (e !== 'cancel') console.error(e)
+  }
+}
+
 function formatAmount(amount: number): string {
   return '¥' + (amount / 100).toFixed(2)
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
+}
+
 onMounted(loadOrders)
+
+defineExpose({
+  orders,
+  loading,
+  keyword,
+  statusFilter,
+  currentPage,
+  pageSize,
+  total,
+  detailVisible,
+  detail,
+  fileDialogVisible,
+  fileDialogLoading,
+  orderFiles,
+  currentOrderId,
+  loadOrders,
+  onSearch,
+  openDetail,
+  openFileDialog,
+  handleDeleteFile,
+  formatAmount,
+  formatFileSize,
+})
 </script>
 
 <template>
@@ -90,9 +154,10 @@ onMounted(loadOrders)
         </template>
       </el-table-column>
       <el-table-column prop="created_at" label="创建时间" min-width="160" />
-      <el-table-column label="操作" width="100">
+      <el-table-column label="操作" width="180">
         <template #default="scope">
           <el-button v-if="scope?.row" link type="primary" @click="openDetail(scope.row)">查看</el-button>
+          <el-button v-if="scope?.row" link type="success" @click="openFileDialog(scope.row)">文件</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -104,6 +169,8 @@ onMounted(loadOrders)
       class="pagination"
       @change="loadOrders"
     />
+
+    <!-- 订单详情对话框 -->
     <el-dialog v-model="detailVisible" title="订单详情" width="600px">
       <div v-if="detail" class="detail-content">
         <p><strong>订单号：</strong>{{ detail.order_no }}</p>
@@ -123,6 +190,37 @@ onMounted(loadOrders)
         </div>
       </div>
     </el-dialog>
+
+    <!-- 订单文件对话框 -->
+    <el-dialog v-model="fileDialogVisible" title="订单文件" width="600px">
+      <div v-loading="fileDialogLoading">
+        <div v-if="!fileDialogLoading && orderFiles.length === 0" class="empty-state">
+          暂无文件
+        </div>
+        <el-table v-else :data="orderFiles" size="small" stripe>
+          <el-table-column prop="file_name" label="文件名" min-width="160" />
+          <el-table-column label="大小" width="100">
+            <template #default="scope">
+              <span v-if="scope?.row">{{ formatFileSize(scope.row.file_size) }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="file_type" label="类型" width="80" />
+          <el-table-column prop="page_count" label="页数" width="70">
+            <template #default="scope">
+              <span v-if="scope?.row">{{ scope.row.page_count ?? '-' }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="120">
+            <template #default="scope">
+              <template v-if="scope?.row">
+                <el-button link type="primary" size="small" @click="window.open(scope.row.file_url, '_blank')">下载</el-button>
+                <el-button link type="danger" size="small" @click="handleDeleteFile(scope.row)">删除</el-button>
+              </template>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -134,4 +232,5 @@ onMounted(loadOrders)
 .detail-content p { margin: 8px 0; }
 .items-section { margin-top: 16px; }
 .items-section h4 { margin-bottom: 8px; font-size: 14px; }
+.empty-state { text-align: center; padding: 32px; color: #909399; }
 </style>

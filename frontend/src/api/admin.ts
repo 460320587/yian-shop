@@ -398,3 +398,25 @@ export function updateAdminSampleOrderStatus(id: number, data: { status: number;
 export function deleteAdminSampleOrder(id: number) {
   return delAdmin(`/sample-orders/${id}`)
 }
+
+// ===== Order File =====
+export interface AdminOrderFile {
+  id: number
+  order_id: number
+  file_name: string
+  file_url: string
+  thumb_url: string | null
+  file_size: number
+  file_type: string
+  page_count: number | null
+  ink_coverage: number | null
+  version: number
+  status: number
+  created_at: string
+}
+export function getAdminOrderFiles(orderId: number) {
+  return getAdmin<{ data: AdminOrderFile[] }>(`/orders/${orderId}/files`)
+}
+export function deleteAdminOrderFile(id: number) {
+  return delAdmin(`/order-files/${id}`)
+}
