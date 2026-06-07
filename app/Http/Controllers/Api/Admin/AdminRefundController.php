@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Domains\Common\StateMachines\Exceptions\InvalidTransitionException;
 use App\Domains\Payment\Actions\ProcessRefundAction;
 use App\Domains\Payment\Models\RefundRecord;
-use App\Domains\Payment\Services\WalletService;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
@@ -86,7 +85,7 @@ class AdminRefundController extends BaseController
                     'remark' => $data['remark'],
                 ]);
 
-                $processAction = new ProcessRefundAction($refund, new WalletService());
+                $processAction = new ProcessRefundAction($refund);
                 $processAction->handle();
             } else {
                 // 使用状态机流转到审核拒绝

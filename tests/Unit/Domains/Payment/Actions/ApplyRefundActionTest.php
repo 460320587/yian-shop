@@ -33,7 +33,7 @@ class ApplyRefundActionTest extends TestCase
 
         $this->assertInstanceOf(RefundRecord::class, $refund);
         $this->assertEquals(0, $refund->status);
-        $this->assertEquals('original', $refund->refund_path);
+        $this->assertEquals('wallet', $refund->refund_path);
         $this->assertStringStartsWith('R', $refund->refund_no);
     }
 }

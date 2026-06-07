@@ -47,9 +47,10 @@ class ProcessRefundActionTest extends TestCase
             'customer_id' => $customer->id,
             'amount' => 5000,
             'status' => 1,
+            'refund_path' => 'wallet',
         ]);
 
-        $action = new ProcessRefundAction($refund, $this->walletService);
+        $action = new ProcessRefundAction($refund);
         $action->handle();
 
         $customer->refresh();
@@ -64,9 +65,10 @@ class ProcessRefundActionTest extends TestCase
             'amount' => 3000,
             'status' => 1,
             'refund_no' => 'R202601010001',
+            'refund_path' => 'wallet',
         ]);
 
-        $action = new ProcessRefundAction($refund, $this->walletService);
+        $action = new ProcessRefundAction($refund);
         $action->handle();
 
         $this->assertDatabaseHas('wallet_transactions', [
@@ -84,9 +86,10 @@ class ProcessRefundActionTest extends TestCase
             'customer_id' => $customer->id,
             'amount' => 2000,
             'status' => 1,
+            'refund_path' => 'wallet',
         ]);
 
-        $action = new ProcessRefundAction($refund, $this->walletService);
+        $action = new ProcessRefundAction($refund);
         $action->handle();
 
         $refund->refresh();
@@ -102,9 +105,10 @@ class ProcessRefundActionTest extends TestCase
             'customer_id' => $customer->id,
             'amount' => 4000,
             'status' => 1,
+            'refund_path' => 'wallet',
         ]);
 
-        $action = new ProcessRefundAction($refund, $this->walletService);
+        $action = new ProcessRefundAction($refund);
         $action->handle();
 
         $this->assertDatabaseHas('customer_wallets', [

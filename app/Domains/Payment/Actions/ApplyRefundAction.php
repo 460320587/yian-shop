@@ -26,7 +26,7 @@ class ApplyRefundAction extends BaseAction
             'amount' => $this->data['amount'],
             'reason' => $this->data['reason'],
             'status' => 0,
-            'refund_path' => 'original',
+            'refund_path' => $this->data['refund_path'] ?? 'wallet',
         ]);
     }
 

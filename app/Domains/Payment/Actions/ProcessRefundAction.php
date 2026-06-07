@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domains\Payment\Actions;
 
 use App\Domains\Payment\Models\RefundRecord;
-use App\Domains\Payment\Services\WalletService;
+use App\Domains\Payment\Refunds\RefundGatewayFactory;
 use App\Exceptions\BusinessException;
 use App\Infrastructure\Actions\BaseAction;
 use App\Support\ErrorCode;
@@ -14,7 +14,6 @@ class ProcessRefundAction extends BaseAction
 {
     public function __construct(
         private readonly RefundRecord $refund,
-        private readonly WalletService $walletService,
     ) {
     }
 
@@ -31,13 +30,13 @@ class ProcessRefundAction extends BaseAction
                 'remark' => '开始执行退款入账',
             ]);
 
-            $this->walletService->credit(
-                $customer,
-                $this->refund->amount,
-                'refund',
-                $this->refund->refund_no,
-                '退款: ' . $this->refund->reason,
-            );
+            $gateway = RefundGatewayFactory::make($this->refund->refund_path);
+            $response = $gateway->refund($this->refund);
+
+            // 记录网关退款单号
+            if (! empty($response['gateway_refund_no'])) {
+                $this->refund->update(['gateway_refund_no' => $response['gateway_refund_no']]);
+            }
 
             // 流转到已完成（afterTransition 会自动设置 completed_at）
             $this->refund->stateMachine()->transition($this->refund, 4, [
