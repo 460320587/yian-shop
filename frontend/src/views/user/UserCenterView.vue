@@ -38,6 +38,7 @@ const menuGroups = [
       { label: '发票中心', icon: 'DocumentCopy', path: '/invoices' },
       { label: '发票抬头', icon: 'DocumentAdd', path: '/invoice-titles' },
       { label: '我的售后', icon: 'Service', path: '/after-sales' },
+      { label: '我的工单', icon: 'Message', path: '/tickets' },
     ],
   },
   {
