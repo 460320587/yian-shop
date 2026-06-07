@@ -148,8 +148,10 @@ class PaymentController extends BaseController
             'payment_no' => $payment->payment_no,
             'amount' => $payment->amount->toYuan(),
             'gateway' => $payment->gateway,
-            'status' => PaymentStatus::Success->value,
-        ], '充值成功', 201);
+            'status' => PaymentStatus::Pending->value,
+            'credential' => $payment->credential,
+            'expire_at' => $payment->expire_at,
+        ], '支付单创建成功', 201);
     }
 
     public function withdraw(Request $request): JsonResponse

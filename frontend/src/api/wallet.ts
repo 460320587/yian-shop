@@ -29,12 +29,28 @@ export interface WalletBalance {
   customer_id: number
 }
 
+export interface PaymentCredential {
+  type: string
+  qrcode_url?: string
+  redirect_url?: string
+}
+
+export interface RechargePaymentData {
+  payment_id: number
+  payment_no: string
+  amount: number
+  gateway: string
+  status: number
+  credential?: PaymentCredential
+  expire_at: string | null
+}
+
 export function getWalletBalance() {
   return request.get<WalletBalance>('/wallet/balance')
 }
 
 export function recharge(data: RechargeData) {
-  return request.post<WalletTransaction>('/payments/wallet/recharge', data)
+  return request.post<RechargePaymentData>('/payments/wallet/recharge', data)
 }
 
 export function withdraw(data: WithdrawData) {

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
-import { recharge, withdraw, getWalletTransactions, type WalletTransaction } from '@/api/wallet'
+import { recharge, withdraw, getWalletTransactions, type WalletTransaction, type RechargePaymentData } from '@/api/wallet'
+import { getPaymentStatus } from '@/api/payment'
 
 const userStore = useUserStore()
 
@@ -32,6 +33,9 @@ const activeTab = ref('overview')
 const transactions = ref<WalletTransaction[]>([])
 const transactionLoading = ref(false)
 const transactionType = ref<number | undefined>(undefined)
+
+const rechargePaymentData = ref<RechargePaymentData | null>(null)
+const rechargePollTimer = ref<ReturnType<typeof setInterval> | null>(null)
 
 const typeMap: Record<number, string> = {
   1: '充值',
@@ -64,6 +68,10 @@ onMounted(() => {
   loadTransactions()
 })
 
+onUnmounted(() => {
+  stopRechargePolling()
+})
+
 function openRechargeDialog() {
   rechargeForm.value = { amount: 100, gateway: 'wechat' }
   rechargeVisible.value = true
@@ -72,6 +80,36 @@ function openRechargeDialog() {
 function openWithdrawDialog() {
   withdrawForm.value = { amount: 0, pay_password: '' }
   withdrawVisible.value = true
+}
+
+function stopRechargePolling() {
+  if (rechargePollTimer.value) {
+    clearInterval(rechargePollTimer.value)
+    rechargePollTimer.value = null
+  }
+}
+
+function startRechargePolling(paymentId: number) {
+  stopRechargePolling()
+  rechargePollTimer.value = setInterval(async () => {
+    if (!rechargePaymentData.value) {
+      stopRechargePolling()
+      return
+    }
+    try {
+      const res = await getPaymentStatus(paymentId)
+      if (res.status === 1) {
+        rechargePaymentData.value.status = 1
+        ElMessage.success('充值成功')
+        stopRechargePolling()
+        await userStore.fetchUserInfo()
+        await loadTransactions()
+        rechargePaymentData.value = null
+      }
+    } catch {
+      // ignore polling errors
+    }
+  }, 3000)
 }
 
 async function submitRecharge() {
@@ -87,17 +125,43 @@ async function submitRecharge() {
 
   submitting.value = true
   try {
-    await recharge({
+    const res = await recharge({
       amount,
       gateway: rechargeForm.value.gateway,
     })
-    ElMessage.success('充值成功')
+    rechargePaymentData.value = res
     rechargeVisible.value = false
+    ElMessage.success('支付单创建成功，请完成支付')
+    startRechargePolling(res.payment_id)
   } catch (e) {
     console.error(e)
   } finally {
     submitting.value = false
   }
+}
+
+async function checkRechargeStatus() {
+  if (!rechargePaymentData.value) return
+  try {
+    const res = await getPaymentStatus(rechargePaymentData.value.payment_id)
+    rechargePaymentData.value.status = res.status
+    if (res.status === 1) {
+      ElMessage.success('充值成功')
+      stopRechargePolling()
+      await userStore.fetchUserInfo()
+      await loadTransactions()
+      rechargePaymentData.value = null
+    } else {
+      ElMessage.info('等待支付中')
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+function clearRechargePayment() {
+  stopRechargePolling()
+  rechargePaymentData.value = null
 }
 
 async function submitWithdraw() {
@@ -137,11 +201,16 @@ defineExpose({
   activeTab,
   transactions,
   transactionType,
+  rechargePaymentData,
   loadTransactions,
   openRechargeDialog,
   openWithdrawDialog,
   submitRecharge,
   submitWithdraw,
+  startRechargePolling,
+  stopRechargePolling,
+  checkRechargeStatus,
+  clearRechargePayment,
 })
 </script>
 
@@ -155,6 +224,37 @@ defineExpose({
       <div class="balance-actions">
         <el-button type="primary" @click="openRechargeDialog">充值</el-button>
         <el-button @click="openWithdrawDialog">提现</el-button>
+      </div>
+    </div>
+
+    <!-- 充值支付结果 -->
+    <div v-if="rechargePaymentData" class="recharge-payment-panel">
+      <div v-if="rechargePaymentData.status === 0" class="pending-state">
+        <h3>待支付 ¥{{ rechargePaymentData.amount }}</h3>
+        <p class="pay-tip">
+          请使用 {{ gatewayOptions.find(g => g.value === rechargePaymentData?.gateway)?.label }} 完成支付
+        </p>
+
+        <div v-if="rechargePaymentData.credential?.qrcode_url" class="qrcode-box">
+          <img :src="rechargePaymentData.credential.qrcode_url" alt="支付二维码" />
+          <p class="qrcode-tip">请扫码支付</p>
+        </div>
+
+        <div v-else-if="rechargePaymentData.credential?.redirect_url" class="redirect-box">
+          <a :href="rechargePaymentData.credential.redirect_url" target="_blank" class="redirect-link">
+            <el-button type="primary">前往支付</el-button>
+          </a>
+        </div>
+
+        <div class="recharge-actions">
+          <el-button type="success" @click="checkRechargeStatus">查询支付状态</el-button>
+          <el-button @click="clearRechargePayment">取消</el-button>
+        </div>
+      </div>
+
+      <div v-else-if="rechargePaymentData.status === 1" class="success-state">
+        <p>充值成功！</p>
+        <el-button type="primary" @click="clearRechargePayment">确定</el-button>
       </div>
     </div>
 
@@ -325,5 +425,51 @@ defineExpose({
   text-align: center;
   color: #909399;
   font-size: 14px;
+}
+.recharge-payment-panel {
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  text-align: center;
+}
+.pending-state h3 {
+  margin-bottom: 8px;
+  font-size: 18px;
+}
+.pay-tip {
+  color: #606266;
+  margin-bottom: 16px;
+}
+.qrcode-box {
+  margin-bottom: 20px;
+}
+.qrcode-box img {
+  width: 200px;
+  height: 200px;
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+.qrcode-tip {
+  margin-top: 8px;
+  color: #909399;
+  font-size: 13px;
+}
+.redirect-box {
+  margin-bottom: 20px;
+}
+.redirect-link {
+  text-decoration: none;
+}
+.recharge-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+.success-state {
+  color: #67c23a;
+  font-size: 18px;
+  font-weight: 600;
 }
 </style>

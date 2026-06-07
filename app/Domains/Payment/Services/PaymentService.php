@@ -44,6 +44,21 @@ class PaymentService
             $this->recordWalletTransaction($payment, 2); // 2=消费
         }
 
+        // 如果是充值支付（order_no 为 null 且非 wallet 网关），入账到钱包
+        if ($payment->order_no === null && $payment->gateway !== 'wallet') {
+            $walletService = new WalletService();
+            $customer = Customer::find($payment->customer_id);
+            if ($customer) {
+                $walletService->credit(
+                    $customer,
+                    $payment->amount,
+                    'recharge',
+                    $payment->payment_no,
+                    '余额充值',
+                );
+            }
+        }
+
         PaymentSuccess::dispatch($payment);
 
         $this->writeLog($payment, 'callback', $fromStatus, PaymentStatus::Success->value, $gatewayResponse);

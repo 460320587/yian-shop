@@ -4,6 +4,7 @@ import { nextTick } from 'vue'
 import WalletView from '../WalletView.vue'
 
 let getTransactionsMock = vi.fn()
+let getPaymentStatusMock = vi.fn()
 
 const mockUser = {
   id: 1,
@@ -25,9 +26,14 @@ vi.mock('@/api/wallet', () => ({
   getWalletTransactions: (...args: any[]) => getTransactionsMock(...args),
 }))
 
+vi.mock('@/api/payment', () => ({
+  getPaymentStatus: (...args: any[]) => getPaymentStatusMock(...args),
+}))
+
 vi.mock('@/stores/user', () => ({
   useUserStore: () => ({
     userInfo: mockUser,
+    fetchUserInfo: vi.fn(() => Promise.resolve()),
   }),
 }))
 
@@ -35,6 +41,7 @@ vi.mock('element-plus', () => ({
   ElMessage: {
     success: vi.fn(),
     error: vi.fn(),
+    info: vi.fn(),
   },
 }))
 
@@ -45,12 +52,26 @@ function createWrapper() {
 describe('WalletView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    rechargeMock = vi.fn(() => Promise.resolve({ payment_no: 'P202601010001', amount: 100, status: 1 }))
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    rechargeMock = vi.fn(() => Promise.resolve({
+      payment_id: 99,
+      payment_no: 'P202601010001',
+      amount: 100,
+      gateway: 'wechat',
+      status: 0,
+      credential: { type: 'qrcode', qrcode_url: 'https://mock.qrcode/test' },
+      expire_at: null,
+    }))
     withdrawMock = vi.fn(() => Promise.resolve({ payment_no: 'P202601010002', amount: 50, status: 1 }))
     getTransactionsMock = vi.fn(() => Promise.resolve({ list: [
       { id: 1, type: 1, amount: 10000, balance_before: 0, balance_after: 10000, remark: '充值', status: 1, created_at: '2026-01-01 10:00:00' },
       { id: 2, type: 2, amount: -5000, balance_before: 10000, balance_after: 5000, remark: '消费', status: 1, created_at: '2026-01-02 10:00:00' },
     ], total: 2 }))
+    getPaymentStatusMock = vi.fn(() => Promise.resolve({ status: 0 }))
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('renders balance from user store', () => {
@@ -76,6 +97,56 @@ describe('WalletView', () => {
     await flushPromises()
 
     expect(rechargeMock).toHaveBeenCalledWith({ amount: 100, gateway: 'wechat' })
+    expect(vm.rechargePaymentData).not.toBeNull()
+    expect(vm.rechargePaymentData.payment_id).toBe(99)
+    expect(vm.rechargeVisible).toBe(false)
+  })
+
+  it('shows recharge payment panel after submitting recharge', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as any
+
+    vm.openRechargeDialog()
+    vm.rechargeForm.amount = 100
+    await vm.submitRecharge()
+    await flushPromises()
+
+    expect(vm.rechargePaymentData).not.toBeNull()
+    expect(wrapper.find('.recharge-payment-panel').exists()).toBe(true)
+  })
+
+  it('polls payment status after recharge submit', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as any
+
+    vm.openRechargeDialog()
+    vm.rechargeForm.amount = 100
+    await vm.submitRecharge()
+    await flushPromises()
+
+    expect(getPaymentStatusMock).not.toHaveBeenCalled()
+
+    vi.advanceTimersByTime(3500)
+    await flushPromises()
+
+    expect(getPaymentStatusMock).toHaveBeenCalledWith(99)
+  })
+
+  it('stops polling when payment succeeds', async () => {
+    getPaymentStatusMock = vi.fn(() => Promise.resolve({ status: 1 }))
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as any
+
+    vm.openRechargeDialog()
+    vm.rechargeForm.amount = 100
+    await vm.submitRecharge()
+    await flushPromises()
+
+    vi.advanceTimersByTime(3500)
+    await flushPromises()
+
+    expect(getPaymentStatusMock).toHaveBeenCalledWith(99)
+    expect(vm.rechargePaymentData).toBeNull()
   })
 
   it('opens withdraw dialog and submits', async () => {
@@ -150,6 +221,8 @@ describe('WalletView', () => {
     expect(typeof vm.openWithdrawDialog).toBe('function')
     expect(typeof vm.submitRecharge).toBe('function')
     expect(typeof vm.submitWithdraw).toBe('function')
+    expect(typeof vm.startRechargePolling).toBe('function')
+    expect(typeof vm.stopRechargePolling).toBe('function')
   })
 
   it('filters transactions by type', async () => {
@@ -163,5 +236,19 @@ describe('WalletView', () => {
     await flushPromises()
 
     expect(getTransactionsMock).toHaveBeenCalledWith(expect.objectContaining({ type: 1 }))
+  })
+
+  it('clears recharge payment data', async () => {
+    const wrapper = createWrapper()
+    const vm = wrapper.vm as any
+
+    vm.openRechargeDialog()
+    vm.rechargeForm.amount = 100
+    await vm.submitRecharge()
+    await flushPromises()
+
+    expect(vm.rechargePaymentData).not.toBeNull()
+    vm.clearRechargePayment()
+    expect(vm.rechargePaymentData).toBeNull()
   })
 })

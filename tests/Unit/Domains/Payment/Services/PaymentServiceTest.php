@@ -9,6 +9,7 @@ use App\Domains\Order\Models\Order;
 use App\Domains\Payment\Enums\PaymentStatus;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Services\PaymentService;
+use App\Domains\User\Models\Customer;
 use App\Events\PaymentSuccess;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
@@ -78,5 +79,53 @@ class PaymentServiceTest extends TestCase
             'type' => 2, // consume
             'amount' => 5000,
         ]);
+    }
+
+    public function test_confirm_credits_wallet_for_recharge_payment(): void
+    {
+        $customer = Customer::factory()->create(['balance' => 3000]);
+        $payment = Payment::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => PaymentStatus::Pending->value,
+            'amount' => 5000,
+            'gateway' => 'wechat',
+            'order_no' => null,
+        ]);
+
+        $this->service->confirm($payment, 'WX123456');
+
+        $customer->refresh();
+        $this->assertEquals(8000, $customer->balance->amount);
+
+        $this->assertDatabaseHas('wallet_transactions', [
+            'payment_no' => $payment->payment_no,
+            'type' => 1, // recharge
+            'amount' => 5000,
+        ]);
+
+        $this->assertDatabaseHas('payments', [
+            'id' => $payment->id,
+            'status' => PaymentStatus::Success->value,
+            'transaction_no' => 'WX123456',
+        ]);
+    }
+
+    public function test_confirm_recharge_is_idempotent(): void
+    {
+        $customer = Customer::factory()->create(['balance' => 3000]);
+        $payment = Payment::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => PaymentStatus::Success->value,
+            'amount' => 5000,
+            'gateway' => 'wechat',
+            'order_no' => null,
+            'paid_at' => now(),
+        ]);
+
+        // Should not double-credit
+        $this->service->confirm($payment, 'WX123456');
+
+        $customer->refresh();
+        $this->assertEquals(3000, $customer->balance->amount);
     }
 }

@@ -259,10 +259,48 @@ class PaymentTest extends TestCase
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonPath('code', 0);
+            ->assertJsonPath('code', 0)
+            ->assertJsonPath('data.status', PaymentStatus::Pending->value)
+            ->assertJsonStructure([
+                'data' => [
+                    'payment_id',
+                    'payment_no',
+                    'amount',
+                    'gateway',
+                    'status',
+                    'credential' => ['type', 'qrcode_url'],
+                    'expire_at',
+                ],
+            ]);
+
+        // Balance should NOT increase immediately
+        $customer->refresh();
+        $this->assertEquals(10, $customer->balance->toYuan());
+    }
+
+    public function test_recharge_balance_increases_after_mock_callback(): void
+    {
+        $customer = $this->authCustomer(['balance' => 1000]);
+
+        $response = $this->postJson('/api/v1/payments/wallet/recharge', [
+            'amount' => 100,
+            'gateway' => 'alipay',
+        ]);
+
+        $paymentId = $response->json('data.payment_id');
+
+        $this->postJson('/api/v1/payments/' . $paymentId . '/mock-callback', [
+            'status' => 'success',
+        ])->assertOk();
 
         $customer->refresh();
         $this->assertEquals(110, $customer->balance->toYuan());
+
+        $this->assertDatabaseHas('wallet_transactions', [
+            'customer_id' => $customer->id,
+            'type' => 1,
+            'amount' => 10000,
+        ]);
     }
 
     public function test_wallet_payment_fails_with_insufficient_balance(): void

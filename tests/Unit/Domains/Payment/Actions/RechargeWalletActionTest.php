@@ -15,20 +15,32 @@ class RechargeWalletActionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_recharge_increases_balance(): void
+    public function test_recharge_creates_pending_payment(): void
     {
         $customer = Customer::factory()->create(['balance' => 5000]);
         $service = new PaymentService();
 
         $payment = (new RechargeWalletAction($customer, 3000, 'wechat', $service))->handle();
 
-        $customer->refresh();
-        $this->assertEquals(8000, $customer->balance->amount);
-        $this->assertEquals(PaymentStatus::Success->value, $payment->status);
+        $this->assertEquals(PaymentStatus::Pending->value, $payment->status);
         $this->assertEquals('wechat', $payment->gateway);
+        $this->assertEquals(3000, $payment->amount->amount);
+        $this->assertNotNull($payment->credential);
+        $this->assertArrayHasKey('qrcode_url', $payment->credential);
     }
 
-    public function test_creates_payment_log(): void
+    public function test_recharge_does_not_increase_balance_immediately(): void
+    {
+        $customer = Customer::factory()->create(['balance' => 5000]);
+        $service = new PaymentService();
+
+        (new RechargeWalletAction($customer, 3000, 'wechat', $service))->handle();
+
+        $customer->refresh();
+        $this->assertEquals(5000, $customer->balance->amount);
+    }
+
+    public function test_recharge_creates_payment_log(): void
     {
         $customer = Customer::factory()->create(['balance' => 0]);
         $service = new PaymentService();
@@ -41,30 +53,27 @@ class RechargeWalletActionTest extends TestCase
         ]);
     }
 
-    public function test_creates_customer_wallet_record(): void
+    public function test_recharge_does_not_create_wallet_transaction_immediately(): void
     {
         $customer = Customer::factory()->create(['balance' => 0]);
         $service = new PaymentService();
 
         $payment = (new RechargeWalletAction($customer, 5000, 'wechat', $service))->handle();
 
-        $this->assertDatabaseHas('customer_wallets', [
-            'customer_id' => $customer->id,
+        $this->assertDatabaseMissing('wallet_transactions', [
+            'payment_no' => $payment->payment_no,
+            'type' => 1,
         ]);
     }
 
-    public function test_creates_recharge_wallet_transaction(): void
+    public function test_recharge_generates_gateway_credential(): void
     {
-        $customer = Customer::factory()->create(['balance' => 0]);
+        $customer = Customer::factory()->create();
         $service = new PaymentService();
 
-        $payment = (new RechargeWalletAction($customer, 5000, 'wechat', $service))->handle();
+        $payment = (new RechargeWalletAction($customer, 5000, 'alipay', $service))->handle();
 
-        $this->assertDatabaseHas('wallet_transactions', [
-            'customer_id' => $customer->id,
-            'type' => 1, // recharge
-            'amount' => 5000,
-            'payment_no' => $payment->payment_no,
-        ]);
+        $this->assertEquals('qrcode', $payment->credential['type']);
+        $this->assertStringContainsString('mock', $payment->credential['qrcode_url']);
     }
 }
