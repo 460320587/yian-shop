@@ -15,6 +15,7 @@ use App\Domains\Order\Models\Order;
 use App\Domains\Order\Models\OrderFile;
 use App\Domains\Order\Models\OrderItem;
 use App\Domains\Order\Models\OrderStatusLog;
+use App\Domains\Order\Models\ProductionSchedule;
 use App\Domains\Product\Models\Product;
 use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
@@ -306,6 +307,32 @@ class OrderController extends BaseController
         (new CancelOrderAction($order))->handle();
 
         return $this->success([], '订单取消成功');
+    }
+
+    public function productionSchedule(int $id): JsonResponse
+    {
+        $order = Order::where('customer_id', auth('sanctum')->id())->find($id);
+
+        if (! $order) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权访问该订单', null, 403);
+        }
+
+        $schedules = ProductionSchedule::where('order_id', $order->id)
+            ->orderBy('schedule_date', 'asc')
+            ->get();
+
+        return $this->success($schedules->map(fn (ProductionSchedule $schedule) => [
+            'id' => $schedule->id,
+            'order_id' => $schedule->order_id,
+            'schedule_date' => $schedule->schedule_date?->toDateString(),
+            'process_name' => $schedule->process_name,
+            'status' => $schedule->status,
+            'progress' => $schedule->progress,
+            'priority' => $schedule->priority,
+            'estimated_hours' => $schedule->estimated_hours,
+            'actual_hours' => $schedule->actual_hours,
+            'created_at' => $schedule->created_at,
+        ]));
     }
 
     public function files(int $id): JsonResponse

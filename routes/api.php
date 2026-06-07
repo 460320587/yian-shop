@@ -95,6 +95,7 @@ Route::middleware('auth:sanctum')->prefix('orders')->group(function () {
     Route::post('/{id}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
     Route::get('/{id}/files', [\App\Http\Controllers\Api\OrderController::class, 'files']);
     Route::post('/{id}/files', [\App\Http\Controllers\Api\OrderController::class, 'uploadFile']);
+    Route::get('/{id}/production-schedule', [\App\Http\Controllers\Api\OrderController::class, 'productionSchedule']);
 });
 
 // 支付系统 (Phase 5)
