@@ -280,6 +280,12 @@ Route::prefix('admin')->group(function () {
         Route::put('/production-schedules/{id}', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'update']);
         Route::put('/production-schedules/{id}/progress', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'updateProgress']);
 
+        // 样品订单管理
+        Route::get('/sample-orders', [\App\Http\Controllers\Api\Admin\AdminSampleOrderController::class, 'index']);
+        Route::get('/sample-orders/{id}', [\App\Http\Controllers\Api\Admin\AdminSampleOrderController::class, 'show']);
+        Route::put('/sample-orders/{id}/status', [\App\Http\Controllers\Api\Admin\AdminSampleOrderController::class, 'updateStatus']);
+        Route::delete('/sample-orders/{id}', [\App\Http\Controllers\Api\Admin\AdminSampleOrderController::class, 'destroy']);
+
         // Banner/公告管理
         Route::get('/banners', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'bannerIndex']);
         Route::post('/banners', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'bannerStore']);
