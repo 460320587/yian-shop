@@ -309,6 +309,34 @@ export function deleteAdminInkCoverageCheck(id: number) {
   return delAdmin(`/ink-coverage-checks/${id}`)
 }
 
+// ===== Refund =====
+export interface AdminRefund {
+  id: number
+  refund_no: string
+  order_id: number
+  customer_id: number
+  amount: number
+  reason: string
+  status: number
+  refund_path: string
+  approved_by: number | null
+  approved_at: string | null
+  completed_at: string | null
+  created_at: string
+  customer?: { id: number; nickname: string; phone: string }
+  order?: { id: number; order_no: string }
+  approver?: { id: number; name: string }
+}
+export function getAdminRefunds(params?: { status?: number; page?: number; per_page?: number }) {
+  return getAdmin<{ data: AdminRefund[]; total: number; current_page: number; last_page: number }>('/refunds', params)
+}
+export function getAdminRefundDetail(id: number) {
+  return getAdmin<AdminRefund>(`/refunds/${id}`)
+}
+export function auditAdminRefund(id: number, data: { action: 'approve' | 'reject'; remark: string }) {
+  return putAdmin<{ id: number; status: number; approved_by: number | null; approved_at: string | null }>(`/refunds/${id}/audit`, data)
+}
+
 // ===== Ticket =====
 export interface Ticket {
   id: number
