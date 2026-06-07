@@ -20,6 +20,7 @@ const menuItems = [
   { index: '/admin/after-sales', label: '售后管理' },
   { index: '/admin/refunds', label: '退款管理' },
   { index: '/admin/tickets', label: '工单管理' },
+  { index: '/admin/sample-orders', label: '样品订单' },
   { index: '/admin/invoices', label: '发票管理' },
   { index: '/admin/audit-logs', label: '审计日志' },
   { index: '/admin/system-configs', label: '系统配置' },

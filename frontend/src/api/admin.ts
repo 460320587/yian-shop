@@ -364,3 +364,37 @@ export function getAdminTicketDetail(id: number) {
 export function processTicket(id: number, data: { status: number; remark?: string; priority?: number }) {
   return putAdmin<{ id: number; status: number }>(`/tickets/${id}/process`, data)
 }
+
+// ===== Sample Order =====
+export interface AdminSampleOrder {
+  id: number
+  order_no: string
+  customer_id: number
+  product_id: number
+  quantity: number
+  unit_price: number
+  discount_amount: number
+  total_amount: number
+  status: number
+  remark: string | null
+  address_snapshot: Record<string, any> | null
+  customer: { id: number; nickname: string | null; phone: string } | null
+  product: { id: number; name: string } | null
+  paid_at: string | null
+  shipped_at: string | null
+  completed_at: string | null
+  cancelled_at: string | null
+  created_at: string
+}
+export function getAdminSampleOrders(params?: { status?: number; keyword?: string; page?: number; per_page?: number; created_from?: string; created_to?: string }) {
+  return getAdmin<{ data: AdminSampleOrder[]; total: number; current_page: number; last_page: number }>('/sample-orders', params)
+}
+export function getAdminSampleOrderDetail(id: number) {
+  return getAdmin<AdminSampleOrder>(`/sample-orders/${id}`)
+}
+export function updateAdminSampleOrderStatus(id: number, data: { status: number; remark?: string }) {
+  return putAdmin<{ id: number; status: number }>(`/sample-orders/${id}/status`, data)
+}
+export function deleteAdminSampleOrder(id: number) {
+  return delAdmin(`/sample-orders/${id}`)
+}
