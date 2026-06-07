@@ -9,8 +9,8 @@ use InvalidArgumentException;
 /**
  * Webhook 签名验证器工厂
  *
- * 根据网关名称创建对应的验证器实例。
- * 当前所有网关均返回 MockWebhookVerifier（开发环境占位）。
+ * 根据网关名称和配置创建对应的验证器实例。
+ * 当 payment.use_real_gateway 为 true 时返回真实验签器，否则返回 Mock。
  */
 class WebhookVerifierFactory
 {
@@ -22,8 +22,17 @@ class WebhookVerifierFactory
             throw new InvalidArgumentException("Unsupported webhook gateway: {$gateway}");
         }
 
-        $mode = config('payment.webhook_verify_mode', 'skip');
+        $useReal = config('payment.use_real_gateway', false);
 
-        return new MockWebhookVerifier($gateway, $mode);
+        if (! $useReal) {
+            $mode = config('payment.webhook_verify_mode', 'skip');
+            return new MockWebhookVerifier($gateway, $mode);
+        }
+
+        return match ($gateway) {
+            'wechat' => new WechatPayWebhookVerifier(),
+            'alipay' => new AlipayWebhookVerifier(),
+            default => new MockWebhookVerifier($gateway, 'strict'),
+        };
     }
 }
