@@ -43,10 +43,13 @@ class AdminDashboardTest extends TestCase
                 'data' => [
                     'today_orders',
                     'today_sales',
+                    'yesterday_orders',
+                    'yesterday_sales',
                     'total_customers',
                     'total_products',
                     'pending_after_sales',
                     'pending_invoices',
+                    'order_status_counts',
                     'recent_orders',
                     'sales_trend',
                 ]
@@ -58,6 +61,9 @@ class AdminDashboardTest extends TestCase
         $this->assertEquals(3, $data['total_products']);
         $this->assertEquals(1, $data['pending_after_sales']);
         $this->assertEquals(1, $data['pending_invoices']);
+        $this->assertIsArray($data['order_status_counts']);
+        $this->assertArrayHasKey('pending_payment', $data['order_status_counts']);
+        $this->assertArrayHasKey('completed', $data['order_status_counts']);
         $this->assertCount(2, $data['recent_orders']);
         $this->assertCount(7, $data['sales_trend']);
     }

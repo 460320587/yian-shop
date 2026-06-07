@@ -38,11 +38,14 @@ export function adminProfile() {
 export interface DashboardStats {
   today_orders: number
   today_sales: number
+  yesterday_orders: number
+  yesterday_sales: number
   total_customers: number
   total_products: number
   pending_after_sales: number
   pending_invoices: number
-  recent_orders: Array<{ order_no: string; customer_name: string; total_amount: number; status: number; customer_status: string; created_at: string }>
+  order_status_counts: Record<string, number>
+  recent_orders: Array<{ id: number; order_no: string; customer_name: string; total_amount: number; status: number; customer_status: string; created_at: string }>
   sales_trend: Array<{ date: string; amount: number; count: number }>
 }
 export function getDashboardStats() {
