@@ -448,6 +448,29 @@ class OrderController extends BaseController
         ], '上传成功', 201);
     }
 
+    public function deleteFile(int $id, int $fileId): JsonResponse
+    {
+        $order = Order::where('customer_id', auth('sanctum')->id())->find($id);
+
+        if (! $order) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权访问该订单', null, 403);
+        }
+
+        $file = OrderFile::find($fileId);
+
+        if (! $file) {
+            return $this->error(ErrorCode::NOT_FOUND, '文件不存在');
+        }
+
+        if ($file->order_id !== $order->id) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权访问该文件', null, 403);
+        }
+
+        $file->update(['status' => 0]);
+
+        return $this->success([], '文件已删除');
+    }
+
     private function updateCartSummary(Cart $cart): void
     {
         $items = $cart->items()->get();

@@ -2,7 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getOrderDetail, cancelOrder, getOrderProductionSchedule, getOrderFiles, getOrderInkChecks } from '@/api/order'
+import { getOrderDetail, cancelOrder, getOrderProductionSchedule, getOrderFiles, getOrderInkChecks, uploadOrderFile, deleteOrderFile } from '@/api/order'
 import type { ProductionSchedule, OrderFile, InkCoverageCheck } from '@/api/order'
 
 const route = useRoute()
@@ -16,10 +16,15 @@ const orderFiles = ref<OrderFile[]>([])
 const filesLoading = ref(false)
 const inkChecks = ref<InkCoverageCheck[]>([])
 const inkChecksLoading = ref(false)
+const uploading = ref(false)
 
 const hasProductionSchedule = computed(() => schedules.value.length > 0)
 const hasOrderFiles = computed(() => orderFiles.value.length > 0)
 const hasInkChecks = computed(() => inkChecks.value.length > 0)
+const canUploadFile = computed(() => {
+  if (!order.value) return false
+  return [0, 1, 11, 12].includes(order.value.status)
+})
 
 const canPay = computed(() => {
   if (!order.value) return false
@@ -179,6 +184,55 @@ function goToLogistics() {
   router.push(`/order/${order.value.id}/track`)
 }
 
+async function handleFileUpload(event: Event) {
+  const target = event.target as HTMLInputElement
+  const files = target.files
+  if (!files || files.length === 0 || !order.value) return
+
+  const file = files[0]
+  const maxSize = 50 * 1024 * 1024
+  if (file.size > maxSize) {
+    ElMessage.error('文件大小不能超过 50MB')
+    target.value = ''
+    return
+  }
+
+  const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'tiff', 'tif', 'ai', 'psd', 'eps']
+  const ext = file.name.split('.').pop()?.toLowerCase() || ''
+  if (!allowedExtensions.includes(ext)) {
+    ElMessage.error('不支持的文件格式，仅支持 PDF、JPG、PNG、TIFF、AI、PSD、EPS')
+    target.value = ''
+    return
+  }
+
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('file_name', file.name)
+
+  uploading.value = true
+  try {
+    await uploadOrderFile(order.value.id, formData)
+    ElMessage.success('上传成功')
+    await loadOrderFiles(order.value.id)
+  } catch (e) {
+    console.error(e)
+  } finally {
+    uploading.value = false
+    target.value = ''
+  }
+}
+
+async function handleDeleteFile(fileId: number) {
+  if (!order.value) return
+  try {
+    await deleteOrderFile(order.value.id, fileId)
+    ElMessage.success('文件已删除')
+    await loadOrderFiles(order.value.id)
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 onMounted(() => {
   loadOrder()
 })
@@ -281,20 +335,52 @@ defineExpose({
         </div>
       </div>
 
-      <div v-if="hasOrderFiles" class="files-section">
-        <h3>订单文件</h3>
-        <div v-loading="filesLoading">
+      <div class="files-section">
+        <div class="files-section-header">
+          <h3>订单文件</h3>
+          <div v-if="canUploadFile" class="upload-wrapper">
+            <el-button
+              data-testid="upload-file-btn"
+              size="small"
+              type="primary"
+              :loading="uploading"
+              @click="$refs.fileInput?.click()"
+            >上传文件</el-button>
+            <input
+              ref="fileInput"
+              type="file"
+              style="display: none"
+              accept=".pdf,.jpg,.jpeg,.png,.tiff,.tif,.ai,.psd,.eps"
+              @change="handleFileUpload"
+            />
+          </div>
+        </div>
+        <div v-loading="filesLoading || uploading">
+          <div v-if="!hasOrderFiles" class="files-empty">暂无文件</div>
           <div
             v-for="file in orderFiles"
             :key="file.id"
             class="file-item"
           >
-            <div class="file-name">{{ file.file_name }}</div>
+            <div class="file-header">
+              <div class="file-name">{{ file.file_name }}</div>
+              <el-button
+                v-if="canUploadFile"
+                data-testid="delete-file-btn"
+                size="small"
+                type="danger"
+                link
+                @click="handleDeleteFile(file.id)"
+              >删除</el-button>
+            </div>
             <div class="file-meta">
               <span>类型：{{ file.file_type }}</span>
               <span>大小：{{ (file.file_size / 1024).toFixed(2) }} KB</span>
             </div>
           </div>
+        </div>
+        <div v-if="canUploadFile" class="file-hint">
+          支持格式：PDF、JPG、PNG、TIFF、AI、PSD、EPS，最大 50MB
         </div>
       </div>
 
@@ -476,15 +562,36 @@ defineExpose({
   margin-bottom: 12px;
   font-size: 16px;
 }
+.files-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.files-section-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.files-empty {
+  padding: 20px;
+  text-align: center;
+  color: #909399;
+  font-size: 14px;
+}
 .file-item {
   padding: 12px;
   border: 1px solid #ebeef5;
   border-radius: 6px;
   margin-bottom: 10px;
 }
+.file-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
 .file-name {
   font-weight: 600;
-  margin-bottom: 6px;
 }
 .file-meta {
   display: flex;
@@ -495,6 +602,11 @@ defineExpose({
 .file-desc {
   margin-top: 6px;
   font-size: 13px;
+  color: #909399;
+}
+.file-hint {
+  margin-top: 8px;
+  font-size: 12px;
   color: #909399;
 }
 .items-section {

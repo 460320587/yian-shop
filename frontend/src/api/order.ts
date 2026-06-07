@@ -1,4 +1,4 @@
-import { get, post, put } from '@/utils/request'
+import request, { get, post, put, del } from '@/utils/request'
 
 export interface Order {
   id: number
@@ -116,4 +116,14 @@ export interface InkCoverageCheck {
 
 export function getOrderInkChecks(orderId: number) {
   return get<{ data: InkCoverageCheck[] }>(`/orders/${orderId}/ink-coverage-checks`)
+}
+
+export function deleteOrderFile(orderId: number, fileId: number) {
+  return del(`/orders/${orderId}/files/${fileId}`)
+}
+
+export function uploadOrderFile(orderId: number, data: FormData) {
+  return request.post(`/orders/${orderId}/files`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  })
 }

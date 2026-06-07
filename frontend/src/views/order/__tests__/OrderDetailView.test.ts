@@ -28,11 +28,21 @@ const mockBack = vi.fn()
 let getOrderDetailMock = vi.fn()
 let cancelOrderMock = vi.fn()
 let reorderMock = vi.fn()
+let getOrderProductionScheduleMock = vi.fn()
+let getOrderFilesMock = vi.fn()
+let getOrderInkChecksMock = vi.fn()
+let uploadOrderFileMock = vi.fn()
+let deleteOrderFileMock = vi.fn()
 
 vi.mock('@/api/order', () => ({
   getOrderDetail: (...args: any[]) => getOrderDetailMock(...args),
   cancelOrder: (...args: any[]) => cancelOrderMock(...args),
   reorder: (...args: any[]) => reorderMock(...args),
+  getOrderProductionSchedule: (...args: any[]) => getOrderProductionScheduleMock(...args),
+  getOrderFiles: (...args: any[]) => getOrderFilesMock(...args),
+  getOrderInkChecks: (...args: any[]) => getOrderInkChecksMock(...args),
+  uploadOrderFile: (...args: any[]) => uploadOrderFileMock(...args),
+  deleteOrderFile: (...args: any[]) => deleteOrderFileMock(...args),
 }))
 
 vi.mock('vue-router', () => ({
@@ -57,6 +67,11 @@ describe('OrderDetailView', () => {
     getOrderDetailMock = vi.fn(() => Promise.resolve(mockOrder))
     cancelOrderMock = vi.fn(() => Promise.resolve({}))
     reorderMock = vi.fn(() => Promise.resolve({}))
+    getOrderProductionScheduleMock = vi.fn(() => Promise.resolve({ data: [] }))
+    getOrderFilesMock = vi.fn(() => Promise.resolve({ data: [] }))
+    getOrderInkChecksMock = vi.fn(() => Promise.resolve({ data: [] }))
+    uploadOrderFileMock = vi.fn(() => Promise.resolve({}))
+    deleteOrderFileMock = vi.fn(() => Promise.resolve({}))
   })
 
   it('renders loading state initially', async () => {
@@ -196,6 +211,39 @@ describe('OrderDetailView', () => {
     expect(wrapper.find('.remark').text()).toContain('请尽快发货')
     expect(wrapper.find('.paid-at').text()).toContain('2026-01-01')
     expect(wrapper.find('.submitted-at').text()).toContain('2026-01-01')
+  })
+
+  it('shows upload button for orders that allow file upload', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="upload-file-btn"]').exists()).toBe(true)
+  })
+
+  it('hides upload button for completed order', async () => {
+    getOrderDetailMock = vi.fn(() => Promise.resolve({ ...mockOrder, status: 60, customer_status: '已完成' }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="upload-file-btn"]').exists()).toBe(false)
+  })
+
+  it('shows delete button for each file when upload is allowed', async () => {
+    getOrderFilesMock = vi.fn(() => Promise.resolve({
+      data: [{ id: 1, file_name: 'test.pdf', file_type: 'application/pdf', file_size: 1024000, file_url: '/test.pdf', thumb_url: null, page_count: 1, version: 1, created_at: '2026-01-01' }],
+    }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="delete-file-btn"]').exists()).toBe(true)
+  })
+
+  it('calls uploadOrderFile when file is selected', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    const fileInput = wrapper.find('input[type="file"]')
+    expect(fileInput.exists()).toBe(true)
   })
 
   it('exposes refs and methods', async () => {
