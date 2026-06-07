@@ -14,6 +14,7 @@ use App\Domains\Payment\Enums\PaymentStatus;
 use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Models\CustomerPayPassword;
 use App\Domains\Payment\Models\WalletTransaction;
+use App\Domains\Payment\Gateways\PaymentGatewayFactory;
 use App\Domains\Payment\Services\PaymentService;
 use App\Domains\User\Models\Customer;
 use App\Exceptions\BusinessException;
@@ -80,14 +81,7 @@ class PaymentController extends BaseController
             ], '支付成功', 201);
         }
 
-        // 其他渠道：生成 mock 凭证
-        $credential = match ($request->input('gateway')) {
-            'wechat' => ['type' => 'qrcode', 'qrcode_url' => 'weixin://wxpay/mock/' . $paymentNo],
-            'alipay' => ['type' => 'qrcode', 'qrcode_url' => 'https://qr.alipay.com/mock/' . $paymentNo],
-            'unionpay' => ['type' => 'redirect', 'redirect_url' => 'https://unionpay.com/mock/' . $paymentNo],
-            default => ['type' => 'qrcode', 'qrcode_url' => 'https://mock.qrcode/' . $paymentNo],
-        };
-
+        // 其他渠道：通过网关生成凭证
         $payment = Payment::create([
             'payment_no' => $paymentNo,
             'order_no' => $order->order_no,
@@ -95,9 +89,12 @@ class PaymentController extends BaseController
             'gateway' => $request->input('gateway'),
             'amount' => $amount,
             'status' => PaymentStatus::Pending->value,
-            'credential' => $credential,
+            'credential' => [],
             'expire_at' => now()->addMinutes(30),
         ]);
+
+        $gateway = PaymentGatewayFactory::make($payment->gateway);
+        $payment->update(['credential' => $gateway->buildCredential($payment)]);
 
         $this->paymentService->recordCreated($payment);
 
@@ -108,7 +105,7 @@ class PaymentController extends BaseController
             'amount' => $amount / 100,
             'gateway' => $request->input('gateway'),
             'status' => PaymentStatus::Pending->value,
-            'credential' => $credential,
+            'credential' => $payment->credential,
             'expire_at' => $payment->expire_at,
         ], '支付单创建成功', 201);
     }
