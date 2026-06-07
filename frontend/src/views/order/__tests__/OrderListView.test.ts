@@ -81,7 +81,7 @@ describe('OrderListView', () => {
     const router = (wrapper.vm as any).$router
     const pushSpy = vi.spyOn(router, 'push')
     ;(wrapper.vm as any).goToAfterSale({ id: 3, order_no: 'Y202601010003', status: 60 })
-    expect(pushSpy).toHaveBeenCalledWith('/after-sale/apply?orderId=3&orderNo=Y202601010003')
+    expect(pushSpy).toHaveBeenCalledWith('/after-sale-apply?orderId=3&orderNo=Y202601010003')
   })
 
   it('navigates to order detail when clicking order card', async () => {

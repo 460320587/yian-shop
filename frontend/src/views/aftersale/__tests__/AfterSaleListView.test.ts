@@ -39,7 +39,7 @@ describe('AfterSaleListView', () => {
       history: createWebHistory(),
       routes: [
         { path: '/after-sales', name: 'AfterSaleList', component: AfterSaleListView },
-        { path: '/after-sale/apply', name: 'AfterSaleApply', component: { template: '<div>Apply</div>' } },
+        { path: '/after-sale-apply', name: 'AfterSaleApply', component: { template: '<div>Apply</div>' } },
       ],
     })
     return mount(AfterSaleListView, {
@@ -89,5 +89,14 @@ describe('AfterSaleListView', () => {
     await flushPromises()
     ;(wrapper.vm as any).handleCancel({ id: 2, status: 4 })
     expect(cancelAfterSaleMock).not.toHaveBeenCalled()
+  })
+
+  it('navigates to after sale apply page', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const router = (wrapper.vm as any).$router
+    const pushSpy = vi.spyOn(router, 'push')
+    await (wrapper.vm as any).goToApply()
+    expect(pushSpy).toHaveBeenCalledWith('/after-sale-apply')
   })
 })

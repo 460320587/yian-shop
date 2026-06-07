@@ -118,6 +118,19 @@ export function getOrderInkChecks(orderId: number) {
   return get<{ data: InkCoverageCheck[] }>(`/orders/${orderId}/ink-coverage-checks`)
 }
 
+export interface OrderStatusLog {
+  id: number
+  from_status: number
+  to_status: number
+  remark: string | null
+  operator_type: string
+  created_at: string
+}
+
+export function getOrderStatusLogs(orderId: number) {
+  return get<{ data: OrderStatusLog[] }>(`/orders/${orderId}/status-logs`)
+}
+
 export function deleteOrderFile(orderId: number, fileId: number) {
   return del(`/orders/${orderId}/files/${fileId}`)
 }

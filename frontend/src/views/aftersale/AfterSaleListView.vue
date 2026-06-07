@@ -74,7 +74,7 @@ async function handleCancel(item: AfterSale) {
 }
 
 function goToApply() {
-  router.push('/after-sale/apply')
+  router.push('/after-sale-apply')
 }
 
 onMounted(() => {

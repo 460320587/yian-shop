@@ -2,8 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getOrderDetail, cancelOrder, getOrderProductionSchedule, getOrderFiles, getOrderInkChecks, uploadOrderFile, deleteOrderFile } from '@/api/order'
-import type { ProductionSchedule, OrderFile, InkCoverageCheck } from '@/api/order'
+import { getOrderDetail, cancelOrder, getOrderProductionSchedule, getOrderFiles, getOrderInkChecks, getOrderStatusLogs, uploadOrderFile, deleteOrderFile } from '@/api/order'
+import type { ProductionSchedule, OrderFile, InkCoverageCheck, OrderStatusLog } from '@/api/order'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,11 +16,14 @@ const orderFiles = ref<OrderFile[]>([])
 const filesLoading = ref(false)
 const inkChecks = ref<InkCoverageCheck[]>([])
 const inkChecksLoading = ref(false)
+const statusLogs = ref<OrderStatusLog[]>([])
+const logsLoading = ref(false)
 const uploading = ref(false)
 
 const hasProductionSchedule = computed(() => schedules.value.length > 0)
 const hasOrderFiles = computed(() => orderFiles.value.length > 0)
 const hasInkChecks = computed(() => inkChecks.value.length > 0)
+const hasStatusLogs = computed(() => statusLogs.value.length > 0)
 const canUploadFile = computed(() => {
   if (!order.value) return false
   return [0, 1, 11, 12].includes(order.value.status)
@@ -64,6 +67,7 @@ async function loadOrder() {
     await loadProductionSchedule(id)
     await loadOrderFiles(id)
     await loadInkChecks(id)
+    await loadStatusLogs(id)
   } catch (e) {
     console.error(e)
   } finally {
@@ -92,6 +96,18 @@ async function loadInkChecks(orderId: number) {
     console.error(e)
   } finally {
     inkChecksLoading.value = false
+  }
+}
+
+async function loadStatusLogs(orderId: number) {
+  logsLoading.value = true
+  try {
+    const res = await getOrderStatusLogs(orderId)
+    statusLogs.value = res.data || []
+  } catch (e) {
+    console.error(e)
+  } finally {
+    logsLoading.value = false
   }
 }
 
@@ -143,6 +159,11 @@ function scheduleStatusType(status: number): string {
     4: 'danger',
   }
   return map[status] ?? 'info'
+}
+
+function formatLogTime(time: string): string {
+  if (!time) return '-'
+  return time.replace('T', ' ').replace(/\.\d+Z$/, '')
 }
 
 function goBack() {
@@ -240,6 +261,7 @@ onMounted(() => {
 defineExpose({
   order,
   loading,
+  statusLogs,
   canPay,
   canCancel,
   canReview,
@@ -411,6 +433,27 @@ defineExpose({
             </div>
             <div v-if="check.checked_at" class="ink-check-time">
               检查时间：{{ check.checked_at }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="hasStatusLogs" class="status-logs-section">
+        <h3>订单状态流转</h3>
+        <div v-loading="logsLoading" class="status-logs-timeline">
+          <div
+            v-for="(log, index) in statusLogs"
+            :key="log.id"
+            class="status-log-item"
+            :class="{ 'is-last': index === statusLogs.length - 1 }"
+          >
+            <div class="status-log-dot" />
+            <div class="status-log-content">
+              <div class="status-log-title">{{ log.remark || '状态变更' }}</div>
+              <div class="status-log-meta">
+                <span class="status-log-operator">操作方：{{ log.operator_type }}</span>
+                <span class="status-log-time">{{ formatLogTime(log.created_at) }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -675,6 +718,61 @@ defineExpose({
 }
 .ink-check-time {
   margin-top: 6px;
+  font-size: 12px;
+  color: #909399;
+}
+.status-logs-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ebeef5;
+}
+.status-logs-section h3 {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+.status-logs-timeline {
+  position: relative;
+  padding-left: 16px;
+}
+.status-logs-timeline::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 8px;
+  bottom: 8px;
+  width: 2px;
+  background: #e4e7ed;
+}
+.status-log-item {
+  position: relative;
+  padding-bottom: 16px;
+}
+.status-log-item.is-last {
+  padding-bottom: 0;
+}
+.status-log-dot {
+  position: absolute;
+  left: -13px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #409eff;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #409eff;
+}
+.status-log-content {
+  padding-left: 8px;
+}
+.status-log-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #303133;
+}
+.status-log-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
   font-size: 12px;
   color: #909399;
 }

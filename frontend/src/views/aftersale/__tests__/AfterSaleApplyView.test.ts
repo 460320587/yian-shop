@@ -45,11 +45,11 @@ describe('AfterSaleApplyView', () => {
     const router = createRouter({
       history: createWebHistory(),
       routes: [
-        { path: '/after-sale/apply', name: 'AfterSaleApply', component: AfterSaleApplyView },
+        { path: '/after-sale-apply', name: 'AfterSaleApply', component: AfterSaleApplyView },
         { path: '/after-sales', name: 'AfterSaleList', component: { template: '<div>AfterSales</div>' } },
       ],
     })
-    await router.push({ path: '/after-sale/apply', query })
+    await router.push({ path: '/after-sale-apply', query })
     await router.isReady()
     return mount(AfterSaleApplyView, {
       global: { plugins: [createPinia(), router] },

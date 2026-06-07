@@ -23,6 +23,11 @@ const mockOrder = {
   ],
 }
 
+const mockStatusLogs = [
+  { id: 1, from_status: 0, to_status: 1, remark: '订单创建', operator_type: 'system', created_at: '2026-01-01T10:00:00Z' },
+  { id: 2, from_status: 1, to_status: 11, remark: '订单已提交', operator_type: 'customer', created_at: '2026-01-01T10:05:00Z' },
+]
+
 const mockPush = vi.fn()
 const mockBack = vi.fn()
 let getOrderDetailMock = vi.fn()
@@ -31,6 +36,7 @@ let reorderMock = vi.fn()
 let getOrderProductionScheduleMock = vi.fn()
 let getOrderFilesMock = vi.fn()
 let getOrderInkChecksMock = vi.fn()
+let getOrderStatusLogsMock = vi.fn()
 let uploadOrderFileMock = vi.fn()
 let deleteOrderFileMock = vi.fn()
 
@@ -41,6 +47,7 @@ vi.mock('@/api/order', () => ({
   getOrderProductionSchedule: (...args: any[]) => getOrderProductionScheduleMock(...args),
   getOrderFiles: (...args: any[]) => getOrderFilesMock(...args),
   getOrderInkChecks: (...args: any[]) => getOrderInkChecksMock(...args),
+  getOrderStatusLogs: (...args: any[]) => getOrderStatusLogsMock(...args),
   uploadOrderFile: (...args: any[]) => uploadOrderFileMock(...args),
   deleteOrderFile: (...args: any[]) => deleteOrderFileMock(...args),
 }))
@@ -70,6 +77,7 @@ describe('OrderDetailView', () => {
     getOrderProductionScheduleMock = vi.fn(() => Promise.resolve({ data: [] }))
     getOrderFilesMock = vi.fn(() => Promise.resolve({ data: [] }))
     getOrderInkChecksMock = vi.fn(() => Promise.resolve({ data: [] }))
+    getOrderStatusLogsMock = vi.fn(() => Promise.resolve({ data: [] }))
     uploadOrderFileMock = vi.fn(() => Promise.resolve({}))
     deleteOrderFileMock = vi.fn(() => Promise.resolve({}))
   })
@@ -256,5 +264,43 @@ describe('OrderDetailView', () => {
     expect(typeof vm.goBack).toBe('function')
     expect(typeof vm.handlePay).toBe('function')
     expect(typeof vm.handleCancel).toBe('function')
+  })
+
+  it('fetches status logs on mount', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(getOrderStatusLogsMock).toHaveBeenCalledWith(5)
+    expect((wrapper.vm as any).statusLogs).toEqual([])
+  })
+
+  it('renders status logs section when logs exist', async () => {
+    getOrderStatusLogsMock = vi.fn(() => Promise.resolve({ data: mockStatusLogs }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('.status-logs-section').exists()).toBe(true)
+    expect(wrapper.text()).toContain('订单创建')
+    expect(wrapper.text()).toContain('订单已提交')
+    expect((wrapper.vm as any).statusLogs).toHaveLength(2)
+  })
+
+  it('renders status log meta including operator and time', async () => {
+    getOrderStatusLogsMock = vi.fn(() => Promise.resolve({ data: mockStatusLogs }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    const logItems = wrapper.findAll('.status-log-item')
+    expect(logItems.length).toBe(2)
+    expect(logItems[0].text()).toContain('system')
+    expect(logItems[0].text()).toContain('2026-01-01')
+  })
+
+  it('does not render status logs section when logs are empty', async () => {
+    getOrderStatusLogsMock = vi.fn(() => Promise.resolve({ data: [] }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('.status-logs-section').exists()).toBe(false)
   })
 })
