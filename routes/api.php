@@ -93,6 +93,8 @@ Route::middleware('auth:sanctum')->prefix('orders')->group(function () {
     Route::put('/{id}/cancel', [\App\Http\Controllers\Api\OrderController::class, 'cancel']);
     Route::post('/{id}/reorder', [\App\Http\Controllers\Api\OrderController::class, 'reorder']);
     Route::post('/{id}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
+    Route::get('/{id}/files', [\App\Http\Controllers\Api\OrderController::class, 'files']);
+    Route::post('/{id}/files', [\App\Http\Controllers\Api\OrderController::class, 'uploadFile']);
 });
 
 // 支付系统 (Phase 5)
@@ -259,6 +261,12 @@ Route::prefix('admin')->group(function () {
         Route::put('/orders/{id}/confirm-payment', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'confirmPayment']);
         Route::put('/orders/{id}/ship', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'ship']);
         Route::put('/orders/{id}/complete', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'complete']);
+        Route::get('/orders/{id}/files', [\App\Http\Controllers\Api\Admin\AdminOrderFileController::class, 'index']);
+        Route::get('/orders/{id}/ink-coverage-checks', [\App\Http\Controllers\Api\Admin\AdminOrderFileController::class, 'inkCoverageChecks']);
+
+        // 订单文件管理
+        Route::delete('/order-files/{id}', [\App\Http\Controllers\Api\Admin\AdminOrderFileController::class, 'destroy']);
+        Route::get('/ink-coverage-checks/{id}', [\App\Http\Controllers\Api\Admin\AdminOrderFileController::class, 'showInkCoverageCheck']);
 
         // 生产排期管理
         Route::get('/production-schedules', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'index']);

@@ -12,6 +12,7 @@ use App\Domains\Logistics\Models\FreightTemplate;
 use App\Domains\Order\Actions\CancelOrderAction;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
+use App\Domains\Order\Models\OrderFile;
 use App\Domains\Order\Models\OrderItem;
 use App\Domains\Order\Models\OrderStatusLog;
 use App\Domains\Product\Models\Product;
@@ -19,7 +20,10 @@ use App\Http\Controllers\BaseController;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class OrderController extends BaseController
 {
@@ -302,6 +306,87 @@ class OrderController extends BaseController
         (new CancelOrderAction($order))->handle();
 
         return $this->success([], '订单取消成功');
+    }
+
+    public function files(int $id): JsonResponse
+    {
+        $order = Order::where('customer_id', auth('sanctum')->id())->find($id);
+
+        if (! $order) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权访问该订单', null, 403);
+        }
+
+        $files = OrderFile::where('order_id', $order->id)
+            ->where('status', 1)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->success($files->map(fn (OrderFile $file) => [
+            'id' => $file->id,
+            'file_name' => $file->file_name,
+            'file_url' => $file->file_url,
+            'thumb_url' => $file->thumb_url,
+            'file_size' => $file->file_size,
+            'file_type' => $file->file_type,
+            'page_count' => $file->page_count,
+            'version' => $file->version,
+            'created_at' => $file->created_at,
+        ]));
+    }
+
+    public function uploadFile(Request $request, int $id): JsonResponse
+    {
+        $order = Order::where('customer_id', auth('sanctum')->id())->find($id);
+
+        if (! $order) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权访问该订单', null, 403);
+        }
+
+        $request->validate([
+            'file' => ['required', 'file', 'max:51200'],
+            'file_name' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        /** @var UploadedFile $file */
+        $file = $request->file('file');
+
+        $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'tiff', 'tif', 'ai', 'psd', 'eps'];
+        $ext = strtolower($file->getClientOriginalExtension());
+
+        if (! in_array($ext, $allowedExtensions, true)) {
+            throw ValidationException::withMessages([
+                'file' => ['不支持的文件格式，仅支持 PDF、JPG、PNG、TIFF、AI、PSD、EPS'],
+            ]);
+        }
+
+        $disk = Storage::disk('public');
+        $pathPrefix = "order-files/{$order->id}/" . now()->format('Y/m');
+        $filename = uniqid('of_', true) . '.' . $ext;
+        $path = $disk->putFileAs($pathPrefix, $file, $filename);
+
+        if ($path === false) {
+            throw ValidationException::withMessages([
+                'file' => ['文件保存失败'],
+            ]);
+        }
+
+        $orderFile = OrderFile::create([
+            'order_id' => $order->id,
+            'file_url' => $disk->url($path),
+            'file_name' => $request->input('file_name', $file->getClientOriginalName()),
+            'file_size' => $file->getSize(),
+            'file_type' => $file->getMimeType() ?: 'application/octet-stream',
+            'status' => 1,
+            'version' => 1,
+        ]);
+
+        return $this->success([
+            'id' => $orderFile->id,
+            'file_name' => $orderFile->file_name,
+            'file_url' => $orderFile->file_url,
+            'file_size' => $orderFile->file_size,
+            'file_type' => $orderFile->file_type,
+        ], '上传成功', 201);
     }
 
     private function updateCartSummary(Cart $cart): void
