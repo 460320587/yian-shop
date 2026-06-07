@@ -14,6 +14,21 @@ use Illuminate\Http\Request;
 
 class AdminInkCoverageCheckController extends BaseController
 {
+    public function index(Request $request): JsonResponse
+    {
+        $query = InkCoverageCheck::with(['file', 'order'])
+            ->orderBy('created_at', 'desc');
+
+        if ($request->filled('order_id')) {
+            $query->where('order_id', (int) $request->input('order_id'));
+        }
+
+        $perPage = (int) $request->input('per_page', 10);
+        $perPage = max(1, min($perPage, 50));
+
+        return $this->paginated($query->paginate($perPage));
+    }
+
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([

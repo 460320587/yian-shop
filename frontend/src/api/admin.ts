@@ -279,6 +279,36 @@ export function batchUpdateSystemConfigs(configs: Array<{ id: number; config_val
   return putAdmin('/system-configs/batch', { configs })
 }
 
+// ===== InkCoverageCheck =====
+export interface AdminInkCoverageCheck {
+  id: number
+  order_id: number
+  file_id: number
+  check_type: number
+  ink_type: string | null
+  coverage_c: number | null
+  coverage_m: number | null
+  coverage_y: number | null
+  coverage_k: number | null
+  total_coverage: number | null
+  check_result: number | null
+  check_report: Record<string, any> | null
+  checked_at: string | null
+  created_at: string
+}
+export function getAdminInkCoverageChecks(params?: { order_id?: number; page?: number; per_page?: number }) {
+  return getAdmin<{ data: AdminInkCoverageCheck[]; total: number; current_page: number; last_page: number }>('/ink-coverage-checks', params)
+}
+export function createAdminInkCoverageCheck(data: Partial<AdminInkCoverageCheck> & { order_id: number; file_id: number; check_type: number }) {
+  return postAdmin<AdminInkCoverageCheck>('/ink-coverage-checks', data)
+}
+export function updateAdminInkCoverageCheck(id: number, data: Partial<AdminInkCoverageCheck>) {
+  return putAdmin<AdminInkCoverageCheck>(`/ink-coverage-checks/${id}`, data)
+}
+export function deleteAdminInkCoverageCheck(id: number) {
+  return delAdmin(`/ink-coverage-checks/${id}`)
+}
+
 // ===== Ticket =====
 export interface Ticket {
   id: number

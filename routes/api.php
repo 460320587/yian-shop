@@ -271,6 +271,7 @@ Route::prefix('admin')->group(function () {
         Route::delete('/order-files/{id}', [\App\Http\Controllers\Api\Admin\AdminOrderFileController::class, 'destroy']);
 
         // 印前检查管理
+        Route::get('/ink-coverage-checks', [\App\Http\Controllers\Api\Admin\AdminInkCoverageCheckController::class, 'index']);
         Route::post('/ink-coverage-checks', [\App\Http\Controllers\Api\Admin\AdminInkCoverageCheckController::class, 'store']);
         Route::get('/ink-coverage-checks/{id}', [\App\Http\Controllers\Api\Admin\AdminOrderFileController::class, 'showInkCoverageCheck']);
         Route::put('/ink-coverage-checks/{id}', [\App\Http\Controllers\Api\Admin\AdminInkCoverageCheckController::class, 'update']);

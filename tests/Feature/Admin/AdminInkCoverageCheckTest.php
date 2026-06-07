@@ -23,6 +23,36 @@ class AdminInkCoverageCheckTest extends TestCase
         return $admin;
     }
 
+    public function test_admin_can_list_ink_coverage_checks(): void
+    {
+        $this->authAdmin();
+        InkCoverageCheck::factory()->count(3)->create();
+
+        $response = $this->getJson('/api/v1/admin/ink-coverage-checks');
+
+        $response->assertOk()
+            ->assertJsonPath('code', 0)
+            ->assertJsonCount(3, 'data')
+            ->assertJsonStructure([
+                'data' => [
+                    '*' => ['id', 'order_id', 'file_id', 'check_type', 'ink_type', 'coverage_c', 'coverage_m', 'coverage_y', 'coverage_k', 'total_coverage', 'check_result', 'checked_at'],
+                ],
+            ]);
+    }
+
+    public function test_admin_can_list_ink_coverage_checks_with_pagination(): void
+    {
+        $this->authAdmin();
+        InkCoverageCheck::factory()->count(15)->create();
+
+        $response = $this->getJson('/api/v1/admin/ink-coverage-checks?page=1&per_page=10');
+
+        $response->assertOk()
+            ->assertJsonPath('code', 0)
+            ->assertJsonCount(10, 'data')
+            ->assertJsonPath('meta.per_page', 10);
+    }
+
     public function test_admin_can_create_ink_coverage_check(): void
     {
         $admin = $this->authAdmin();
