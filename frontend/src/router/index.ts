@@ -58,6 +58,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'system-configs', name: 'AdminSystemConfigs', component: () => import('@/views/admin/SystemConfigView.vue'), meta: { title: '系统配置' } },
       { path: 'ink-coverage-checks', name: 'AdminInkCoverageChecks', component: () => import('@/views/admin/InkCoverageCheckManagementView.vue'), meta: { title: '印前检查' } },
       { path: 'refunds', name: 'AdminRefunds', component: () => import('@/views/admin/RefundManagementView.vue'), meta: { title: '退款管理' } },
+      { path: 'tickets', name: 'AdminTickets', component: () => import('@/views/admin/TicketManagementView.vue'), meta: { title: '工单管理' } },
     ],
   },
   { path: '/admin/login', name: 'AdminLogin', component: () => import('@/views/admin/AdminLoginView.vue'), meta: { guestAdmin: true } },

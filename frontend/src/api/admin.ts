@@ -340,19 +340,27 @@ export function auditAdminRefund(id: number, data: { action: 'approve' | 'reject
 // ===== Ticket =====
 export interface Ticket {
   id: number
+  ticket_no: string
   customer_id: number
   customer_name: string
   type: number
   status: number
+  priority: number
   title: string
+  content: string
+  remark: string | null
+  customer: { id: number; nickname: string | null; phone: string } | null
+  order: { id: number; order_no: string } | null
+  processed_at: string | null
+  completed_at: string | null
   created_at: string
 }
-export function getAdminTickets(params?: { status?: number; page?: number }) {
+export function getAdminTickets(params?: { status?: number; type?: number; page?: number }) {
   return getAdmin<{ data: Ticket[]; total: number }>('/tickets', params)
 }
 export function getAdminTicketDetail(id: number) {
   return getAdmin<Ticket>(`/tickets/${id}`)
 }
-export function processTicket(id: number, data: { status: number; reply?: string }) {
-  return putAdmin(`/tickets/${id}/process`, data)
+export function processTicket(id: number, data: { status: number; remark?: string; priority?: number }) {
+  return putAdmin<{ id: number; status: number }>(`/tickets/${id}/process`, data)
 }
