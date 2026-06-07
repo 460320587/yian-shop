@@ -303,4 +303,62 @@ describe('OrderDetailView', () => {
 
     expect(wrapper.find('.status-logs-section').exists()).toBe(false)
   })
+
+  it('renders delivery section when order has delivery info', async () => {
+    getOrderDetailMock = vi.fn(() => Promise.resolve({
+      ...mockOrder,
+      status: 20,
+      customer_status: '已发货',
+      delivery: {
+        carrier_name: '顺丰速运',
+        tracking_no: 'SF1234567890',
+        status: 1,
+        shipped_at: '2026-05-28T10:00:00',
+        latest_tracks: [
+          { time: '2026-05-30T18:00:00', location: '北京市', description: '已签收' },
+          { time: '2026-05-30T14:00:00', location: '北京市', description: '派送中' },
+          { time: '2026-05-30T10:00:00', location: '北京集散中心', description: '到达北京集散中心' },
+        ],
+      },
+    }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('.delivery-section').exists()).toBe(true)
+    expect(wrapper.find('.delivery-carrier').text()).toContain('顺丰速运')
+    expect(wrapper.find('.delivery-tracking-no').text()).toContain('SF1234567890')
+    const trackItems = wrapper.findAll('.delivery-track-item')
+    expect(trackItems.length).toBe(3)
+    expect(trackItems[0].text()).toContain('已签收')
+    expect(trackItems[0].text()).toContain('北京市')
+  })
+
+  it('does not render delivery section when order has no delivery', async () => {
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    expect(wrapper.find('.delivery-section').exists()).toBe(false)
+  })
+
+  it('navigates to logistics page from delivery section', async () => {
+    getOrderDetailMock = vi.fn(() => Promise.resolve({
+      ...mockOrder,
+      status: 20,
+      customer_status: '已发货',
+      delivery: {
+        carrier_name: '顺丰速运',
+        tracking_no: 'SF1234567890',
+        status: 1,
+        shipped_at: '2026-05-28T10:00:00',
+        latest_tracks: [
+          { time: '2026-05-30T18:00:00', location: '北京市', description: '已签收' },
+        ],
+      },
+    }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="delivery-view-all"]').trigger('click')
+    expect(mockPush).toHaveBeenCalledWith('/order/5/track')
+  })
 })

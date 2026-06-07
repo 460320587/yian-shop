@@ -6,6 +6,8 @@ namespace Tests\Feature\Order;
 
 use App\Domains\Cart\Models\Cart;
 use App\Domains\Cart\Models\CartItem;
+use App\Domains\Logistics\Models\ExpressTrack;
+use App\Domains\Logistics\Models\OrderDelivery;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
 use App\Domains\Order\Models\OrderItem;
@@ -153,6 +155,58 @@ class OrderTest extends TestCase
 
         $response = $this->getJson('/api/v1/orders/' . $order->id);
         $response->assertStatus(403);
+    }
+
+    public function test_order_detail_includes_delivery_summary_when_shipped(): void
+    {
+        $customer = $this->authCustomer();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'order_no' => 'Y20260601000005',
+            'status' => OrderStatus::Shipped->value,
+        ]);
+        $delivery = OrderDelivery::factory()->create([
+            'order_id' => $order->id,
+            'carrier_name' => '顺丰速运',
+            'tracking_no' => 'SF1234567890',
+            'status' => 1,
+        ]);
+        ExpressTrack::factory()->count(3)->create(['delivery_id' => $delivery->id]);
+
+        $response = $this->getJson('/api/v1/orders/' . $order->id);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('code', 0)
+            ->assertJsonStructure([
+                'data' => [
+                    'delivery' => [
+                        'carrier_name',
+                        'tracking_no',
+                        'status',
+                        'shipped_at',
+                        'latest_tracks',
+                    ],
+                ],
+            ])
+            ->assertJsonPath('data.delivery.carrier_name', '顺丰速运')
+            ->assertJsonPath('data.delivery.tracking_no', 'SF1234567890')
+            ->assertJsonCount(3, 'data.delivery.latest_tracks');
+    }
+
+    public function test_order_detail_returns_null_delivery_when_no_shipment(): void
+    {
+        $customer = $this->authCustomer();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'order_no' => 'Y20260601000006',
+            'status' => OrderStatus::PendingPayment->value,
+        ]);
+
+        $response = $this->getJson('/api/v1/orders/' . $order->id);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('code', 0)
+            ->assertJsonPath('data.delivery', null);
     }
 
     public function test_user_can_cancel_pending_payment_order(): void

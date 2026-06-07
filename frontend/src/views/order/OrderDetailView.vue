@@ -24,6 +24,7 @@ const hasProductionSchedule = computed(() => schedules.value.length > 0)
 const hasOrderFiles = computed(() => orderFiles.value.length > 0)
 const hasInkChecks = computed(() => inkChecks.value.length > 0)
 const hasStatusLogs = computed(() => statusLogs.value.length > 0)
+const hasDelivery = computed(() => !!order.value?.delivery)
 const canUploadFile = computed(() => {
   if (!order.value) return false
   return [0, 1, 11, 12].includes(order.value.status)
@@ -205,6 +206,16 @@ function goToLogistics() {
   router.push(`/order/${order.value.id}/track`)
 }
 
+function formatTrackTime(time: string): string {
+  if (!time) return '-'
+  const d = new Date(time)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mi = String(d.getMinutes()).padStart(2, '0')
+  return `${mm}-${dd} ${hh}:${mi}`
+}
+
 async function handleFileUpload(event: Event) {
   const target = event.target as HTMLInputElement
   const files = target.files
@@ -267,11 +278,13 @@ defineExpose({
   canReview,
   canAfterSale,
   canTrackLogistics,
+  hasDelivery,
   loadOrder,
   goBack,
   handlePay,
   handleCancel,
   goToLogistics,
+  formatTrackTime,
 })
 </script>
 
@@ -329,6 +342,44 @@ defineExpose({
         <div v-if="order.remark" class="info-row">
           <span class="label">订单备注：</span>
           <span class="remark">{{ order.remark }}</span>
+        </div>
+      </div>
+
+      <div v-if="hasDelivery" class="delivery-section">
+        <div class="delivery-header">
+          <h3>物流信息</h3>
+          <el-button
+            data-testid="delivery-view-all"
+            size="small"
+            link
+            type="primary"
+            @click="goToLogistics"
+          >查看全部</el-button>
+        </div>
+        <div class="delivery-info">
+          <div class="delivery-info-row">
+            <span class="label">承运商：</span>
+            <span class="delivery-carrier">{{ order.delivery.carrier_name }}</span>
+          </div>
+          <div class="delivery-info-row">
+            <span class="label">运单号：</span>
+            <span class="delivery-tracking-no">{{ order.delivery.tracking_no }}</span>
+          </div>
+        </div>
+        <div class="delivery-tracks">
+          <div
+            v-for="(track, index) in order.delivery.latest_tracks"
+            :key="index"
+            class="delivery-track-item"
+            :class="{ active: index === 0 }"
+          >
+            <div class="delivery-track-dot" />
+            <div class="delivery-track-content">
+              <div class="delivery-track-desc">{{ track.description }}</div>
+              <div class="delivery-track-location">{{ track.location }}</div>
+              <div class="delivery-track-time">{{ formatTrackTime(track.time) }}</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -561,6 +612,87 @@ defineExpose({
   color: #f56c6c;
   font-weight: 600;
   font-size: 16px;
+}
+.delivery-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ebeef5;
+}
+.delivery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.delivery-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.delivery-info {
+  margin-bottom: 12px;
+}
+.delivery-info-row {
+  display: flex;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+.delivery-carrier {
+  font-weight: 600;
+}
+.delivery-tracking-no {
+  font-weight: 600;
+  font-family: monospace;
+}
+.delivery-tracks {
+  position: relative;
+  padding-left: 16px;
+}
+.delivery-tracks::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: #e4e7ed;
+}
+.delivery-track-item {
+  position: relative;
+  padding-bottom: 12px;
+  padding-left: 12px;
+}
+.delivery-track-item:last-child {
+  padding-bottom: 0;
+}
+.delivery-track-dot {
+  position: absolute;
+  left: -12px;
+  top: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c0c4cc;
+  border: 2px solid #fff;
+}
+.delivery-track-item.active .delivery-track-dot {
+  background: #409eff;
+}
+.delivery-track-item.active .delivery-track-desc {
+  color: #409eff;
+  font-weight: 600;
+}
+.delivery-track-desc {
+  font-size: 13px;
+}
+.delivery-track-location {
+  font-size: 12px;
+  color: #606266;
+  margin-top: 2px;
+}
+.delivery-track-time {
+  font-size: 11px;
+  color: #909399;
+  margin-top: 2px;
 }
 .schedule-section {
   margin-bottom: 20px;

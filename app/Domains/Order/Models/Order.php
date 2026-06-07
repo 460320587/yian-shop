@@ -85,6 +85,11 @@ class Order extends BaseModel
         return $this->hasMany(\App\Domains\Payment\Models\RefundRecord::class);
     }
 
+    public function orderDeliveries(): HasMany
+    {
+        return $this->hasMany(\App\Domains\Logistics\Models\OrderDelivery::class);
+    }
+
     public function stateMachine(): OrderStateMachine
     {
         return new OrderStateMachine();

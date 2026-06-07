@@ -1,5 +1,19 @@
 import request, { get, post, put, del } from '@/utils/request'
 
+export interface OrderDeliveryTrack {
+  time: string
+  location: string
+  description: string
+}
+
+export interface OrderDeliverySummary {
+  carrier_name: string
+  tracking_no: string
+  status: number
+  shipped_at: string | null
+  latest_tracks: OrderDeliveryTrack[]
+}
+
 export interface Order {
   id: number
   order_no: string
@@ -8,6 +22,7 @@ export interface Order {
   total_amount: number
   created_at: string
   items?: any[]
+  delivery?: OrderDeliverySummary | null
 }
 
 export interface ProductionSchedule {

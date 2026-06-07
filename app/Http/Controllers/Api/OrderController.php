@@ -200,12 +200,14 @@ class OrderController extends BaseController
     public function show(int $id): JsonResponse
     {
         $order = Order::where('customer_id', auth('sanctum')->id())
-            ->with('items')
+            ->with(['items', 'orderDeliveries.tracks'])
             ->find($id);
 
         if (! $order) {
             return $this->error(ErrorCode::FORBIDDEN, '无权访问该订单', null, 403);
         }
+
+        $delivery = $order->orderDeliveries->first();
 
         return $this->success([
             'id' => $order->id,
@@ -229,6 +231,17 @@ class OrderController extends BaseController
                 'unit_price' => $item->unit_price->toYuan(),
                 'subtotal' => $item->total_price->toYuan(),
             ])->all(),
+            'delivery' => $delivery ? [
+                'carrier_name' => $delivery->carrier_name,
+                'tracking_no' => $delivery->tracking_no,
+                'status' => $delivery->status,
+                'shipped_at' => $delivery->shipped_at,
+                'latest_tracks' => $delivery->tracks->sortByDesc('track_time')->take(3)->values()->map(fn ($t) => [
+                    'time' => $t->track_time,
+                    'location' => $t->location,
+                    'description' => $t->description,
+                ])->all(),
+            ] : null,
         ]);
     }
 
