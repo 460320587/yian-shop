@@ -77,6 +77,43 @@ export function reorder(orderId: number) {
   return post(`/orders/${orderId}/reorder`)
 }
 
+export interface OrderFile {
+  id: number
+  file_name: string
+  file_url: string
+  thumb_url: string | null
+  file_size: number
+  file_type: string
+  page_count: number
+  version: number
+  created_at: string
+}
+
 export function getOrderProductionSchedule(orderId: number) {
   return get<{ data: ProductionSchedule[] }>(`/orders/${orderId}/production-schedule`)
+}
+
+export function getOrderFiles(orderId: number) {
+  return get<{ data: OrderFile[] }>(`/orders/${orderId}/files`)
+}
+
+export interface InkCoverageCheck {
+  id: number
+  order_id: number
+  file_id: number
+  file_name: string | null
+  check_type: number
+  ink_type: string
+  coverage_c: number
+  coverage_m: number
+  coverage_y: number
+  coverage_k: number
+  total_coverage: number
+  check_result: number
+  check_report: Record<string, any> | null
+  checked_at: string | null
+}
+
+export function getOrderInkChecks(orderId: number) {
+  return get<{ data: InkCoverageCheck[] }>(`/orders/${orderId}/ink-coverage-checks`)
 }

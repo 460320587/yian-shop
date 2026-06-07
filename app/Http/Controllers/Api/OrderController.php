@@ -12,6 +12,7 @@ use App\Domains\Logistics\Models\FreightTemplate;
 use App\Domains\Order\Actions\CancelOrderAction;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
+use App\Domains\Order\Models\InkCoverageCheck;
 use App\Domains\Order\Models\OrderFile;
 use App\Domains\Order\Models\OrderItem;
 use App\Domains\Order\Models\OrderStatusLog;
@@ -332,6 +333,37 @@ class OrderController extends BaseController
             'estimated_hours' => $schedule->estimated_hours,
             'actual_hours' => $schedule->actual_hours,
             'created_at' => $schedule->created_at,
+        ]));
+    }
+
+    public function inkCoverageChecks(int $id): JsonResponse
+    {
+        $order = Order::where('customer_id', auth('sanctum')->id())->find($id);
+
+        if (! $order) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权访问该订单', null, 403);
+        }
+
+        $checks = InkCoverageCheck::where('order_id', $order->id)
+            ->with('file')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return $this->success($checks->map(fn (InkCoverageCheck $check) => [
+            'id' => $check->id,
+            'order_id' => $check->order_id,
+            'file_id' => $check->file_id,
+            'file_name' => $check->file?->file_name,
+            'check_type' => $check->check_type,
+            'ink_type' => $check->ink_type,
+            'coverage_c' => $check->coverage_c,
+            'coverage_m' => $check->coverage_m,
+            'coverage_y' => $check->coverage_y,
+            'coverage_k' => $check->coverage_k,
+            'total_coverage' => $check->total_coverage,
+            'check_result' => $check->check_result,
+            'check_report' => $check->check_report,
+            'checked_at' => $check->checked_at,
         ]));
     }
 

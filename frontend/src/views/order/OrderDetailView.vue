@@ -2,8 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getOrderDetail, cancelOrder, getOrderProductionSchedule } from '@/api/order'
-import type { ProductionSchedule } from '@/api/order'
+import { getOrderDetail, cancelOrder, getOrderProductionSchedule, getOrderFiles, getOrderInkChecks } from '@/api/order'
+import type { ProductionSchedule, OrderFile, InkCoverageCheck } from '@/api/order'
 
 const route = useRoute()
 const router = useRouter()
@@ -12,8 +12,14 @@ const order = ref<any>(null)
 const loading = ref(false)
 const schedules = ref<ProductionSchedule[]>([])
 const schedulesLoading = ref(false)
+const orderFiles = ref<OrderFile[]>([])
+const filesLoading = ref(false)
+const inkChecks = ref<InkCoverageCheck[]>([])
+const inkChecksLoading = ref(false)
 
 const hasProductionSchedule = computed(() => schedules.value.length > 0)
+const hasOrderFiles = computed(() => orderFiles.value.length > 0)
+const hasInkChecks = computed(() => inkChecks.value.length > 0)
 
 const canPay = computed(() => {
   if (!order.value) return false
@@ -51,11 +57,53 @@ async function loadOrder() {
     const res = await getOrderDetail(id)
     order.value = res
     await loadProductionSchedule(id)
+    await loadOrderFiles(id)
+    await loadInkChecks(id)
   } catch (e) {
     console.error(e)
   } finally {
     loading.value = false
   }
+}
+
+async function loadOrderFiles(orderId: number) {
+  filesLoading.value = true
+  try {
+    const res = await getOrderFiles(orderId)
+    orderFiles.value = res.data || []
+  } catch (e) {
+    console.error(e)
+  } finally {
+    filesLoading.value = false
+  }
+}
+
+async function loadInkChecks(orderId: number) {
+  inkChecksLoading.value = true
+  try {
+    const res = await getOrderInkChecks(orderId)
+    inkChecks.value = res.data || []
+  } catch (e) {
+    console.error(e)
+  } finally {
+    inkChecksLoading.value = false
+  }
+}
+
+function inkCheckResultText(result: number): string {
+  const map: Record<number, string> = {
+    0: '未通过',
+    1: '通过',
+  }
+  return map[result] ?? '未知'
+}
+
+function inkCheckResultType(result: number): string {
+  const map: Record<number, string> = {
+    0: 'danger',
+    1: 'success',
+  }
+  return map[result] ?? 'info'
 }
 
 async function loadProductionSchedule(orderId: number) {
@@ -233,6 +281,55 @@ defineExpose({
         </div>
       </div>
 
+      <div v-if="hasOrderFiles" class="files-section">
+        <h3>订单文件</h3>
+        <div v-loading="filesLoading">
+          <div
+            v-for="file in orderFiles"
+            :key="file.id"
+            class="file-item"
+          >
+            <div class="file-name">{{ file.file_name }}</div>
+            <div class="file-meta">
+              <span>类型：{{ file.file_type }}</span>
+              <span>大小：{{ (file.file_size / 1024).toFixed(2) }} KB</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="hasInkChecks" class="ink-checks-section">
+        <h3>印前检查</h3>
+        <div v-loading="inkChecksLoading">
+          <div
+            v-for="check in inkChecks"
+            :key="check.id"
+            class="ink-check-item"
+          >
+            <div class="ink-check-header">
+              <span class="ink-check-file">{{ check.file_name || '未关联文件' }}</span>
+              <el-tag :type="inkCheckResultType(check.check_result)" size="small">
+                {{ inkCheckResultText(check.check_result) }}
+              </el-tag>
+            </div>
+            <div class="ink-check-meta">
+              <span>油墨类型：{{ check.ink_type }}</span>
+              <span>检查类型：{{ check.check_type }}</span>
+            </div>
+            <div class="ink-check-coverage">
+              <span>C: {{ check.coverage_c }}%</span>
+              <span>M: {{ check.coverage_m }}%</span>
+              <span>Y: {{ check.coverage_y }}%</span>
+              <span>K: {{ check.coverage_k }}%</span>
+              <span class="total">总计: {{ check.total_coverage }}%</span>
+            </div>
+            <div v-if="check.checked_at" class="ink-check-time">
+              检查时间：{{ check.checked_at }}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="items-section">
         <h3>商品列表</h3>
         <div
@@ -370,6 +467,36 @@ defineExpose({
 .schedule-progress {
   margin-top: 4px;
 }
+.files-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ebeef5;
+}
+.files-section h3 {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+.file-item {
+  padding: 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+.file-name {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.file-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #606266;
+}
+.file-desc {
+  margin-top: 6px;
+  font-size: 13px;
+  color: #909399;
+}
 .items-section {
   margin-bottom: 20px;
 }
@@ -392,6 +519,52 @@ defineExpose({
   gap: 16px;
   font-size: 13px;
   color: #606266;
+}
+.ink-checks-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ebeef5;
+}
+.ink-checks-section h3 {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+.ink-check-item {
+  padding: 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+.ink-check-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.ink-check-file {
+  font-weight: 600;
+}
+.ink-check-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #606266;
+  margin-bottom: 8px;
+}
+.ink-check-coverage {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.ink-check-coverage .total {
+  font-weight: 600;
+  color: #409eff;
+}
+.ink-check-time {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #909399;
 }
 .actions {
   display: flex;
