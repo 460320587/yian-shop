@@ -14,12 +14,15 @@ const menuItems = [
   { index: '/admin', label: '数据看板' },
   { index: '/admin/orders', label: '订单管理' },
   { index: '/admin/customers', label: '客户管理' },
+  { index: '/admin/products', label: '商品管理' },
   { index: '/admin/coupons', label: '优惠券' },
   { index: '/admin/banners', label: 'Banner/公告' },
   { index: '/admin/after-sales', label: '售后管理' },
+  { index: '/admin/refunds', label: '退款管理' },
   { index: '/admin/invoices', label: '发票管理' },
   { index: '/admin/audit-logs', label: '审计日志' },
   { index: '/admin/system-configs', label: '系统配置' },
+  { index: '/admin/ink-coverage-checks', label: '印前检查' },
 ]
 
 const activeMenu = computed(() => route.path)

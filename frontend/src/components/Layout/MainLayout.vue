@@ -5,7 +5,7 @@
  * - 底部 Footer
  * - 响应式：PC 为主，兼容平板
  */
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useCartStore } from '@/stores/cart'
@@ -18,7 +18,9 @@ import {
   Goods,
   List,
   Phone,
+  Bell,
 } from '@element-plus/icons-vue'
+import { getUnreadCount } from '@/api/notification'
 
 const router = useRouter()
 const route = useRoute()
@@ -27,6 +29,9 @@ const cartStore = useCartStore()
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
 const cartCount = computed(() => cartStore.totalCount)
+const unreadCount = ref(0)
+const searchKeyword = ref('')
+let unreadPollTimer: ReturnType<typeof setInterval> | null = null
 
 const navItems = [
   { name: 'Home', label: '首页', path: '/' },
@@ -48,6 +53,21 @@ onMounted(() => {
   if (userStore.isLoggedIn && !userStore.userInfo) {
     userStore.fetchUserInfo()
   }
+  fetchUnreadCount()
+  unreadPollTimer = setInterval(fetchUnreadCount, 30000)
+})
+
+onUnmounted(() => {
+  if (unreadPollTimer) {
+    clearInterval(unreadPollTimer)
+  }
+})
+
+defineExpose({
+  searchKeyword,
+  unreadCount,
+  handleSearch,
+  goNotifications,
 })
 
 async function logout() {
@@ -68,6 +88,27 @@ function goCart() {
 function goUser() {
   router.push('/user')
 }
+
+function goNotifications() {
+  router.push('/notifications')
+}
+
+async function fetchUnreadCount() {
+  if (!isLoggedIn.value) return
+  try {
+    const res = await getUnreadCount()
+    unreadCount.value = res.unread_count || 0
+  } catch (e) {
+    // ignore
+  }
+}
+
+function handleSearch() {
+  const keyword = searchKeyword.value.trim()
+  if (keyword) {
+    router.push(`/products?keyword=${encodeURIComponent(keyword)}`)
+  }
+}
 </script>
 
 <template>
@@ -84,14 +125,32 @@ function goUser() {
         <!-- 搜索栏 -->
         <div class="search-bar">
           <el-input
+            v-model="searchKeyword"
             placeholder="搜索印刷产品..."
             :prefix-icon="Search"
             class="search-input"
+            @keyup.enter="handleSearch"
           />
         </div>
 
         <!-- 右侧操作区 -->
         <div class="header-actions">
+          <!-- 通知 -->
+          <div
+            v-if="isLoggedIn"
+            class="action-item"
+            data-testid="notification-bell"
+            @click="goNotifications"
+          >
+            <el-badge
+              :value="unreadCount"
+              :hidden="unreadCount === 0"
+            >
+              <Bell class="action-icon" />
+            </el-badge>
+            <span>消息</span>
+          </div>
+
           <!-- 购物车 -->
           <div class="action-item" @click="goCart">
             <el-badge :value="cartCount" :hidden="cartCount === 0">
