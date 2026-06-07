@@ -28,12 +28,41 @@ class AdminOrderController extends BaseController
 
     public function show(int $id): JsonResponse
     {
-        $order = Order::with('customer', 'items')->find($id);
+        $order = Order::with([
+            'customer',
+            'items.product',
+            'productionSchedules',
+            'orderFiles',
+            'inkCoverageChecks',
+            'refundRecords',
+        ])->find($id);
+
         if (! $order) {
             return $this->error(ErrorCode::NOT_FOUND, '订单不存在');
         }
 
-        return $this->success($order);
+        return $this->success([
+            'id' => $order->id,
+            'order_no' => $order->order_no,
+            'customer_id' => $order->customer_id,
+            'status' => $order->status,
+            'out_status_name' => $order->out_status_name,
+            'total_amount' => $order->total_amount?->toYuan(),
+            'deposit_sum' => $order->deposit_sum?->toYuan(),
+            'discount_sum' => $order->discount_sum?->toYuan(),
+            'express_company' => $order->express_company,
+            'delivery_type' => $order->delivery_type,
+            'remark' => $order->remark,
+            'paid_at' => $order->paid_at,
+            'submitted_at' => $order->submitted_at,
+            'created_at' => $order->created_at,
+            'customer' => $order->customer,
+            'items' => $order->items,
+            'production_schedules' => $order->productionSchedules,
+            'order_files' => $order->orderFiles,
+            'ink_coverage_checks' => $order->inkCoverageChecks,
+            'refund_records' => $order->refundRecords,
+        ]);
     }
 
     public function confirmPayment(int $id): JsonResponse

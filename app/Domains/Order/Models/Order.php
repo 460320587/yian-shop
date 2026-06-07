@@ -70,6 +70,21 @@ class Order extends BaseModel
         return $this->hasMany(ProductionSchedule::class);
     }
 
+    public function orderFiles(): HasMany
+    {
+        return $this->hasMany(OrderFile::class);
+    }
+
+    public function inkCoverageChecks(): HasMany
+    {
+        return $this->hasMany(InkCoverageCheck::class);
+    }
+
+    public function refundRecords(): HasMany
+    {
+        return $this->hasMany(\App\Domains\Payment\Models\RefundRecord::class);
+    }
+
     public function stateMachine(): OrderStateMachine
     {
         return new OrderStateMachine();
