@@ -189,4 +189,80 @@ class PaymentWebhookTest extends TestCase
         $response->assertStatus(200)
             ->assertJson(['code' => 'SUCCESS']);
     }
+
+    public function test_wechat_pay_rejects_invalid_signature_in_strict_mode(): void
+    {
+        config()->set('payment.webhook_verify_mode', 'strict');
+
+        $payment = Payment::factory()->create([
+            'status' => PaymentStatus::Pending->value,
+            'gateway' => 'wechat',
+        ]);
+
+        $response = $this->postJson('/api/v1/webhooks/wechat-pay', [
+            'out_trade_no' => $payment->payment_no,
+            'transaction_id' => 'WX123456',
+            'trade_state' => 'SUCCESS',
+            'total_fee' => $payment->amount->amount,
+        ]);
+
+        $response->assertStatus(422);
+
+        $this->assertDatabaseHas('payments', [
+            'id' => $payment->id,
+            'status' => PaymentStatus::Pending->value,
+        ]);
+    }
+
+    public function test_wechat_pay_accepts_valid_signature_in_strict_mode(): void
+    {
+        config()->set('payment.webhook_verify_mode', 'strict');
+
+        $order = Order::factory()->create([
+            'status' => OrderStatus::PendingPayment->value,
+            'total_amount' => 5000,
+        ]);
+        $payment = Payment::factory()->create([
+            'order_no' => $order->order_no,
+            'status' => PaymentStatus::Pending->value,
+            'amount' => 5000,
+            'gateway' => 'wechat',
+        ]);
+
+        $response = $this->postJson('/api/v1/webhooks/wechat-pay', [
+            'out_trade_no' => $payment->payment_no,
+            'transaction_id' => 'WX123456',
+            'trade_state' => 'SUCCESS',
+            'total_fee' => 5000,
+        ], [
+            'X-Mock-Signature' => 'test',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['code' => 'SUCCESS']);
+
+        $this->assertDatabaseHas('payments', [
+            'id' => $payment->id,
+            'status' => PaymentStatus::Success->value,
+        ]);
+    }
+
+    public function test_alipay_rejects_invalid_signature_in_strict_mode(): void
+    {
+        config()->set('payment.webhook_verify_mode', 'strict');
+
+        $payment = Payment::factory()->create([
+            'status' => PaymentStatus::Pending->value,
+            'gateway' => 'alipay',
+        ]);
+
+        $response = $this->postJson('/api/v1/webhooks/alipay', [
+            'out_trade_no' => $payment->payment_no,
+            'trade_no' => 'ALI123456',
+            'trade_status' => 'TRADE_SUCCESS',
+            'total_amount' => '50.00',
+        ]);
+
+        $response->assertStatus(422);
+    }
 }

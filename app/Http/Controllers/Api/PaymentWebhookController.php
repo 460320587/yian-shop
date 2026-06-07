@@ -6,10 +6,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Services\PaymentService;
+use App\Domains\Payment\Webhooks\WebhookVerifierFactory;
 use App\Http\Controllers\BaseController;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 
 class PaymentWebhookController extends BaseController
 {
@@ -20,6 +22,13 @@ class PaymentWebhookController extends BaseController
 
     public function wechatPay(Request $request): JsonResponse
     {
+        try {
+            $verifier = WebhookVerifierFactory::make('wechat');
+            $verifier->verify($request);
+        } catch (ValidationException $e) {
+            return response()->json(['code' => 'FAIL', 'message' => '签名验证失败'], 422);
+        }
+
         $payload = $request->all();
 
         if (empty($payload['out_trade_no']) || empty($payload['trade_state'])) {
@@ -52,6 +61,13 @@ class PaymentWebhookController extends BaseController
 
     public function alipay(Request $request): Response
     {
+        try {
+            $verifier = WebhookVerifierFactory::make('alipay');
+            $verifier->verify($request);
+        } catch (ValidationException $e) {
+            return response('fail', 422);
+        }
+
         $payload = $request->all();
 
         if (empty($payload['out_trade_no']) || empty($payload['trade_status'])) {
