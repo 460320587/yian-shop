@@ -266,7 +266,12 @@ Route::prefix('admin')->group(function () {
 
         // 订单文件管理
         Route::delete('/order-files/{id}', [\App\Http\Controllers\Api\Admin\AdminOrderFileController::class, 'destroy']);
+
+        // 印前检查管理
+        Route::post('/ink-coverage-checks', [\App\Http\Controllers\Api\Admin\AdminInkCoverageCheckController::class, 'store']);
         Route::get('/ink-coverage-checks/{id}', [\App\Http\Controllers\Api\Admin\AdminOrderFileController::class, 'showInkCoverageCheck']);
+        Route::put('/ink-coverage-checks/{id}', [\App\Http\Controllers\Api\Admin\AdminInkCoverageCheckController::class, 'update']);
+        Route::delete('/ink-coverage-checks/{id}', [\App\Http\Controllers\Api\Admin\AdminInkCoverageCheckController::class, 'destroy']);
 
         // 生产排期管理
         Route::get('/production-schedules', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'index']);
