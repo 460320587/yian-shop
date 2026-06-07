@@ -10,6 +10,19 @@ export interface Order {
   items?: any[]
 }
 
+export interface ProductionSchedule {
+  id: number
+  order_id: number
+  schedule_date: string
+  process_name: string
+  status: number
+  progress: number
+  priority: number
+  estimated_hours: number | null
+  actual_hours: number | null
+  created_at: string
+}
+
 export function getOrders(params?: { page?: number; status?: number }) {
   return get<{ data: Order[]; total: number; current_page: number; last_page: number }>('/orders', params)
 }
@@ -62,4 +75,8 @@ export function cancelOrder(orderNo: string) {
 
 export function reorder(orderId: number) {
   return post(`/orders/${orderId}/reorder`)
+}
+
+export function getOrderProductionSchedule(orderId: number) {
+  return get<{ data: ProductionSchedule[] }>(`/orders/${orderId}/production-schedule`)
 }

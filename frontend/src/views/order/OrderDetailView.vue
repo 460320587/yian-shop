@@ -2,13 +2,18 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getOrderDetail, cancelOrder } from '@/api/order'
+import { getOrderDetail, cancelOrder, getOrderProductionSchedule } from '@/api/order'
+import type { ProductionSchedule } from '@/api/order'
 
 const route = useRoute()
 const router = useRouter()
 
 const order = ref<any>(null)
 const loading = ref(false)
+const schedules = ref<ProductionSchedule[]>([])
+const schedulesLoading = ref(false)
+
+const hasProductionSchedule = computed(() => schedules.value.length > 0)
 
 const canPay = computed(() => {
   if (!order.value) return false
@@ -45,11 +50,46 @@ async function loadOrder() {
   try {
     const res = await getOrderDetail(id)
     order.value = res
+    await loadProductionSchedule(id)
   } catch (e) {
     console.error(e)
   } finally {
     loading.value = false
   }
+}
+
+async function loadProductionSchedule(orderId: number) {
+  schedulesLoading.value = true
+  try {
+    const res = await getOrderProductionSchedule(orderId)
+    schedules.value = res.data || []
+  } catch (e) {
+    console.error(e)
+  } finally {
+    schedulesLoading.value = false
+  }
+}
+
+function scheduleStatusText(status: number): string {
+  const map: Record<number, string> = {
+    0: '待排',
+    1: '已排',
+    2: '生产中',
+    3: '已完成',
+    4: '延期',
+  }
+  return map[status] ?? '未知'
+}
+
+function scheduleStatusType(status: number): string {
+  const map: Record<number, string> = {
+    0: 'info',
+    1: 'primary',
+    2: 'warning',
+    3: 'success',
+    4: 'danger',
+  }
+  return map[status] ?? 'info'
 }
 
 function goBack() {
@@ -168,6 +208,31 @@ defineExpose({
         </div>
       </div>
 
+      <div v-if="hasProductionSchedule" class="schedule-section">
+        <h3>生产进度</h3>
+        <div v-loading="schedulesLoading">
+          <div
+            v-for="schedule in schedules"
+            :key="schedule.id"
+            class="schedule-item"
+          >
+            <div class="schedule-header">
+              <span class="schedule-process">{{ schedule.process_name }}</span>
+              <el-tag :type="scheduleStatusType(schedule.status)" size="small">
+                {{ scheduleStatusText(schedule.status) }}
+              </el-tag>
+            </div>
+            <div class="schedule-meta">
+              <span>排期：{{ schedule.schedule_date }}</span>
+              <span v-if="schedule.estimated_hours">预计：{{ schedule.estimated_hours }}h</span>
+            </div>
+            <div class="schedule-progress">
+              <el-progress :percentage="schedule.progress" :stroke-width="10" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="items-section">
         <h3>商品列表</h3>
         <div
@@ -270,6 +335,40 @@ defineExpose({
   color: #f56c6c;
   font-weight: 600;
   font-size: 16px;
+}
+.schedule-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ebeef5;
+}
+.schedule-section h3 {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+.schedule-item {
+  padding: 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+.schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.schedule-process {
+  font-weight: 600;
+}
+.schedule-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #606266;
+  margin-bottom: 8px;
+}
+.schedule-progress {
+  margin-top: 4px;
 }
 .items-section {
   margin-bottom: 20px;
