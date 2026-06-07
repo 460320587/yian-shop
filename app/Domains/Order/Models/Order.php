@@ -65,6 +65,11 @@ class Order extends BaseModel
         return $this->hasMany(OrderItem::class);
     }
 
+    public function productionSchedules(): HasMany
+    {
+        return $this->hasMany(ProductionSchedule::class);
+    }
+
     public function stateMachine(): OrderStateMachine
     {
         return new OrderStateMachine();

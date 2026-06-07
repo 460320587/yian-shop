@@ -260,6 +260,13 @@ Route::prefix('admin')->group(function () {
         Route::put('/orders/{id}/ship', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'ship']);
         Route::put('/orders/{id}/complete', [\App\Http\Controllers\Api\Admin\AdminOrderController::class, 'complete']);
 
+        // 生产排期管理
+        Route::get('/production-schedules', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'index']);
+        Route::post('/production-schedules', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'store']);
+        Route::get('/production-schedules/{id}', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'show']);
+        Route::put('/production-schedules/{id}', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'update']);
+        Route::put('/production-schedules/{id}/progress', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'updateProgress']);
+
         // Banner/公告管理
         Route::get('/banners', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'bannerIndex']);
         Route::post('/banners', [\App\Http\Controllers\Api\Admin\AdminBannerController::class, 'bannerStore']);
