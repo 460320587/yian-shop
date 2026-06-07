@@ -68,7 +68,22 @@ class ShipOrderActionTest extends TestCase
         ]);
     }
 
-    public function test_throws_when_order_not_paid(): void
+    public function test_ships_order_from_pending_delivery(): void
+    {
+        $admin = Admin::factory()->create();
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::PendingDelivery->value,
+        ]);
+
+        (new ShipOrderAction($order, $admin->id, '顺丰速运'))->handle();
+
+        $order->refresh();
+        $this->assertEquals(OrderStatus::Shipped->value, $order->status);
+    }
+
+    public function test_throws_when_order_not_paid_or_pending_delivery(): void
     {
         $admin = Admin::factory()->create();
         $customer = Customer::factory()->create();

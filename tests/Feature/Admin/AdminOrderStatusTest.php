@@ -98,6 +98,29 @@ class AdminOrderStatusTest extends TestCase
         $response->assertNotFound();
     }
 
+    public function test_admin_can_ship_order_from_pending_delivery(): void
+    {
+        $this->authAdmin();
+        $customer = Customer::factory()->create();
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::PendingDelivery->value,
+            'out_status_name' => OrderStatus::PendingDelivery->label(),
+        ]);
+
+        $response = $this->putJson("/api/v1/admin/orders/{$order->id}/ship", [
+            'express_company' => '顺丰速运',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('code', 0)
+            ->assertJsonPath('message', '已发货');
+
+        $order->refresh();
+        $this->assertEquals(OrderStatus::Shipped->value, $order->status);
+        $this->assertEquals(OrderStatus::Shipped->label(), $order->out_status_name);
+    }
+
     public function test_admin_cannot_ship_pending_payment_order(): void
     {
         $this->authAdmin();

@@ -23,7 +23,8 @@ class ShipOrderAction extends BaseAction
 
     public function handle()
     {
-        if ((int) $this->order->status !== OrderStatus::Paid->value) {
+        $allowedStatuses = [OrderStatus::Paid->value, OrderStatus::PendingDelivery->value];
+        if (! in_array((int) $this->order->status, $allowedStatuses, true)) {
             throw new BusinessException(ErrorCode::ORDER_STATUS_INVALID, '当前订单状态不允许发货');
         }
 
