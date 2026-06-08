@@ -31,6 +31,7 @@ const menuItems = [
   { index: '/admin/admins', label: '管理员账号' },
   { index: '/admin/roles', label: '角色权限' },
   { index: '/admin/production-schedules', label: '生产排期' },
+  { index: '/admin/articles', label: '文章管理' },
 ]
 
 const activeMenu = computed(() => route.path)

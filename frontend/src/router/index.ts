@@ -69,6 +69,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'admins', name: 'AdminAccounts', component: () => import('@/views/admin/AdminAccountManagementView.vue'), meta: { title: '管理员账号' } },
       { path: 'roles', name: 'AdminRoles', component: () => import('@/views/admin/RoleManagementView.vue'), meta: { title: '角色权限' } },
       { path: 'production-schedules', name: 'AdminProductionSchedules', component: () => import('@/views/admin/ProductionScheduleManagementView.vue'), meta: { title: '生产排期' } },
+      { path: 'articles', name: 'AdminArticles', component: () => import('@/views/admin/ArticleManagementView.vue'), meta: { title: '文章管理' } },
     ],
   },
   { path: '/admin/login', name: 'AdminLogin', component: () => import('@/views/admin/AdminLoginView.vue'), meta: { guestAdmin: true } },
