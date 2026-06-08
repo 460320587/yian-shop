@@ -14,6 +14,7 @@ use App\Domains\Order\Models\OrderItem;
 use App\Domains\Product\Models\Product;
 use App\Domains\Product\Models\ProductCategory;
 use App\Domains\User\Models\Customer;
+use App\Domains\User\Models\CustomerAddress;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -61,6 +62,7 @@ class OrderTest extends TestCase
     public function test_user_can_create_order_from_cart(): void
     {
         $customer = $this->authCustomer();
+        $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
         $cart = Cart::factory()->create(['customer_id' => $customer->id]);
         $category = ProductCategory::factory()->create();
         $product = Product::factory()->create([
@@ -79,7 +81,7 @@ class OrderTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/orders', [
-            'address_id' => 1,
+            'address_id' => $address->id,
             'invoice_type' => 0,
         ]);
 
@@ -105,10 +107,11 @@ class OrderTest extends TestCase
     public function test_create_order_fails_with_empty_cart(): void
     {
         $customer = $this->authCustomer();
+        $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
         Cart::factory()->create(['customer_id' => $customer->id]);
 
         $response = $this->postJson('/api/v1/orders', [
-            'address_id' => 1,
+            'address_id' => $address->id,
             'invoice_type' => 0,
         ]);
 
@@ -283,6 +286,7 @@ class OrderTest extends TestCase
     public function test_order_can_use_full_reduction_coupon(): void
     {
         $customer = $this->authCustomer();
+        $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
         $cart = $this->createCartWithProduct($customer, 500, 2); // subtotal = 1000
 
         $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
@@ -304,13 +308,13 @@ class OrderTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/orders', [
-            'address_id' => 1,
+            'address_id' => $address->id,
             'coupon_code' => $customerCoupon->code,
         ]);
 
         $response->assertStatus(201)
             ->assertJsonPath('code', 0)
-            ->assertJsonPath('data.total_amount', 8); // 10 - 2 = 8元
+            ->assertJsonPath('data.total_amount', 8); // 10 - 2 = 8元（免邮门槛未设或未达到时可能有运费，这里无运费模板所以运费为0）
 
         $this->assertDatabaseHas('orders', [
             'customer_id' => $customer->id,
@@ -321,6 +325,7 @@ class OrderTest extends TestCase
     public function test_order_can_use_discount_coupon(): void
     {
         $customer = $this->authCustomer();
+        $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
         $cart = $this->createCartWithProduct($customer, 1000, 1); // subtotal = 1000
 
         $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
@@ -341,7 +346,7 @@ class OrderTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/orders', [
-            'address_id' => 1,
+            'address_id' => $address->id,
             'coupon_code' => $customerCoupon->code,
         ]);
 
@@ -354,6 +359,7 @@ class OrderTest extends TestCase
     public function test_order_can_use_direct_reduction_coupon(): void
     {
         $customer = $this->authCustomer();
+        $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
         $cart = $this->createCartWithProduct($customer, 1000, 1); // subtotal = 1000
 
         $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
@@ -373,7 +379,7 @@ class OrderTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/orders', [
-            'address_id' => 1,
+            'address_id' => $address->id,
             'coupon_code' => $customerCoupon->code,
         ]);
 
@@ -385,6 +391,7 @@ class OrderTest extends TestCase
     public function test_use_coupon_fails_below_min_amount(): void
     {
         $customer = $this->authCustomer();
+        $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
         $cart = $this->createCartWithProduct($customer, 300, 1); // subtotal = 300
 
         $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
@@ -404,7 +411,7 @@ class OrderTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/orders', [
-            'address_id' => 1,
+            'address_id' => $address->id,
             'coupon_code' => $customerCoupon->code,
         ]);
 
@@ -415,6 +422,7 @@ class OrderTest extends TestCase
     public function test_use_coupon_fails_when_expired(): void
     {
         $customer = $this->authCustomer();
+        $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
         $cart = $this->createCartWithProduct($customer, 1000, 1);
 
         $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
@@ -433,7 +441,7 @@ class OrderTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/orders', [
-            'address_id' => 1,
+            'address_id' => $address->id,
             'coupon_code' => $customerCoupon->code,
         ]);
 
@@ -444,6 +452,7 @@ class OrderTest extends TestCase
     public function test_use_coupon_fails_when_already_used(): void
     {
         $customer = $this->authCustomer();
+        $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
         $cart = $this->createCartWithProduct($customer, 1000, 1);
 
         $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
@@ -462,7 +471,7 @@ class OrderTest extends TestCase
         ]);
 
         $response = $this->postJson('/api/v1/orders', [
-            'address_id' => 1,
+            'address_id' => $address->id,
             'coupon_code' => $customerCoupon->code,
         ]);
 
@@ -473,6 +482,7 @@ class OrderTest extends TestCase
     public function test_cancel_order_restores_coupon(): void
     {
         $customer = $this->authCustomer();
+        $address = CustomerAddress::factory()->create(['customer_id' => $customer->id]);
         $cart = $this->createCartWithProduct($customer, 1000, 1);
 
         $coupon = \App\Domains\Coupon\Models\Coupon::factory()->create([
@@ -492,7 +502,7 @@ class OrderTest extends TestCase
 
         // 先下单用券
         $this->postJson('/api/v1/orders', [
-            'address_id' => 1,
+            'address_id' => $address->id,
             'coupon_code' => $customerCoupon->code,
         ]);
 

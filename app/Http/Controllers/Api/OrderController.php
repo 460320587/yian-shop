@@ -9,6 +9,8 @@ use App\Domains\Common\ValueObjects\Money;
 use App\Domains\Coupon\Models\CustomerCoupon;
 use App\Domains\Coupon\Services\CouponDiscountCalculator;
 use App\Domains\Logistics\Models\FreightTemplate;
+use App\Domains\Logistics\Services\FreightCalculator;
+use App\Domains\User\Models\CustomerAddress;
 use App\Domains\Order\Actions\CancelOrderAction;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
@@ -97,7 +99,22 @@ class OrderController extends BaseController
 
     public function store(Request $request): JsonResponse
     {
+        $request->validate([
+            'address_id' => ['required', 'integer', 'min:1'],
+        ]);
+
         $customerId = auth('sanctum')->id();
+
+        $address = CustomerAddress::find($request->input('address_id'));
+
+        if (! $address) {
+            return $this->error(ErrorCode::NOT_FOUND, '收货地址不存在', null, 404);
+        }
+
+        if ($address->customer_id !== $customerId) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权使用该地址', null, 403);
+        }
+
         $cart = Cart::where('customer_id', $customerId)
             ->with('items.product')
             ->first();
@@ -107,6 +124,8 @@ class OrderController extends BaseController
         }
 
         $goodsAmount = $cart->items->sum('subtotal');
+        $totalQuantity = $cart->items->sum('quantity');
+        $freightAmount = FreightCalculator::calculate($goodsAmount, $totalQuantity);
         $discountSum = 0;
         $customerCouponId = null;
 
@@ -152,16 +171,24 @@ class OrderController extends BaseController
             $coupon->increment('used_count');
         }
 
-        $totalAmount = $goodsAmount - $discountSum;
+        $totalAmount = $goodsAmount + $freightAmount - $discountSum;
         $orderNo = $this->generateOrderNo();
 
         $order = Order::create([
             'order_no' => $orderNo,
             'customer_id' => $customerId,
+            'address_id' => $address->id,
+            'receiver_name' => $address->contact_name,
+            'receiver_phone' => $address->contact_phone,
+            'province' => $address->province_name,
+            'city' => $address->city_name,
+            'county' => $address->county_name,
+            'detail_address' => $address->detail_address,
             'status' => OrderStatus::PendingPayment->value,
             'out_status_name' => OrderStatus::PendingPayment->label(),
             'total_amount' => $totalAmount,
             'discount_sum' => $discountSum,
+            'freight_amount' => $freightAmount,
             'customer_coupon_id' => $customerCouponId,
             'source' => 1,
         ]);
@@ -187,6 +214,7 @@ class OrderController extends BaseController
             'customer_status' => OrderStatus::PendingPayment->label(),
             'total_amount' => (new Money($totalAmount))->toYuan(),
             'discount_sum' => (new Money($discountSum))->toYuan(),
+            'freight_amount' => (new Money($freightAmount))->toYuan(),
             'items' => $order->items->map(fn (OrderItem $item) => [
                 'product_id' => $item->product_id,
                 'product_name' => $item->product_name,
@@ -217,12 +245,22 @@ class OrderController extends BaseController
             'total_amount' => $order->total_amount->toYuan(),
             'deposit_sum' => $order->deposit_sum?->toYuan(),
             'discount_sum' => $order->discount_sum?->toYuan(),
+            'freight_amount' => $order->freight_amount?->toYuan(),
             'express_company' => $order->express_company,
             'delivery_type' => $order->delivery_type,
             'remark' => $order->remark,
             'paid_at' => $order->paid_at,
             'submitted_at' => $order->submitted_at,
             'created_at' => $order->created_at,
+            'address' => $order->receiver_name ? [
+                'receiver_name' => $order->receiver_name,
+                'receiver_phone' => $order->receiver_phone,
+                'province' => $order->province,
+                'city' => $order->city,
+                'county' => $order->county,
+                'detail_address' => $order->detail_address,
+                'full_address' => $order->province . $order->city . $order->county . $order->detail_address,
+            ] : null,
             'items' => $order->items->map(fn (OrderItem $item) => [
                 'id' => $item->id,
                 'product_id' => $item->product_id,

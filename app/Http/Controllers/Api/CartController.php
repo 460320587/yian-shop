@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Domains\Cart\Models\Cart;
 use App\Domains\Cart\Models\CartItem;
 use App\Domains\Coupon\Models\CustomerCoupon;
+use App\Domains\Logistics\Services\FreightCalculator;
 use App\Domains\Product\Models\Product;
 use App\Domains\User\Models\CustomerAddress;
 use App\Http\Controllers\BaseController;
@@ -155,6 +156,8 @@ class CartController extends BaseController
         }
 
         $goodsAmount = $items->sum('subtotal');
+        $totalQuantity = $items->sum('quantity');
+        $freightAmount = FreightCalculator::calculate($goodsAmount, $totalQuantity);
 
         $address = CustomerAddress::where('customer_id', $customerId)
             ->where('is_default', true)
@@ -205,8 +208,9 @@ class CartController extends BaseController
             ])->all(),
             'summary' => [
                 'goods_amount' => $goodsAmount / 100,
+                'freight_amount' => $freightAmount / 100,
                 'discount' => 0,
-                'total_amount' => $goodsAmount / 100,
+                'total_amount' => ($goodsAmount + $freightAmount) / 100,
             ],
         ]);
     }
