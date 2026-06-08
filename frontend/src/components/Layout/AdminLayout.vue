@@ -28,6 +28,7 @@ const menuItems = [
   { index: '/admin/reviews', label: '评价管理' },
   { index: '/admin/categories', label: '商品分类' },
   { index: '/admin/enterprise-auths', label: '企业认证' },
+  { index: '/admin/admins', label: '管理员账号' },
 ]
 
 const activeMenu = computed(() => route.path)

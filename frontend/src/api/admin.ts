@@ -523,3 +523,44 @@ export function getAdminEnterpriseAuthDetail(id: number) {
 export function auditAdminEnterpriseAuth(id: number, data: { auth_status: number; audit_remark: string }) {
   return putAdmin<{ id: number; auth_status: number; audit_remark: string }>(`/enterprise-auths/${id}/audit`, data)
 }
+
+// ===== Admin Account =====
+export interface AdminAccount {
+  id: number
+  username: string
+  real_name: string
+  phone: string | null
+  email: string | null
+  role_id: number | null
+  roleModel?: { id: number; name: string }
+  status: number
+  created_at: string
+}
+export interface AdminRole {
+  id: number
+  name: string
+  code: string
+  description: string | null
+  status: number
+}
+export function getAdminAccounts(params?: { keyword?: string; page?: number; per_page?: number }) {
+  return getAdmin<{ data: AdminAccount[]; total: number; current_page: number; last_page: number }>('/admins', params)
+}
+export function createAdminAccount(data: { username: string; password: string; password_confirmation: string; real_name: string; phone?: string; email?: string; role_id?: number }) {
+  return postAdmin<AdminAccount>('/admins', data)
+}
+export function updateAdminAccount(id: number, data: { real_name?: string; phone?: string; email?: string; role_id?: number }) {
+  return putAdmin<AdminAccount>(`/admins/${id}`, data)
+}
+export function toggleAdminAccountStatus(id: number) {
+  return putAdmin<{ status: number }>(`/admins/${id}/toggle-status`)
+}
+export function deleteAdminAccount(id: number) {
+  return delAdmin(`/admins/${id}`)
+}
+export function resetAdminAccountPassword(id: number, data: { password: string; password_confirmation: string }) {
+  return putAdmin(`/admins/${id}/reset-password`, data)
+}
+export function getAdminRoles() {
+  return getAdmin<AdminRole[]>('/roles')
+}
