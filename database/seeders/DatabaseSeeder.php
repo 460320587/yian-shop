@@ -22,8 +22,10 @@ class DatabaseSeeder extends Seeder
             ArticleSeeder::class,
             SystemConfigSeeder::class,
             CustomerSeeder::class,
+            CustomerAddressSeeder::class,
             CouponSeeder::class,
             CarrierSeeder::class,
+            OrderSeeder::class,
         ]);
     }
 }
