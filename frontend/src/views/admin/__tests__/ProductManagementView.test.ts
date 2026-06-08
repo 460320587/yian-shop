@@ -4,9 +4,17 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createWebHistory } from 'vue-router'
 import ProductManagementView from '../ProductManagementView.vue'
 
+const mockPricingParams = {
+  base_price: 250, unit: '本',
+  price_tiers: [{ min_qty: 100, price: 250 }, { min_qty: 500, price: 200 }],
+  paper_options: [{ id: 1, name: '128g铜版纸', price_factor: 0.85 }],
+  color_options: [{ id: 1, name: '单色', price_factor: 0.35 }],
+  process_options: [{ id: 1, name: '覆膜', price: 60, unit: '㎡' }],
+}
+
 const mockProducts = [
-  { id: 1, name: '名片', code: 'CARD-001', price_min: 1000, price_max: 5000, status: 1, category: { id: 1, name: '名片' } },
-  { id: 2, name: '海报', code: 'POSTER-001', price_min: 2000, price_max: 8000, status: 0, category: { id: 2, name: '海报' } },
+  { id: 1, name: '名片', code: 'CARD-001', price_min: 1000, price_max: 5000, status: 1, category: { id: 1, name: '名片' }, pricing_params: mockPricingParams },
+  { id: 2, name: '海报', code: 'POSTER-001', price_min: 2000, price_max: 8000, status: 0, category: { id: 2, name: '海报' }, pricing_params: null },
 ]
 
 let getAdminProductsMock = vi.fn()
@@ -109,5 +117,41 @@ describe('ProductManagementView', () => {
     expect(updateAdminProductMock).toHaveBeenCalledWith(1, expect.objectContaining({ name: '名片-改', price_min: 1500 }))
     expect((wrapper.vm as any).dialogVisible).toBe(false)
     expect(getAdminProductsMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('loads pricing params when opening edit', async () => {
+    getAdminProductDetailMock = vi.fn(() => Promise.resolve(mockProducts[0]))
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).openEdit(mockProducts[0])
+    await flushPromises()
+    expect((wrapper.vm as any).pricingForm.base_price).toBe(250)
+    expect((wrapper.vm as any).pricingForm.price_tiers).toHaveLength(2)
+    expect((wrapper.vm as any).pricingForm.paper_options).toHaveLength(1)
+  })
+
+  it('saves pricing params on update', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).openEdit(mockProducts[0])
+    await flushPromises()
+    ;(wrapper.vm as any).pricingForm.base_price = 300
+    ;(wrapper.vm as any).pricingForm.unit = '张'
+    ;(wrapper.vm as any).handleSave()
+    await flushPromises()
+    expect(updateAdminProductMock).toHaveBeenCalledWith(1, expect.objectContaining({
+      pricing_params: expect.objectContaining({ base_price: 300, unit: '张' }),
+    }))
+  })
+
+  it('adds and removes price tier', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).openEdit(mockProducts[0])
+    await flushPromises()
+    ;(wrapper.vm as any).addPriceTier()
+    expect((wrapper.vm as any).pricingForm.price_tiers).toHaveLength(3)
+    ;(wrapper.vm as any).removePriceTier(2)
+    expect((wrapper.vm as any).pricingForm.price_tiers).toHaveLength(2)
   })
 })
