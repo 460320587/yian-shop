@@ -10,6 +10,10 @@ use App\Events\OrderDelivered;
 use App\Events\OrderStatusChanged;
 use App\Events\PaymentSuccess;
 use App\Listeners\AwardPointsOnPayment;
+use App\Listeners\Order\CheckVipUpgradeListener;
+use App\Listeners\Order\DeductInventoryListener;
+use App\Listeners\Order\ReleaseInventoryListener;
+use App\Listeners\Order\ReserveInventoryListener;
 use App\Listeners\SendOrderCreatedNotification;
 use App\Listeners\SendOrderDeliveredNotification;
 use App\Listeners\SendOrderNotification;
@@ -24,14 +28,18 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         OrderCreated::class => [
             SendOrderCreatedNotification::class,
+            ReserveInventoryListener::class,
         ],
         PaymentSuccess::class => [
             WritePaymentSuccessLog::class,
             AwardPointsOnPayment::class,
+            DeductInventoryListener::class,
         ],
         OrderStatusChanged::class => [
             WriteOrderStatusLog::class,
             SendOrderNotification::class,
+            ReleaseInventoryListener::class,
+            CheckVipUpgradeListener::class,
         ],
         OrderDelivered::class => [
             SendOrderDeliveredNotification::class,

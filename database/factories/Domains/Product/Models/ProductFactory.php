@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories\Domains\Product\Models;
 
+use App\Domains\Product\Models\Inventory;
 use App\Domains\Product\Models\Product;
 use App\Domains\Product\Models\ProductCategory;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -29,4 +30,6 @@ class ProductFactory extends Factory
             'is_new' => $this->faker->boolean(20) ? 1 : 0,
         ];
     }
+
+
 }
