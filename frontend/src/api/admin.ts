@@ -491,3 +491,32 @@ export function toggleAdminCategoryStatus(id: number) {
 export function deleteAdminCategory(id: number) {
   return delAdmin(`/categories/${id}`)
 }
+
+// ===== Enterprise Auth =====
+export interface AdminEnterpriseAuth {
+  id: number
+  customer_id: number
+  company_name: string
+  credit_code: string
+  legal_person: string
+  legal_person_id_card: string
+  business_license_img: string
+  contact_name: string
+  contact_phone: string
+  register_address: string | null
+  office_address: string | null
+  valid_date: string | null
+  auth_status: number
+  audit_remark: string | null
+  created_at: string
+  customer?: { id: number; nickname: string | null; phone: string }
+}
+export function getAdminEnterpriseAuths(params?: { auth_status?: number; keyword?: string; page?: number; per_page?: number }) {
+  return getAdmin<{ data: AdminEnterpriseAuth[]; total: number; current_page: number; last_page: number }>('/enterprise-auths', params)
+}
+export function getAdminEnterpriseAuthDetail(id: number) {
+  return getAdmin<AdminEnterpriseAuth>(`/enterprise-auths/${id}`)
+}
+export function auditAdminEnterpriseAuth(id: number, data: { auth_status: number; audit_remark: string }) {
+  return putAdmin<{ id: number; auth_status: number; audit_remark: string }>(`/enterprise-auths/${id}/audit`, data)
+}

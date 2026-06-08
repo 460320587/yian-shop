@@ -89,6 +89,10 @@ class AdminEnterpriseAuthController extends BaseController
             'audit_remark' => $data['audit_remark'],
         ]);
 
+        if ($auth->customer) {
+            $auth->customer->update(['auth_status' => $data['auth_status']]);
+        }
+
         return $this->success([
             'id' => $auth->id,
             'auth_status' => $auth->auth_status,

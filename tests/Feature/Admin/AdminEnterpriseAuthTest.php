@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Tests\Feature\Admin;
 
 use App\Domains\Admin\Models\Admin;
+use App\Domains\Enterprise\Enums\AuthStatus;
 use App\Domains\Enterprise\Models\EnterpriseAuth;
+use App\Domains\User\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -91,6 +93,11 @@ class AdminEnterpriseAuthTest extends TestCase
             'auth_status' => 2,
             'audit_remark' => '审核通过',
         ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $auth->customer_id,
+            'auth_status' => 2,
+        ]);
     }
 
     public function test_admin_can_reject_enterprise_auth(): void
@@ -111,6 +118,11 @@ class AdminEnterpriseAuthTest extends TestCase
             'id' => $auth->id,
             'auth_status' => 3,
             'audit_remark' => '资料不完整，请补充营业执照',
+        ]);
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $auth->customer_id,
+            'auth_status' => 3,
         ]);
     }
 
@@ -139,6 +151,12 @@ class AdminEnterpriseAuthTest extends TestCase
 
         $response->assertStatus(422)
             ->assertJsonPath('code', 422);
+    }
+
+    public function test_auth_status_enum_has_not_approved_label(): void
+    {
+        $this->assertEquals('审核不通过', AuthStatus::NotApproved->label());
+        $this->assertEquals(3, AuthStatus::NotApproved->value);
     }
 
     public function test_unauthenticated_cannot_access_enterprise_auths(): void

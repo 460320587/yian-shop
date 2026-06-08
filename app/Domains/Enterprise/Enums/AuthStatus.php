@@ -13,6 +13,7 @@ enum AuthStatus: int
     case Unverified = 0;       // 未认证
     case Pending = 1;          // 待审核
     case Approved = 2;         // 已认证
+    case NotApproved = 3;      // 审核不通过
     case Rejected = 4;         // 已驳回
     case PreApproved = 20;     // 代认证通过
 
@@ -22,6 +23,7 @@ enum AuthStatus: int
             self::Unverified => '未认证',
             self::Pending => '待审核',
             self::Approved => '已认证',
+            self::NotApproved => '审核不通过',
             self::Rejected => '已驳回',
             self::PreApproved => '代认证通过',
         };
