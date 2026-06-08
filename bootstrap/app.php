@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withEvents(discover: false)
+    ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
+        $schedule->command('orders:auto-cancel')->everyTenMinutes();
+    })
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->api(prepend: [
             \App\Support\Middleware\ForceJsonMiddleware::class,
