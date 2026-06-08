@@ -371,6 +371,9 @@ Route::prefix('admin')->group(function () {
         Route::get('/param-templates', [\App\Http\Controllers\Api\Admin\AdminParamTemplateController::class, 'index']);
         Route::get('/param-templates/{id}', [\App\Http\Controllers\Api\Admin\AdminParamTemplateController::class, 'show']);
 
+        // 数据导出
+        Route::post('/exports/orders', [\App\Http\Controllers\Api\Admin\AdminExportController::class, 'orders']);
+
         // 文章管理
         Route::get('/articles', [\App\Http\Controllers\Api\Admin\AdminArticleController::class, 'index']);
         Route::post('/articles', [\App\Http\Controllers\Api\Admin\AdminArticleController::class, 'store']);
