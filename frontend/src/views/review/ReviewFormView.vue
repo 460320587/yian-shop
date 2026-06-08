@@ -3,7 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getProductDetail } from '@/api/product'
-import { submitReview } from '@/api/review'
+import { submitReview, uploadReviewImages } from '@/api/review'
 
 const route = useRoute()
 const router = useRouter()
@@ -26,6 +26,23 @@ const form = ref<FormState>({
   content: '',
   images: [],
 })
+
+const uploadLoading = ref(false)
+
+async function handleUpload(options: any) {
+  const formData = new FormData()
+  formData.append('images', options.file)
+  uploadLoading.value = true
+  try {
+    const res = await uploadReviewImages(formData)
+    form.value.images.push(...res.urls)
+    options.onSuccess?.(res)
+  } catch (e) {
+    options.onError?.(e)
+  } finally {
+    uploadLoading.value = false
+  }
+}
 
 async function loadProduct() {
   const oid = Number(route.query.orderId)
@@ -99,6 +116,7 @@ defineExpose({
   productId,
   validateForm,
   submitReview: handleSubmit,
+  handleUpload,
 })
 </script>
 
@@ -134,6 +152,17 @@ defineExpose({
             maxlength="500"
             show-word-limit
           />
+        </el-form-item>
+        <el-form-item label="上传图片">
+          <el-upload
+            action="#"
+            :http-request="handleUpload"
+            list-type="picture-card"
+            :limit="9"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+          >
+            <el-icon><Plus /></el-icon>
+          </el-upload>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :loading="loading" @click="handleSubmit">

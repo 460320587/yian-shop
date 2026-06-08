@@ -8,6 +8,7 @@ use App\Domains\Coupon\Models\CustomerCoupon;
 use App\Domains\Notification\Models\CustomerNotification;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
+use App\Domains\Product\Models\ProductReview;
 use App\Http\Controllers\BaseController;
 use Illuminate\Http\JsonResponse;
 
@@ -17,6 +18,26 @@ class UserController extends BaseController
     {
         $customerId = auth('sanctum')->id();
 
+        $completedOrders = Order::where('customer_id', $customerId)
+            ->where('status', OrderStatus::Completed->value)
+            ->with('items')
+            ->get();
+
+        $pendingReviewCount = 0;
+        foreach ($completedOrders as $order) {
+            $reviewedProductIds = ProductReview::where('customer_id', $customerId)
+                ->where('order_id', $order->id)
+                ->pluck('product_id')
+                ->toArray();
+
+            $orderProductIds = $order->items->pluck('product_id')->toArray();
+            $unreviewed = array_diff($orderProductIds, $reviewedProductIds);
+
+            if (count($unreviewed) > 0) {
+                $pendingReviewCount++;
+            }
+        }
+
         $orderStatusCounts = [
             'pending_payment' => Order::where('customer_id', $customerId)->where('status', OrderStatus::PendingPayment->value)->count(),
             'in_progress' => Order::where('customer_id', $customerId)->whereIn('status', [
@@ -25,7 +46,7 @@ class UserController extends BaseController
             ])->count(),
             'pending_delivery' => Order::where('customer_id', $customerId)->where('status', OrderStatus::PendingDelivery->value)->count(),
             'pending_receive' => Order::where('customer_id', $customerId)->where('status', OrderStatus::PendingReceive->value)->count(),
-            'pending_review' => Order::where('customer_id', $customerId)->where('status', OrderStatus::Completed->value)->count(),
+            'pending_review' => $pendingReviewCount,
             'completed' => Order::where('customer_id', $customerId)->where('status', OrderStatus::Completed->value)->count(),
         ];
 

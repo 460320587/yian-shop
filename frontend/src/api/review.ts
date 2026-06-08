@@ -39,3 +39,7 @@ export function submitReview(orderId: number, data: {
 export function getMyReviews(params?: { page?: number; per_page?: number }) {
   return get<ReviewListResponse>('/my-reviews', params)
 }
+
+export function uploadReviewImages(formData: FormData) {
+  return post<{ urls: string[] }>('/upload/review-images', formData)
+}

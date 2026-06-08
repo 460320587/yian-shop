@@ -191,9 +191,14 @@ async function handleCancel() {
   }
 }
 
-function goToReview() {
+function goToReview(productId?: number) {
   if (!order.value) return
-  router.push(`/review?orderId=${order.value.id}`)
+  const pid = productId ?? order.value.items?.[0]?.product_id
+  if (!pid) {
+    ElMessage.error('暂无商品可评价')
+    return
+  }
+  router.push(`/review?orderId=${order.value.id}&productId=${pid}`)
 }
 
 function goToAfterSale() {
@@ -523,6 +528,14 @@ defineExpose({
             <span>数量：{{ item.quantity }}</span>
             <span>小计：¥{{ item.subtotal }}</span>
           </div>
+          <el-button
+            v-if="canReview"
+            link
+            type="primary"
+            size="small"
+            class="item-review-btn"
+            @click="goToReview(item.product_id)"
+          >评价</el-button>
         </div>
       </div>
 
@@ -543,7 +556,7 @@ defineExpose({
           v-if="canReview"
           data-testid="review-btn"
           type="primary"
-          @click="goToReview"
+          @click="goToReview()"
         >去评价</el-button>
         <el-button
           v-if="canAfterSale"

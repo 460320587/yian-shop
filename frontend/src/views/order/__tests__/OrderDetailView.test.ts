@@ -163,6 +163,34 @@ describe('OrderDetailView', () => {
     expect(wrapper.find('[data-testid="review-btn"]').exists()).toBe(true)
   })
 
+  it('navigates to review page with first item productId when top review button clicked', async () => {
+    getOrderDetailMock = vi.fn(() => Promise.resolve({ ...mockOrder, status: 60, customer_status: '已完成' }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    await wrapper.find('[data-testid="review-btn"]').trigger('click')
+    expect(mockPush).toHaveBeenCalledWith('/review?orderId=5&productId=1')
+  })
+
+  it('shows review button on each item for completed order', async () => {
+    getOrderDetailMock = vi.fn(() => Promise.resolve({ ...mockOrder, status: 60, customer_status: '已完成' }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    const itemReviewBtns = wrapper.findAll('.order-item .item-review-btn')
+    expect(itemReviewBtns.length).toBe(2)
+  })
+
+  it('navigates to review page from item review button', async () => {
+    getOrderDetailMock = vi.fn(() => Promise.resolve({ ...mockOrder, status: 60, customer_status: '已完成' }))
+    const wrapper = createWrapper()
+    await flushPromises()
+
+    const itemReviewBtns = wrapper.findAll('.order-item .item-review-btn')
+    await itemReviewBtns[1].trigger('click')
+    expect(mockPush).toHaveBeenCalledWith('/review?orderId=5&productId=2')
+  })
+
   it('shows after-sale button for applicable order', async () => {
     getOrderDetailMock = vi.fn(() => Promise.resolve({ ...mockOrder, status: 60, customer_status: '已完成' }))
     const wrapper = createWrapper()

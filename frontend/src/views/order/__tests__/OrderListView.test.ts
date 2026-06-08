@@ -93,6 +93,15 @@ describe('OrderListView', () => {
     expect(pushSpy).toHaveBeenCalledWith('/order/1')
   })
 
+  it('navigates to order detail when review button clicked', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const router = (wrapper.vm as any).$router
+    const pushSpy = vi.spyOn(router, 'push')
+    ;(wrapper.vm as any).goToReview({ id: 3, order_no: 'Y202601010003', status: 60 })
+    expect(pushSpy).toHaveBeenCalledWith('/order/3')
+  })
+
   it('has clickable order detail on each card', async () => {
     const wrapper = mountComponent()
     await flushPromises()

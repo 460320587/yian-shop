@@ -29,7 +29,7 @@ function canReview(order: any): boolean {
 }
 
 function goToReview(order: any) {
-  router.push('/review?orderId=' + order.id)
+  router.push('/order/' + order.id)
 }
 
 function canApplyAfterSale(order: any): boolean {

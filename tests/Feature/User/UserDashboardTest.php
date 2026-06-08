@@ -8,6 +8,9 @@ use App\Domains\Coupon\Models\CustomerCoupon;
 use App\Domains\Notification\Models\CustomerNotification;
 use App\Domains\Order\Enums\OrderStatus;
 use App\Domains\Order\Models\Order;
+use App\Domains\Order\Models\OrderItem;
+use App\Domains\Product\Models\Product;
+use App\Domains\Product\Models\ProductReview;
 use App\Domains\User\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -33,7 +36,16 @@ class UserDashboardTest extends TestCase
         Order::factory()->create(['customer_id' => $customer->id, 'status' => OrderStatus::InProduction->value]);
         Order::factory()->create(['customer_id' => $customer->id, 'status' => OrderStatus::PendingDelivery->value]);
         Order::factory()->create(['customer_id' => $customer->id, 'status' => OrderStatus::PendingReceive->value]);
-        Order::factory()->create(['customer_id' => $customer->id, 'status' => OrderStatus::Completed->value]);
+        $completedOrder = Order::factory()->create(['customer_id' => $customer->id, 'status' => OrderStatus::Completed->value]);
+        $product = Product::factory()->create();
+        OrderItem::factory()->create([
+            'order_id' => $completedOrder->id,
+            'product_id' => $product->id,
+            'product_name' => '测试商品',
+            'quantity' => 1,
+            'unit_price' => 1000,
+            'total_price' => 1000,
+        ]);
 
         CustomerNotification::factory()->count(3)->create(['customer_id' => $customer->id, 'is_read' => 0]);
         CustomerNotification::factory()->create(['customer_id' => $customer->id, 'is_read' => 1]);
@@ -95,6 +107,44 @@ class UserDashboardTest extends TestCase
         $this->assertEquals(0, $data['unread_notification_count']);
         $this->assertEquals(0, $data['available_coupon_count']);
         $this->assertEmpty($data['recent_orders']);
+    }
+
+    public function test_pending_review_excludes_already_reviewed_orders(): void
+    {
+        $customer = $this->authCustomer();
+        $product = Product::factory()->create();
+
+        $order = Order::factory()->create([
+            'customer_id' => $customer->id,
+            'status' => OrderStatus::Completed->value,
+        ]);
+
+        OrderItem::factory()->create([
+            'order_id' => $order->id,
+            'product_id' => $product->id,
+            'product_name' => '测试商品',
+            'quantity' => 1,
+            'unit_price' => 1000,
+            'total_price' => 1000,
+        ]);
+
+        // Before review: pending_review should be 1
+        $response = $this->getJson('/api/v1/user/dashboard');
+        $response->assertOk();
+        $this->assertEquals(1, $response->json('data.order_status_counts.pending_review'));
+
+        // After review: pending_review should be 0
+        ProductReview::factory()->create([
+            'customer_id' => $customer->id,
+            'product_id' => $product->id,
+            'order_id' => $order->id,
+            'rating' => 5,
+            'content' => '很好',
+        ]);
+
+        $response = $this->getJson('/api/v1/user/dashboard');
+        $response->assertOk();
+        $this->assertEquals(0, $response->json('data.order_status_counts.pending_review'));
     }
 
     public function test_guest_cannot_access_dashboard(): void

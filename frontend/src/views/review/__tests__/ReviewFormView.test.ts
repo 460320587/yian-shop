@@ -14,6 +14,7 @@ vi.mock('element-plus', async () => {
 
 let getProductDetailMock = vi.fn()
 let submitReviewMock = vi.fn()
+let uploadReviewImagesMock = vi.fn()
 
 vi.mock('@/api/product', () => ({
   getProductDetail: (...args: any[]) => getProductDetailMock(...args),
@@ -21,6 +22,7 @@ vi.mock('@/api/product', () => ({
 
 vi.mock('@/api/review', () => ({
   submitReview: (...args: any[]) => submitReviewMock(...args),
+  uploadReviewImages: (...args: any[]) => uploadReviewImagesMock(...args),
 }))
 
 beforeEach(() => {
@@ -30,6 +32,7 @@ beforeEach(() => {
   submitReviewMock = vi.fn(() => Promise.resolve({
     id: 10, product_id: 1, order_id: 5, rating: 5, content: '质量很好',
   }))
+  uploadReviewImagesMock = vi.fn(() => Promise.resolve({ urls: ['/uploads/review_1.jpg', '/uploads/review_2.jpg'] }))
 })
 
 describe('ReviewFormView', () => {
@@ -110,5 +113,31 @@ describe('ReviewFormView', () => {
     const wrapper = await mountComponent({})
     await flushPromises()
     expect((wrapper.vm as any).errorMsg).toContain('参数缺失')
+  })
+
+  it('uploads review images', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    const file = new File([''], 'test.jpg', { type: 'image/jpeg' })
+    await (wrapper.vm as any).handleUpload({ file, onSuccess: vi.fn(), onError: vi.fn() })
+    await flushPromises()
+    expect(uploadReviewImagesMock).toHaveBeenCalled()
+    expect((wrapper.vm as any).form.images).toContain('/uploads/review_1.jpg')
+  })
+
+  it('includes images in submit payload', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).form.rating = 5
+    ;(wrapper.vm as any).form.content = '质量很好，印刷清晰'
+    ;(wrapper.vm as any).form.images = ['/uploads/review_1.jpg']
+    await (wrapper.vm as any).submitReview()
+    await flushPromises()
+    expect(submitReviewMock).toHaveBeenCalledWith(5, expect.objectContaining({
+      product_id: 1,
+      rating: 5,
+      content: '质量很好，印刷清晰',
+      images: ['/uploads/review_1.jpg'],
+    }))
   })
 })
