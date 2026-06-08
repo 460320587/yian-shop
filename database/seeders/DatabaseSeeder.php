@@ -17,6 +17,10 @@ class DatabaseSeeder extends Seeder
             ProductCategorySeeder::class,
             ProductSeeder::class,
             VipLevelSeeder::class,
+            AdminRoleSeeder::class,
+            AdminSeeder::class,
+            ArticleSeeder::class,
+            SystemConfigSeeder::class,
         ]);
     }
 }
