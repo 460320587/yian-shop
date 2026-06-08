@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { pcaTextArr } from 'element-china-area-data'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getAddresses,
@@ -29,6 +30,14 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const isEdit = ref(false)
 const formRef = ref<any>(null)
+
+const cascaderValue = ref<string[]>([])
+
+const cascaderProps = {
+  value: 'value',
+  label: 'label',
+  children: 'children',
+}
 
 const form = ref<FormState>({
   id: null,
@@ -88,7 +97,16 @@ async function loadAddresses() {
   }
 }
 
+function handleRegionChange(selected: string[]) {
+  if (selected && selected.length >= 3) {
+    form.value.province_name = selected[0]
+    form.value.city_name = selected[1]
+    form.value.county_name = selected[2]
+  }
+}
+
 function resetForm() {
+  cascaderValue.value = []
   form.value = {
     id: null,
     contact_name: '',
@@ -107,6 +125,7 @@ function openDialog(address?: Address) {
   dialogVisible.value = true
   if (address) {
     isEdit.value = true
+    cascaderValue.value = [address.province_name, address.city_name, address.county_name]
     form.value = {
       id: address.id,
       contact_name: address.contact_name,
@@ -213,11 +232,13 @@ defineExpose({
   dialogVisible,
   isEdit,
   form,
+  cascaderValue,
   openDialog,
   submitForm,
   handleDelete,
   handleSetDefault,
   validateForm,
+  handleRegionChange,
 })
 </script>
 
@@ -272,17 +293,14 @@ defineExpose({
           <el-input v-model="form.contact_phone" placeholder="请输入手机号" maxlength="11" />
         </el-form-item>
         <el-form-item label="所在地区">
-          <div class="region-row">
-            <el-form-item prop="province_name" class="region-item">
-              <el-input v-model="form.province_name" placeholder="省" />
-            </el-form-item>
-            <el-form-item prop="city_name" class="region-item">
-              <el-input v-model="form.city_name" placeholder="市" />
-            </el-form-item>
-            <el-form-item prop="county_name" class="region-item">
-              <el-input v-model="form.county_name" placeholder="区/县" />
-            </el-form-item>
-          </div>
+          <el-cascader
+            v-model="cascaderValue"
+            :options="pcaTextArr"
+            :props="cascaderProps"
+            placeholder="请选择省 / 市 / 区"
+            style="width: 100%"
+            @change="handleRegionChange"
+          />
         </el-form-item>
         <el-form-item label="详细地址" prop="detail_address">
           <el-input

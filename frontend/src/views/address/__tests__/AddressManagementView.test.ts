@@ -50,6 +50,47 @@ let updateAddressMock = vi.fn()
 let deleteAddressMock = vi.fn()
 let setDefaultAddressMock = vi.fn()
 
+vi.mock('element-china-area-data', () => ({
+  pcaTextArr: [
+    {
+      label: '北京市',
+      value: '北京市',
+      children: [
+        {
+          label: '市辖区',
+          value: '市辖区',
+          children: [
+            { label: '东城区', value: '东城区' },
+            { label: '西城区', value: '西城区' },
+          ],
+        },
+      ],
+    },
+    {
+      label: '广东省',
+      value: '广东省',
+      children: [
+        {
+          label: '深圳市',
+          value: '深圳市',
+          children: [
+            { label: '南山区', value: '南山区' },
+            { label: '福田区', value: '福田区' },
+          ],
+        },
+        {
+          label: '广州市',
+          value: '广州市',
+          children: [
+            { label: '天河区', value: '天河区' },
+            { label: '越秀区', value: '越秀区' },
+          ],
+        },
+      ],
+    },
+  ],
+}))
+
 vi.mock('@/api/address', () => ({
   getAddresses: (...args: any[]) => getAddressesMock(...args),
   createAddress: (...args: any[]) => createAddressMock(...args),
@@ -203,5 +244,42 @@ describe('AddressManagementView', () => {
     }
     const valid = await (wrapper.vm as any).validateForm()
     expect(valid).toBe(false)
+  })
+
+  it('resets cascader value on new dialog open', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).cascaderValue = ['广东省', '深圳市', '南山区']
+    ;(wrapper.vm as any).openDialog()
+    expect((wrapper.vm as any).cascaderValue).toEqual([])
+    expect((wrapper.vm as any).form.province_name).toBe('')
+  })
+
+  it('populates cascader value on edit dialog open', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).openDialog(mockAddresses[0])
+    expect((wrapper.vm as any).cascaderValue).toEqual(['广东省', '深圳市', '南山区'])
+    expect((wrapper.vm as any).form.province_name).toBe('广东省')
+    expect((wrapper.vm as any).form.city_name).toBe('深圳市')
+    expect((wrapper.vm as any).form.county_name).toBe('南山区')
+  })
+
+  it('fills region fields on cascader change', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).handleRegionChange(['北京市', '市辖区', '东城区'])
+    expect((wrapper.vm as any).form.province_name).toBe('北京市')
+    expect((wrapper.vm as any).form.city_name).toBe('市辖区')
+    expect((wrapper.vm as any).form.county_name).toBe('东城区')
+  })
+
+  it('does not fill region fields when cascader selection is incomplete', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).handleRegionChange(['北京市', '市辖区'])
+    expect((wrapper.vm as any).form.province_name).toBe('')
+    expect((wrapper.vm as any).form.city_name).toBe('')
+    expect((wrapper.vm as any).form.county_name).toBe('')
   })
 })
