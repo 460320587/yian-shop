@@ -9,6 +9,7 @@ use App\Domains\Common\ValueObjects\Money;
 use App\Domains\Coupon\Models\CustomerCoupon;
 use App\Domains\Coupon\Services\CouponDiscountCalculator;
 use App\Domains\Logistics\Models\FreightTemplate;
+use App\Domains\Logistics\Models\OrderDelivery;
 use App\Domains\Logistics\Services\FreightCalculator;
 use App\Domains\User\Models\CustomerAddress;
 use App\Domains\Order\Actions\CancelOrderAction;
@@ -340,6 +341,33 @@ class OrderController extends BaseController
             'operator_type' => $log->operator_type,
             'created_at' => $log->created_at,
         ]));
+    }
+
+    public function confirmReceipt(int $id): JsonResponse
+    {
+        $order = Order::where('customer_id', auth('sanctum')->id())->find($id);
+
+        if (! $order) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权访问该订单', null, 403);
+        }
+
+        if ((int) $order->status !== OrderStatus::Shipped->value) {
+            return $this->error(ErrorCode::ORDER_STATUS_INVALID, '当前订单状态不允许确认收货', null, 422);
+        }
+
+        $order->stateMachine()->transition($order, OrderStatus::Completed->value, [
+            'operator_type' => 'customer',
+            'operator_id' => auth('sanctum')->id(),
+            'remark' => '用户确认收货',
+        ]);
+
+        // 更新 delivery 的 delivered_at
+        $delivery = OrderDelivery::where('order_id', $order->id)->first();
+        if ($delivery) {
+            $delivery->update(['delivered_at' => now()]);
+        }
+
+        return $this->success([], '确认收货成功');
     }
 
     public function cancel(int $id): JsonResponse

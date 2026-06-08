@@ -93,6 +93,7 @@ Route::middleware('auth:sanctum')->prefix('orders')->group(function () {
     Route::get('/{id}', [\App\Http\Controllers\Api\OrderController::class, 'show']);
     Route::get('/{id}/status-logs', [\App\Http\Controllers\Api\OrderController::class, 'statusLogs']);
     Route::put('/{id}/cancel', [\App\Http\Controllers\Api\OrderController::class, 'cancel']);
+    Route::put('/{id}/confirm-receipt', [\App\Http\Controllers\Api\OrderController::class, 'confirmReceipt']);
     Route::post('/{id}/reorder', [\App\Http\Controllers\Api\OrderController::class, 'reorder']);
     Route::post('/{id}/reviews', [\App\Http\Controllers\Api\ReviewController::class, 'store']);
     Route::get('/{id}/files', [\App\Http\Controllers\Api\OrderController::class, 'files']);

@@ -99,12 +99,20 @@ class OrderStateMachine extends BaseStateMachine
 
     private function recordStatusLog(Model $model, int $from, int $to, array $context): void
     {
+        $operatorType = $context['operator_type'] ?? 'system';
+        $operatorId = ($context['operator_id'] ?? 0) > 0 ? $context['operator_id'] : null;
+
+        // operator_id 外键仅关联 admins 表，非 admin 操作者需置空
+        if ($operatorType !== 'admin') {
+            $operatorId = null;
+        }
+
         OrderStatusLog::create([
             'order_id' => $model->id,
             'from_status' => $from,
             'to_status' => $to,
-            'operator_type' => $context['operator_type'] ?? 'system',
-            'operator_id' => ($context['operator_id'] ?? 0) > 0 ? $context['operator_id'] : null,
+            'operator_type' => $operatorType,
+            'operator_id' => $operatorId,
             'remark' => $context['remark'] ?? null,
         ]);
     }
