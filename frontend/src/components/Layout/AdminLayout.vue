@@ -25,6 +25,7 @@ const menuItems = [
   { index: '/admin/audit-logs', label: '审计日志' },
   { index: '/admin/system-configs', label: '系统配置' },
   { index: '/admin/ink-coverage-checks', label: '印前检查' },
+  { index: '/admin/reviews', label: '评价管理' },
 ]
 
 const activeMenu = computed(() => route.path)

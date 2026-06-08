@@ -402,6 +402,38 @@ export function deleteAdminSampleOrder(id: number) {
   return delAdmin(`/sample-orders/${id}`)
 }
 
+// ===== Review =====
+export interface AdminReview {
+  id: number
+  customer_id: number
+  product_id: number
+  order_id: number | null
+  rating: number
+  content: string
+  images: string[] | null
+  reply: string | null
+  reply_at: string | null
+  is_show: boolean
+  created_at: string
+  customer?: { id: number; nickname: string | null }
+  product?: { id: number; name: string; thumbnail: string | null }
+}
+export function getAdminReviews(params?: { product_id?: number; is_show?: boolean; keyword?: string; page?: number; per_page?: number }) {
+  return getAdmin<{ data: AdminReview[]; total: number; current_page: number; last_page: number }>('/reviews', params)
+}
+export function getAdminReviewDetail(id: number) {
+  return getAdmin<AdminReview>(`/reviews/${id}`)
+}
+export function replyAdminReview(id: number, data: { reply: string }) {
+  return putAdmin<{ id: number; reply: string; reply_at: string }>(`/reviews/${id}/reply`, data)
+}
+export function toggleAdminReviewShow(id: number) {
+  return putAdmin<{ is_show: boolean }>(`/reviews/${id}/toggle-show`)
+}
+export function deleteAdminReview(id: number) {
+  return delAdmin(`/reviews/${id}`)
+}
+
 // ===== Order File =====
 export interface AdminOrderFile {
   id: number
