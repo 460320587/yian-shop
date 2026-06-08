@@ -8,10 +8,12 @@ use App\Domains\Payment\Models\Payment;
 use App\Domains\Payment\Services\PaymentService;
 use App\Domains\Payment\Webhooks\WebhookVerifierFactory;
 use App\Http\Controllers\BaseController;
+use App\Infrastructure\Lock\LockManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class PaymentWebhookController extends BaseController
 {
@@ -48,12 +50,18 @@ class PaymentWebhookController extends BaseController
             return response()->json(['code' => 'FAIL', 'message' => '金额不匹配'], 400);
         }
 
-        if ($payload['trade_state'] === 'SUCCESS') {
-            $this->paymentService->confirm(
-                $payment,
-                $payload['transaction_id'] ?? null,
-                $payload,
-            );
+        try {
+            app(LockManager::class)->block("webhook:wechat:{$payment->payment_no}", 30, function () use ($payment, $payload) {
+                if ($payload['trade_state'] === 'SUCCESS') {
+                    $this->paymentService->confirm(
+                        $payment,
+                        $payload['transaction_id'] ?? null,
+                        $payload,
+                    );
+                }
+            });
+        } catch (RuntimeException $e) {
+            return response()->json(['code' => 'FAIL', 'message' => '处理中'], 429);
         }
 
         return response()->json(['code' => 'SUCCESS']);
@@ -84,20 +92,28 @@ class PaymentWebhookController extends BaseController
 
         $successStatuses = ['TRADE_SUCCESS', 'TRADE_FINISHED'];
 
-        if (in_array($payload['trade_status'], $successStatuses, true)) {
-            // 金额校验（支付宝返回元）
-            if (isset($payload['total_amount'])) {
-                $amountYuan = (int) round((float) $payload['total_amount'] * 100);
-                if ($amountYuan !== $payment->amount->amount) {
-                    return response('fail');
-                }
-            }
+        try {
+            app(LockManager::class)->block("webhook:alipay:{$payment->payment_no}", 30, function () use ($payment, $payload, $successStatuses) {
+                if (in_array($payload['trade_status'], $successStatuses, true)) {
+                    // 金额校验（支付宝返回元）
+                    if (isset($payload['total_amount'])) {
+                        $amountYuan = (int) round((float) $payload['total_amount'] * 100);
+                        if ($amountYuan !== $payment->amount->amount) {
+                            throw new \InvalidArgumentException('金额不匹配');
+                        }
+                    }
 
-            $this->paymentService->confirm(
-                $payment,
-                $payload['trade_no'] ?? null,
-                $payload,
-            );
+                    $this->paymentService->confirm(
+                        $payment,
+                        $payload['trade_no'] ?? null,
+                        $payload,
+                    );
+                }
+            });
+        } catch (RuntimeException $e) {
+            return response('fail', 429);
+        } catch (\InvalidArgumentException $e) {
+            return response('fail');
         }
 
         return response('success');

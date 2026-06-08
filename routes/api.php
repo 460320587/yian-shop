@@ -1,5 +1,6 @@
 <?php
 
+use App\Infrastructure\Middleware\RateLimiter;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/health', fn () => ['status' => 'ok', 'time' => now()->toDateTimeString()]);
 
 // 门户与首页 (Phase 10)
-Route::prefix('portal')->group(function () {
+Route::middleware([RateLimiter::class . ':api,60,1'])->prefix('portal')->group(function () {
     Route::get('/banners', [\App\Http\Controllers\Api\PortalController::class, 'banners']);
     Route::get('/categories', [\App\Http\Controllers\Api\CategoryController::class, 'tree']);
     Route::get('/announcements', [\App\Http\Controllers\Api\PortalController::class, 'announcements']);
@@ -39,7 +40,7 @@ Route::prefix('auth')->group(function () {
 });
 
 // 用户中心
-Route::middleware('auth:sanctum')->prefix('user')->group(function () {
+Route::middleware(['auth:sanctum', RateLimiter::class . ':api,60,1'])->prefix('user')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\Api\AuthController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Api\AuthController::class, 'updateProfile']);
     Route::get('/dashboard', [\App\Http\Controllers\Api\UserController::class, 'dashboard']);
@@ -111,8 +112,10 @@ Route::middleware('auth:sanctum')->prefix('payments')->group(function () {
 });
 
 // 支付回调（无需认证）
-Route::post('/webhooks/wechat-pay', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'wechatPay']);
-Route::post('/webhooks/alipay', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'alipay']);
+Route::post('/webhooks/wechat-pay', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'wechatPay'])
+    ->middleware(RateLimiter::class . ':webhook,30,1');
+Route::post('/webhooks/alipay', [\App\Http\Controllers\Api\PaymentWebhookController::class, 'alipay'])
+    ->middleware(RateLimiter::class . ':webhook,30,1');
 
 // 钱包 (Phase 5)
 Route::middleware('auth:sanctum')->prefix('wallet')->group(function () {

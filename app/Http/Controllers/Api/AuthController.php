@@ -18,6 +18,7 @@ use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 
 class AuthController extends BaseController
 {
@@ -48,13 +49,25 @@ class AuthController extends BaseController
 
     public function login(LoginRequest $request): JsonResponse
     {
+        $phone = $request->input('phone');
+        $rateKey = 'login:' . $phone;
+
+        // 防暴力破解：5次失败后锁定15分钟
+        if (RateLimiter::tooManyAttempts($rateKey, 5)) {
+            return $this->error(ErrorCode::AUTH_TOO_MANY_ATTEMPTS, '登录失败次数过多，请15分钟后再试', null, 429);
+        }
+
         $data = $request->validated();
 
         $customer = Customer::where('phone', $data['phone'])->first();
 
         if (!$customer || !Hash::check($data['password'], $customer->password)) {
+            RateLimiter::hit($rateKey, 15 * 60);
             return $this->error(ErrorCode::AUTH_LOGIN_FAILED, '手机号或密码错误', null, 401);
         }
+
+        // 成功登录清除失败计数
+        RateLimiter::clear($rateKey);
 
         $token = $customer->createToken('api')->plainTextToken;
 
@@ -192,6 +205,14 @@ class AuthController extends BaseController
     public function sendSmsCode(SendSmsCodeRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $rateKey = 'sms_rate:' . $data['phone'];
+
+        // 短信验证码限流：3次/分钟（SmsCodeService 内部有日限流 10次/天）
+        if (RateLimiter::tooManyAttempts($rateKey, 3)) {
+            return $this->error(ErrorCode::SMS_SEND_TOO_FREQUENT, '请求过于频繁，请稍后再试', null, 429);
+        }
+
+        RateLimiter::hit($rateKey, 60);
 
         (new SmsCodeService())->send(
             $data['phone'],

@@ -21,6 +21,7 @@ enum ErrorCode: int
     case AUTH_TOKEN_EXPIRED = 1001;
     case AUTH_TOKEN_INVALID = 1002;
     case AUTH_LOGOUT_FAILED = 1003;
+    case AUTH_TOO_MANY_ATTEMPTS = 1004;
     case SMS_SEND_TOO_FREQUENT = 1010;
     case SMS_CODE_INVALID = 1011;
     case SMS_SEND_FAILED = 1012;

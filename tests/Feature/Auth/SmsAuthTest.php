@@ -7,6 +7,7 @@ namespace Tests\Feature\Auth;
 use App\Domains\User\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
 class SmsAuthTest extends TestCase
@@ -60,6 +61,8 @@ class SmsAuthTest extends TestCase
 
         for ($i = 2; $i <= 10; $i++) {
             Cache::forget('sms_code_lock:13800138000');
+            RateLimiter::clear('sms_code:13800138000');
+            RateLimiter::clear('sms_rate:13800138000');
             Cache::put("captcha_key_{$i}", 'ABCD', now()->addMinutes(5));
             $this->postJson('/api/v1/auth/sms-code', [
                 'phone' => '13800138000',
