@@ -464,3 +464,30 @@ export function shipAdminOrder(id: number, data: { express_company: string; trac
 export function completeAdminOrder(id: number) {
   return putAdmin(`/orders/${id}/complete`)
 }
+
+// ===== Category =====
+export interface AdminCategory {
+  id: number
+  name: string
+  parent_id: number
+  icon: string | null
+  sort: number
+  status: number
+  level: number
+  path: string
+}
+export function getAdminCategories() {
+  return getAdmin<AdminCategory[]>('/categories')
+}
+export function createAdminCategory(data: { name: string; parent_id?: number; icon?: string; sort?: number }) {
+  return postAdmin<AdminCategory>('/categories', data)
+}
+export function updateAdminCategory(id: number, data: { name?: string; icon?: string; sort?: number }) {
+  return putAdmin(`/categories/${id}`, data)
+}
+export function toggleAdminCategoryStatus(id: number) {
+  return putAdmin<{ status: number }>(`/categories/${id}/toggle-status`)
+}
+export function deleteAdminCategory(id: number) {
+  return delAdmin(`/categories/${id}`)
+}

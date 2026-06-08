@@ -26,6 +26,7 @@ const menuItems = [
   { index: '/admin/system-configs', label: '系统配置' },
   { index: '/admin/ink-coverage-checks', label: '印前检查' },
   { index: '/admin/reviews', label: '评价管理' },
+  { index: '/admin/categories', label: '商品分类' },
 ]
 
 const activeMenu = computed(() => route.path)

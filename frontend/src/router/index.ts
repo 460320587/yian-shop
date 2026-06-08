@@ -64,6 +64,7 @@ const routes: RouteRecordRaw[] = [
       { path: 'tickets', name: 'AdminTickets', component: () => import('@/views/admin/TicketManagementView.vue'), meta: { title: '工单管理' } },
       { path: 'sample-orders', name: 'AdminSampleOrders', component: () => import('@/views/admin/SampleOrderManagementView.vue'), meta: { title: '样品订单' } },
       { path: 'reviews', name: 'AdminReviews', component: () => import('@/views/admin/ReviewManagementView.vue'), meta: { title: '评价管理' } },
+      { path: 'categories', name: 'AdminCategories', component: () => import('@/views/admin/CategoryManagementView.vue'), meta: { title: '商品分类' } },
     ],
   },
   { path: '/admin/login', name: 'AdminLogin', component: () => import('@/views/admin/AdminLoginView.vue'), meta: { guestAdmin: true } },
