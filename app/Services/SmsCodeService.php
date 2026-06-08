@@ -6,6 +6,8 @@ namespace App\Services;
 
 use App\Domains\Notification\Models\SmsLog;
 use App\Exceptions\BusinessException;
+use App\Services\Sms\Contracts\SmsDriverInterface;
+use App\Services\Sms\SmsDriverFactory;
 use App\Support\ErrorCode;
 use Illuminate\Support\Facades\Cache;
 
@@ -18,6 +20,13 @@ class SmsCodeService
     private const LOCK_TTL_SECONDS = 60;  // 60 seconds
     private const DAILY_LIMIT = 10;
     private const CODE_LENGTH = 6;
+
+    private SmsDriverInterface $driver;
+
+    public function __construct(?SmsDriverInterface $driver = null)
+    {
+        $this->driver = $driver ?? SmsDriverFactory::make();
+    }
 
     public function generateCode(): string
     {
@@ -96,14 +105,13 @@ class SmsCodeService
             'content' => '验证码：' . $code . '，5分钟内有效',
             'type' => 1,
             'status' => 1,
-            'provider' => 'mock',
+            'provider' => $this->driver->getName(),
             'ip_address' => request()->ip(),
         ]);
     }
 
     private function dispatchSms(string $phone, string $code): void
     {
-        // TODO: 接入真实短信网关（阿里云/腾讯云）
-        // 当前为 Mock 实现，仅记录日志
+        $this->driver->send($phone, 'SMS_VERIFY', ['code' => $code]);
     }
 }
