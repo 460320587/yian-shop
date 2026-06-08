@@ -21,6 +21,9 @@ class DatabaseSeeder extends Seeder
             AdminSeeder::class,
             ArticleSeeder::class,
             SystemConfigSeeder::class,
+            CustomerSeeder::class,
+            CouponSeeder::class,
+            CarrierSeeder::class,
         ]);
     }
 }
