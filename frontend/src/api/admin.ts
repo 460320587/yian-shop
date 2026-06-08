@@ -594,3 +594,36 @@ export function getRolePermissions(id: number) {
 export function assignRolePermissions(id: number, data: { permission_ids: number[] }) {
   return putAdmin(`/roles/${id}/permissions`, data)
 }
+
+// ===== Production Schedule =====
+export interface AdminProductionSchedule {
+  id: number
+  order_id: number
+  order?: { id: number; order_no: string }
+  schedule_date: string
+  start_time: string | null
+  end_time: string | null
+  process_name: string
+  status: number
+  priority: number
+  estimated_hours: number
+  actual_hours: number | null
+  progress: number
+  delay_reason: string | null
+  created_at: string
+}
+export function getAdminProductionSchedules(params?: { status?: number; order_id?: number; process_name?: string; schedule_date_from?: string; schedule_date_to?: string; page?: number; per_page?: number }) {
+  return getAdmin<{ data: AdminProductionSchedule[]; total: number; current_page: number; last_page: number }>('/production-schedules', params)
+}
+export function getAdminProductionScheduleDetail(id: number) {
+  return getAdmin<AdminProductionSchedule>(`/production-schedules/${id}`)
+}
+export function createAdminProductionSchedule(data: { order_id: number; schedule_date: string; process_name: string; priority?: number; estimated_hours?: number }) {
+  return postAdmin<AdminProductionSchedule>('/production-schedules', data)
+}
+export function updateAdminProductionSchedule(id: number, data: { schedule_date?: string; process_name?: string; priority?: number; estimated_hours?: number; actual_hours?: number; progress?: number; status?: number; delay_reason?: string }) {
+  return putAdmin<AdminProductionSchedule>(`/production-schedules/${id}`, data)
+}
+export function updateAdminProductionScheduleProgress(id: number, data: { progress: number; actual_hours?: number }) {
+  return putAdmin<AdminProductionSchedule>(`/production-schedules/${id}/progress`, data)
+}
