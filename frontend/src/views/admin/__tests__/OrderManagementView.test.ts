@@ -15,19 +15,26 @@ vi.mock('element-plus', async () => {
 
 const mockOrders = [
   { id: 1, order_no: 'Y202601010001', customer_name: '张三', total_amount: 5000, status: 11, customer_status: '待付款', created_at: '2026-01-01 10:00:00' },
-  { id: 2, order_no: 'Y202601010002', customer_name: '李四', total_amount: 12000, status: 20, customer_status: '生产中', created_at: '2026-01-02 14:30:00' },
+  { id: 2, order_no: 'Y202601010002', customer_name: '李四', total_amount: 12000, status: 12, customer_status: '已付款', created_at: '2026-01-02 14:30:00' },
+  { id: 3, order_no: 'Y202601010003', customer_name: '王五', total_amount: 8000, status: 20, customer_status: '已发货', created_at: '2026-01-03 09:00:00' },
 ]
 
 let getAdminOrdersMock = vi.fn()
 let getAdminOrderDetailMock = vi.fn()
 let getAdminOrderFilesMock = vi.fn()
 let deleteAdminOrderFileMock = vi.fn()
+let confirmAdminOrderPaymentMock = vi.fn()
+let shipAdminOrderMock = vi.fn()
+let completeAdminOrderMock = vi.fn()
 
 vi.mock('@/api/admin', () => ({
   getAdminOrders: (...args: any[]) => getAdminOrdersMock(...args),
   getAdminOrderDetail: (...args: any[]) => getAdminOrderDetailMock(...args),
   getAdminOrderFiles: (...args: any[]) => getAdminOrderFilesMock(...args),
   deleteAdminOrderFile: (...args: any[]) => deleteAdminOrderFileMock(...args),
+  confirmAdminOrderPayment: (...args: any[]) => confirmAdminOrderPaymentMock(...args),
+  shipAdminOrder: (...args: any[]) => shipAdminOrderMock(...args),
+  completeAdminOrder: (...args: any[]) => completeAdminOrderMock(...args),
 }))
 
 const mockOrderFiles = [
@@ -36,7 +43,7 @@ const mockOrderFiles = [
 ]
 
 beforeEach(() => {
-  getAdminOrdersMock = vi.fn(() => Promise.resolve({ data: mockOrders, total: 2, current_page: 1, last_page: 1 }))
+  getAdminOrdersMock = vi.fn(() => Promise.resolve({ data: mockOrders, total: 3, current_page: 1, last_page: 1 }))
   getAdminOrderDetailMock = vi.fn(() => Promise.resolve({
     id: 1, order_no: 'Y202601010001', customer_name: '张三', total_amount: 5000, status: 11, customer_status: '待付款',
     customer: { id: 1, phone: '13800138000' },
@@ -45,6 +52,9 @@ beforeEach(() => {
   }))
   getAdminOrderFilesMock = vi.fn(() => Promise.resolve({ data: mockOrderFiles }))
   deleteAdminOrderFileMock = vi.fn(() => Promise.resolve({}))
+  confirmAdminOrderPaymentMock = vi.fn(() => Promise.resolve({}))
+  shipAdminOrderMock = vi.fn(() => Promise.resolve({}))
+  completeAdminOrderMock = vi.fn(() => Promise.resolve({}))
 })
 
 describe('OrderManagementView', () => {
@@ -67,9 +77,9 @@ describe('OrderManagementView', () => {
     const wrapper = mountComponent()
     await flushPromises()
     expect(getAdminOrdersMock).toHaveBeenCalledTimes(1)
-    expect((wrapper.vm as any).orders).toHaveLength(2)
+    expect((wrapper.vm as any).orders).toHaveLength(3)
     expect((wrapper.vm as any).orders[0].order_no).toBe('Y202601010001')
-    expect((wrapper.vm as any).total).toBe(2)
+    expect((wrapper.vm as any).total).toBe(3)
   })
 
   it('filters orders by keyword on search', async () => {
@@ -137,5 +147,61 @@ describe('OrderManagementView', () => {
     expect(vm.formatFileSize(1024)).toBe('1.00 KB')
     expect(vm.formatFileSize(1024000)).toBe('1000.00 KB')
     expect(vm.formatFileSize(1048576)).toBe('1.00 MB')
+  })
+
+  it('shows confirm payment button for pending payment orders', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    expect(vm.canConfirmPayment(11)).toBe(true)
+    expect(vm.canConfirmPayment(12)).toBe(false)
+  })
+
+  it('shows ship button for paid or pending delivery orders', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    expect(vm.canShip(12)).toBe(true)
+    expect(vm.canShip(17)).toBe(true)
+    expect(vm.canShip(11)).toBe(false)
+  })
+
+  it('shows complete button for shipped orders', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    const vm = wrapper.vm as any
+    expect(vm.canComplete(20)).toBe(true)
+    expect(vm.canComplete(11)).toBe(false)
+  })
+
+  it('calls confirm payment API', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    await (wrapper.vm as any).handleConfirmPayment(mockOrders[0])
+    await flushPromises()
+    expect(confirmAdminOrderPaymentMock).toHaveBeenCalledWith(1)
+    expect(getAdminOrdersMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('opens ship dialog and submits', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).openShipDialog(mockOrders[1])
+    expect((wrapper.vm as any).shipDialogVisible).toBe(true)
+    ;(wrapper.vm as any).shipForm.express_company = '顺丰速运'
+    ;(wrapper.vm as any).shipForm.tracking_no = 'SF123456'
+    await (wrapper.vm as any).handleShip()
+    await flushPromises()
+    expect(shipAdminOrderMock).toHaveBeenCalledWith(2, { express_company: '顺丰速运', tracking_no: 'SF123456' })
+    expect((wrapper.vm as any).shipDialogVisible).toBe(false)
+  })
+
+  it('calls complete order API', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    await (wrapper.vm as any).handleComplete(mockOrders[2])
+    await flushPromises()
+    expect(completeAdminOrderMock).toHaveBeenCalledWith(3)
+    expect(getAdminOrdersMock).toHaveBeenCalledTimes(2)
   })
 })

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getAdminOrders, getAdminOrderDetail, getAdminOrderFiles, deleteAdminOrderFile } from '@/api/admin'
+import { getAdminOrders, getAdminOrderDetail, getAdminOrderFiles, deleteAdminOrderFile, confirmAdminOrderPayment, shipAdminOrder, completeAdminOrder } from '@/api/admin'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const orders = ref<any[]>([])
@@ -16,6 +16,9 @@ const fileDialogVisible = ref(false)
 const fileDialogLoading = ref(false)
 const orderFiles = ref<any[]>([])
 const currentOrderId = ref<number | null>(null)
+const shipDialogVisible = ref(false)
+const shipForm = ref({ express_company: '', tracking_no: '' })
+const currentShipOrder = ref<any>(null)
 
 const statusOptions = [
   { label: '全部', value: '' },
@@ -88,6 +91,61 @@ async function handleDeleteFile(row: any) {
   }
 }
 
+function canConfirmPayment(status: number): boolean {
+  return status === 11
+}
+function canShip(status: number): boolean {
+  return status === 12 || status === 17
+}
+function canComplete(status: number): boolean {
+  return status === 20
+}
+
+async function handleConfirmPayment(row: any) {
+  try {
+    await confirmAdminOrderPayment(row.id)
+    ElMessage.success('已确认收款')
+    loadOrders()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+function openShipDialog(row: any) {
+  currentShipOrder.value = row
+  shipForm.value = { express_company: '', tracking_no: '' }
+  shipDialogVisible.value = true
+}
+
+async function handleShip() {
+  if (!currentShipOrder.value) return
+  if (!shipForm.value.express_company.trim()) {
+    ElMessage.warning('请输入物流公司')
+    return
+  }
+  try {
+    await shipAdminOrder(currentShipOrder.value.id, {
+      express_company: shipForm.value.express_company.trim(),
+      tracking_no: shipForm.value.tracking_no.trim() || undefined,
+    })
+    ElMessage.success('已发货')
+    shipDialogVisible.value = false
+    loadOrders()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+async function handleComplete(row: any) {
+  try {
+    await completeAdminOrder(row.id)
+    ElMessage.success('订单已完成')
+    loadOrders()
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 function formatAmount(amount: number): string {
   return '¥' + (amount / 100).toFixed(2)
 }
@@ -121,6 +179,13 @@ defineExpose({
   openDetail,
   openFileDialog,
   handleDeleteFile,
+  handleConfirmPayment,
+  openShipDialog,
+  handleShip,
+  handleComplete,
+  canConfirmPayment,
+  canShip,
+  canComplete,
   formatAmount,
   formatFileSize,
 })
@@ -154,10 +219,13 @@ defineExpose({
         </template>
       </el-table-column>
       <el-table-column prop="created_at" label="创建时间" min-width="160" />
-      <el-table-column label="操作" width="180">
+      <el-table-column label="操作" width="260">
         <template #default="scope">
           <el-button v-if="scope?.row" link type="primary" @click="openDetail(scope.row)">查看</el-button>
           <el-button v-if="scope?.row" link type="success" @click="openFileDialog(scope.row)">文件</el-button>
+          <el-button v-if="scope?.row && canConfirmPayment(scope.row.status)" link type="warning" @click="handleConfirmPayment(scope.row)">确认收款</el-button>
+          <el-button v-if="scope?.row && canShip(scope.row.status)" link type="warning" @click="openShipDialog(scope.row)">发货</el-button>
+          <el-button v-if="scope?.row && canComplete(scope.row.status)" link type="danger" @click="handleComplete(scope.row)">完成</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -189,6 +257,22 @@ defineExpose({
           </el-table>
         </div>
       </div>
+    </el-dialog>
+
+    <!-- 发货对话框 -->
+    <el-dialog v-model="shipDialogVisible" title="订单发货" width="480px">
+      <el-form :model="shipForm" label-width="90px">
+        <el-form-item label="物流公司" required>
+          <el-input v-model="shipForm.express_company" placeholder="请输入物流公司名称" maxlength="50" />
+        </el-form-item>
+        <el-form-item label="运单号">
+          <el-input v-model="shipForm.tracking_no" placeholder="请输入运单号" maxlength="50" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="shipDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleShip">确认发货</el-button>
+      </template>
     </el-dialog>
 
     <!-- 订单文件对话框 -->

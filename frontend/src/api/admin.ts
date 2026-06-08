@@ -455,3 +455,12 @@ export function getAdminOrderFiles(orderId: number) {
 export function deleteAdminOrderFile(id: number) {
   return delAdmin(`/order-files/${id}`)
 }
+export function confirmAdminOrderPayment(id: number) {
+  return putAdmin(`/orders/${id}/confirm-payment`)
+}
+export function shipAdminOrder(id: number, data: { express_company: string; tracking_no?: string }) {
+  return putAdmin(`/orders/${id}/ship`, data)
+}
+export function completeAdminOrder(id: number) {
+  return putAdmin(`/orders/${id}/complete`)
+}
