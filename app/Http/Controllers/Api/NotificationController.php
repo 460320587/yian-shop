@@ -60,4 +60,17 @@ class NotificationController extends BaseController
 
         return $this->success(['unread_count' => $count]);
     }
+
+    public function destroy(int $id): JsonResponse
+    {
+        $notification = CustomerNotification::where('customer_id', auth('sanctum')->id())->find($id);
+
+        if (! $notification) {
+            return $this->error(ErrorCode::FORBIDDEN, '无权操作该通知', null, 403);
+        }
+
+        $notification->forceDelete();
+
+        return $this->success([], '删除成功');
+    }
 }

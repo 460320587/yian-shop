@@ -175,6 +175,7 @@ Route::middleware('auth:sanctum')->prefix('notifications')->group(function () {
     Route::put('/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markRead']);
     Route::put('/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllRead']);
     Route::get('/unread-count', [\App\Http\Controllers\Api\NotificationController::class, 'unreadCount']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\NotificationController::class, 'destroy']);
 });
 
 // 内容系统 (Phase 10)

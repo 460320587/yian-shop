@@ -110,4 +110,31 @@ class NotificationTest extends TestCase
         $response = $this->putJson('/api/v1/notifications/' . $notification->id . '/read');
         $response->assertStatus(403);
     }
+
+    public function test_user_can_delete_notification(): void
+    {
+        $customer = $this->authCustomer();
+        $notification = CustomerNotification::factory()->create([
+            'customer_id' => $customer->id,
+        ]);
+
+        $response = $this->deleteJson('/api/v1/notifications/' . $notification->id);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('code', 0);
+
+        $this->assertDatabaseMissing('customer_notifications', ['id' => $notification->id]);
+    }
+
+    public function test_user_cannot_delete_others_notification(): void
+    {
+        $this->authCustomer();
+        $otherCustomer = Customer::factory()->create();
+        $notification = CustomerNotification::factory()->create([
+            'customer_id' => $otherCustomer->id,
+        ]);
+
+        $response = $this->deleteJson('/api/v1/notifications/' . $notification->id);
+        $response->assertStatus(403);
+    }
 }

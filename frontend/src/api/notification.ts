@@ -1,4 +1,4 @@
-import { get, put } from '@/utils/request'
+import { get, put, del } from '@/utils/request'
 
 export interface NotificationItem {
   id: number
@@ -36,4 +36,8 @@ export function markAllNotificationsRead() {
 
 export function getUnreadCount() {
   return get<UnreadCountResponse>('/notifications/unread-count')
+}
+
+export function deleteNotification(id: number) {
+  return del('/notifications/' + id)
 }
