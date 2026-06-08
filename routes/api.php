@@ -290,6 +290,11 @@ Route::prefix('admin')->group(function () {
         Route::put('/production-schedules/{id}', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'update']);
         Route::put('/production-schedules/{id}/progress', [\App\Http\Controllers\Api\Admin\AdminProductionScheduleController::class, 'updateProgress']);
 
+        // 库存管理
+        Route::get('/inventory', [\App\Http\Controllers\Api\Admin\AdminInventoryController::class, 'index']);
+        Route::put('/inventory/{id}/adjust', [\App\Http\Controllers\Api\Admin\AdminInventoryController::class, 'adjust']);
+        Route::get('/inventory/logs', [\App\Http\Controllers\Api\Admin\AdminInventoryController::class, 'logs']);
+
         // 样品订单管理
         Route::get('/sample-orders', [\App\Http\Controllers\Api\Admin\AdminSampleOrderController::class, 'index']);
         Route::get('/sample-orders/{id}', [\App\Http\Controllers\Api\Admin\AdminSampleOrderController::class, 'show']);

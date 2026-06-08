@@ -19,3 +19,6 @@ Schedule::command('db:backup --compress')->dailyAt('03:00');
 
 // 清理过期备份（每周一凌晨4点）
 Schedule::command('db:backup:cleanup')->weeklyOn(1, '04:00');
+
+// 库存预警检查（每天上午8点）
+Schedule::command('inventory:check-alert')->dailyAt('08:00');
