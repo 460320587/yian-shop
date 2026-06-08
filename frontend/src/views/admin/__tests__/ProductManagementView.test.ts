@@ -11,17 +11,23 @@ const mockProducts = [
 
 let getAdminProductsMock = vi.fn()
 let createAdminProductMock = vi.fn()
+let updateAdminProductMock = vi.fn()
+let getAdminProductDetailMock = vi.fn()
 let toggleProductStatusMock = vi.fn()
 
 vi.mock('@/api/admin', () => ({
   getAdminProducts: (...args: any[]) => getAdminProductsMock(...args),
   createAdminProduct: (...args: any[]) => createAdminProductMock(...args),
+  updateAdminProduct: (...args: any[]) => updateAdminProductMock(...args),
+  getAdminProductDetail: (...args: any[]) => getAdminProductDetailMock(...args),
   toggleProductStatus: (...args: any[]) => toggleProductStatusMock(...args),
 }))
 
 beforeEach(() => {
   getAdminProductsMock = vi.fn(() => Promise.resolve({ data: mockProducts, total: 2, current_page: 1, last_page: 1 }))
   createAdminProductMock = vi.fn(() => Promise.resolve({ id: 3, name: '新产品', code: 'NEW-001', price_min: 1000, price_max: 5000, status: 1 }))
+  updateAdminProductMock = vi.fn(() => Promise.resolve({ id: 1, name: '名片-改', code: 'CARD-001', price_min: 1500, price_max: 5500, status: 1 }))
+  getAdminProductDetailMock = vi.fn(() => Promise.resolve(mockProducts[0]))
   toggleProductStatusMock = vi.fn(() => Promise.resolve({ status: 0 }))
 })
 
@@ -78,5 +84,30 @@ describe('ProductManagementView', () => {
     await flushPromises()
     expect(createAdminProductMock).toHaveBeenCalledWith(expect.objectContaining({ name: '新产品', code: 'NEW-001' }))
     expect((wrapper.vm as any).dialogVisible).toBe(false)
+  })
+
+  it('opens edit dialog and loads product detail', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).openEdit(mockProducts[0])
+    await flushPromises()
+    expect(getAdminProductDetailMock).toHaveBeenCalledWith(1)
+    expect((wrapper.vm as any).dialogVisible).toBe(true)
+    expect((wrapper.vm as any).isEdit).toBe(true)
+    expect((wrapper.vm as any).form.name).toBe('名片')
+  })
+
+  it('updates existing product', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).openEdit(mockProducts[0])
+    await flushPromises()
+    ;(wrapper.vm as any).form.name = '名片-改'
+    ;(wrapper.vm as any).form.price_min = 1500
+    ;(wrapper.vm as any).handleSave()
+    await flushPromises()
+    expect(updateAdminProductMock).toHaveBeenCalledWith(1, expect.objectContaining({ name: '名片-改', price_min: 1500 }))
+    expect((wrapper.vm as any).dialogVisible).toBe(false)
+    expect(getAdminProductsMock).toHaveBeenCalledTimes(2)
   })
 })
