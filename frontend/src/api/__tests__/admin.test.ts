@@ -3,6 +3,7 @@ import {
   adminLogin, adminLogout, adminProfile,
   getDashboardStats,
   getAdminProducts, getAdminProductDetail, createAdminProduct, toggleProductStatus,
+  getAdminCustomers, getAdminCustomerDetail, toggleAdminCustomerStatus,
   getAdminAuditLogs, getAdminAuditLogDetail,
   getSystemConfigs, updateSystemConfig, batchUpdateSystemConfigs,
 } from '../admin'
@@ -44,6 +45,15 @@ vi.mock('@/utils/request', () => ({
     if (url.startsWith('/admin/products/')) {
       return Promise.resolve({ id: 1, name: '名片', code: 'CARD-001', price_min: 1000, price_max: 5000, status: 1, category: { id: 1, name: '名片' } })
     }
+    if (url === '/admin/customers') {
+      return Promise.resolve({
+        data: [{ id: 1, phone: '13800138000', name: '张三', company_name: '怡安公司', status: 1, created_at: '2026-01-01' }],
+        total: 1, current_page: 1, last_page: 1,
+      })
+    }
+    if (url.startsWith('/admin/customers/')) {
+      return Promise.resolve({ id: 1, phone: '13800138000', name: '张三', company_name: '怡安公司', status: 1, created_at: '2026-01-01' })
+    }
     if (url === '/admin/audit-logs') {
       return Promise.resolve({
         data: [{ id: 1, admin_id: 1, admin_name: '管理员', action: 'login', model_type: 'Admin', model_id: 1, ip: '127.0.0.1', result: 1, created_at: '2026-01-01' }],
@@ -66,6 +76,9 @@ vi.mock('@/utils/request', () => ({
   }),
   put: vi.fn((url: string) => {
     if (url.startsWith('/admin/products/')) {
+      return Promise.resolve({ status: 0 })
+    }
+    if (url.startsWith('/admin/customers/')) {
       return Promise.resolve({ status: 0 })
     }
     if (url.startsWith('/admin/system-configs/')) {
@@ -116,6 +129,23 @@ describe('Admin API', () => {
 
   it('toggleProductStatus toggles status', async () => {
     const res = await toggleProductStatus(1)
+    expect(res.status).toBe(0)
+  })
+
+  it('getAdminCustomers returns paginated customers', async () => {
+    const res = await getAdminCustomers()
+    expect(res.data).toHaveLength(1)
+    expect(res.data[0].phone).toBe('13800138000')
+    expect(res.total).toBe(1)
+  })
+
+  it('getAdminCustomerDetail returns customer info', async () => {
+    const customer = await getAdminCustomerDetail(1)
+    expect(customer.phone).toBe('13800138000')
+  })
+
+  it('toggleAdminCustomerStatus toggles status', async () => {
+    const res = await toggleAdminCustomerStatus(1)
     expect(res.status).toBe(0)
   })
 

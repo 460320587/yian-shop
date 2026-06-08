@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getAdminCustomers, getAdminCustomerDetail } from '@/api/admin'
+import { getAdminCustomers, getAdminCustomerDetail, toggleAdminCustomerStatus } from '@/api/admin'
 import { ElMessage } from 'element-plus'
 
 const customers = ref<any[]>([])
@@ -57,6 +57,18 @@ function formatVip(level: number): string {
   return level > 0 ? `VIP${level}` : '普通'
 }
 
+async function handleToggleStatus(row: any) {
+  const action = row.status === 1 ? '禁用' : '启用'
+  try {
+    await toggleAdminCustomerStatus(row.id)
+    ElMessage.success(`${action}成功`)
+    loadCustomers()
+  } catch (e) {
+    console.error(e)
+    ElMessage.error(`${action}失败`)
+  }
+}
+
 onMounted(loadCustomers)
 </script>
 
@@ -92,9 +104,12 @@ onMounted(loadCustomers)
         </template>
       </el-table-column>
       <el-table-column prop="created_at" label="注册时间" min-width="160" />
-      <el-table-column label="操作" width="100">
+      <el-table-column label="操作" width="180">
         <template #default="scope">
           <el-button v-if="scope?.row" link type="primary" @click="openDetail(scope.row)">查看</el-button>
+          <el-button v-if="scope?.row" link :type="scope.row.status === 1 ? 'danger' : 'success'" @click="handleToggleStatus(scope.row)">
+            {{ scope.row.status === 1 ? '禁用' : '启用' }}
+          </el-button>
         </template>
       </el-table-column>
     </el-table>

@@ -94,6 +94,9 @@ export function getAdminCustomers(params?: { keyword?: string; page?: number; pe
 export function getAdminCustomerDetail(id: number) {
   return getAdmin<AdminCustomer & { orders_count?: number; total_spent?: number }>(`/customers/${id}`)
 }
+export function toggleAdminCustomerStatus(id: number) {
+  return putAdmin<{ status: number }>(`/customers/${id}/toggle-status`)
+}
 
 // ===== Order =====
 export interface AdminOrder {

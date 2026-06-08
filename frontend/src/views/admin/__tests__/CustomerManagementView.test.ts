@@ -11,10 +11,12 @@ const mockCustomers = [
 
 let getAdminCustomersMock = vi.fn()
 let getAdminCustomerDetailMock = vi.fn()
+let toggleAdminCustomerStatusMock = vi.fn()
 
 vi.mock('@/api/admin', () => ({
   getAdminCustomers: (...args: any[]) => getAdminCustomersMock(...args),
   getAdminCustomerDetail: (...args: any[]) => getAdminCustomerDetailMock(...args),
+  toggleAdminCustomerStatus: (...args: any[]) => toggleAdminCustomerStatusMock(...args),
 }))
 
 beforeEach(() => {
@@ -24,6 +26,7 @@ beforeEach(() => {
     status: 1, vip_level: 3, balance: 50000, created_at: '2026-01-01 10:00:00',
     addresses: [{ id: 1, contact_name: '张三', phone: '13800138000', address: '河南省郑州市' }],
   }))
+  toggleAdminCustomerStatusMock = vi.fn(() => Promise.resolve({ status: 0 }))
 })
 
 describe('CustomerManagementView', () => {
@@ -86,5 +89,25 @@ describe('CustomerManagementView', () => {
     ;(wrapper.vm as any).loadCustomers()
     await flushPromises()
     expect(getAdminCustomersMock).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2, per_page: 10 }))
+  })
+
+  it('toggles customer status from enabled to disabled', async () => {
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).handleToggleStatus(mockCustomers[0])
+    await flushPromises()
+    expect(toggleAdminCustomerStatusMock).toHaveBeenCalledWith(1)
+    expect(getAdminCustomersMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('toggles customer status from disabled to enabled', async () => {
+    const disabledCustomer = { ...mockCustomers[0], status: 0 }
+    getAdminCustomersMock = vi.fn(() => Promise.resolve({ data: [disabledCustomer, mockCustomers[1]], total: 2, current_page: 1, last_page: 1 }))
+    const wrapper = mountComponent()
+    await flushPromises()
+    ;(wrapper.vm as any).handleToggleStatus(disabledCustomer)
+    await flushPromises()
+    expect(toggleAdminCustomerStatusMock).toHaveBeenCalledWith(1)
+    expect(getAdminCustomersMock).toHaveBeenCalledTimes(2)
   })
 })
