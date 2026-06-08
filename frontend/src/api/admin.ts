@@ -564,3 +564,33 @@ export function resetAdminAccountPassword(id: number, data: { password: string; 
 export function getAdminRoles() {
   return getAdmin<AdminRole[]>('/roles')
 }
+export function createAdminRole(data: { name: string; code: string; description?: string }) {
+  return postAdmin<AdminRole>('/roles', data)
+}
+export function updateAdminRole(id: number, data: { name?: string; code?: string; description?: string }) {
+  return putAdmin<AdminRole>(`/roles/${id}`, data)
+}
+export function deleteAdminRole(id: number) {
+  return delAdmin(`/roles/${id}`)
+}
+export function toggleAdminRoleStatus(id: number) {
+  return putAdmin<{ status: number }>(`/roles/${id}/toggle-status`)
+}
+export interface AdminPermission {
+  id: number
+  name: string
+  code: string
+  group: string
+  type: string
+}
+export function getAdminPermissions(group?: string) {
+  const params: Record<string, unknown> = {}
+  if (group) params.group = group
+  return getAdmin<AdminPermission[]>('/permissions', params)
+}
+export function getRolePermissions(id: number) {
+  return getAdmin<AdminPermission[]>(`/roles/${id}/permissions`)
+}
+export function assignRolePermissions(id: number, data: { permission_ids: number[] }) {
+  return putAdmin(`/roles/${id}/permissions`, data)
+}
