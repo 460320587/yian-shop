@@ -77,7 +77,7 @@ beforeEach(() => {
   removeFavoriteMock = vi.fn(() => Promise.resolve({}))
   getProductReviewsMock = vi.fn(() => Promise.resolve({
     data: [
-      { id: 1, customer_id: 1, product_id: 1, rating: 5, content: '质量很好', images: null, reply: null, reply_at: null, created_at: '2026-01-01', customer: { id: 1, nickname: '张三' } },
+      { id: 1, customer_id: 1, product_id: 1, rating: 5, content: '质量很好', images: ['/img/review1.jpg', '/img/review2.jpg'], reply: null, reply_at: null, created_at: '2026-01-01', customer: { id: 1, nickname: '张三' } },
       { id: 2, customer_id: 2, product_id: 1, rating: 4, content: '不错', images: null, reply: '感谢您的评价', reply_at: '2026-01-02', created_at: '2026-01-02', customer: { id: 2, nickname: null } },
     ],
     total: 2, current_page: 1, last_page: 1,
@@ -176,6 +176,22 @@ describe('ProductDetailView', () => {
     const wrapper = await mountComponent()
     await flushPromises()
     expect((wrapper.vm as any).reviews[1].reply).toBe('感谢您的评价')
+  })
+
+  it('shows review images when available', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    const imgs = wrapper.findAll('.review-images img')
+    expect(imgs.length).toBe(2)
+    expect(imgs[0].attributes('src')).toBe('/img/review1.jpg')
+  })
+
+  it('does not show image section when images is null', async () => {
+    const wrapper = await mountComponent()
+    await flushPromises()
+    const reviewItems = wrapper.findAll('.review-item')
+    const secondReviewImages = reviewItems[1].find('.review-images')
+    expect(secondReviewImages.exists()).toBe(false)
   })
 
   // === 新增测试：参数模板 + 实时计价 ===

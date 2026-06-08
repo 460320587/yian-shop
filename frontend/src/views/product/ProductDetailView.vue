@@ -368,6 +368,9 @@ defineExpose({
             <span class="review-date">{{ review.created_at }}</span>
           </div>
           <div class="review-content">{{ review.content }}</div>
+          <div v-if="review.images?.length" class="review-images">
+            <img v-for="(img, idx) in review.images" :key="idx" :src="img" class="review-img" />
+          </div>
           <div v-if="review.reply" class="review-reply">
             <strong>商家回复：</strong>{{ review.reply }}
           </div>
@@ -501,6 +504,20 @@ defineExpose({
   color: #606266;
   line-height: 1.6;
   margin-bottom: 8px;
+}
+.review-images {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.review-images img {
+  width: 80px;
+  height: 80px;
+  border-radius: 4px;
+  object-fit: cover;
+  cursor: pointer;
+  border: 1px solid #ebeef5;
 }
 .review-reply {
   background: #f5f7fa;
