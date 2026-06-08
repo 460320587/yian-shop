@@ -7,6 +7,7 @@ namespace Tests\Feature\Product;
 use App\Domains\Product\Models\Product;
 use App\Domains\Product\Models\ProductCategory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class ProductDetailTest extends TestCase
@@ -134,5 +135,29 @@ class ProductDetailTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('data.pricing_params', null);
+    }
+
+    public function test_product_detail_is_cached(): void
+    {
+        $category = ProductCategory::factory()->create();
+        $product = Product::factory()->create([
+            'category_id' => $category->id,
+            'status' => 1,
+        ]);
+
+        $response1 = $this->getJson('/api/v1/products/' . $product->id);
+        $response1->assertStatus(200);
+        $this->assertTrue(Cache::has("product_{$product->id}"));
+
+        $response2 = $this->getJson('/api/v1/products/' . $product->id);
+        $response2->assertStatus(200)
+            ->assertJson($response1->json());
+    }
+
+    public function test_nonexistent_product_is_not_cached(): void
+    {
+        $response = $this->getJson('/api/v1/products/99999');
+        $response->assertStatus(404);
+        $this->assertFalse(Cache::has('product_99999'));
     }
 }

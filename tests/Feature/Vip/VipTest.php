@@ -8,6 +8,7 @@ use App\Domains\User\Models\Customer;
 use App\Domains\Vip\Models\VipLevel;
 use Database\Seeders\VipLevelSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class VipTest extends TestCase
@@ -86,5 +87,18 @@ class VipTest extends TestCase
             ->assertJsonPath('data.vip_level', 6)
             ->assertJsonPath('data.print_discount', 0.93)
             ->assertJsonPath('data.deadline_extension', 30);
+    }
+
+    public function test_vip_levels_are_cached(): void
+    {
+        $this->authCustomer();
+
+        $response1 = $this->getJson('/api/v1/vip/levels');
+        $response1->assertStatus(200);
+        $this->assertTrue(Cache::has('vip_levels'));
+
+        $response2 = $this->getJson('/api/v1/vip/levels');
+        $response2->assertStatus(200)
+            ->assertJson($response1->json());
     }
 }

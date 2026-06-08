@@ -8,6 +8,7 @@ use App\Domains\Portal\Models\Announcement;
 use App\Domains\Portal\Models\Banner;
 use App\Domains\Product\Models\Product;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class PortalTest extends TestCase
@@ -182,5 +183,65 @@ class PortalTest extends TestCase
             ->assertJsonCount(0, 'data.announcements')
             ->assertJsonCount(0, 'data.hot_products')
             ->assertJsonCount(0, 'data.new_arrivals');
+    }
+
+    public function test_home_data_is_cached(): void
+    {
+        Banner::factory()->count(2)->create(['position' => 'home', 'status' => 1]);
+        Announcement::factory()->count(2)->create(['status' => 1]);
+        Product::factory()->count(3)->create(['status' => 1, 'is_hot' => 1, 'is_new' => 0]);
+        Product::factory()->count(2)->create(['status' => 1, 'is_new' => 1, 'is_hot' => 0]);
+
+        $response1 = $this->getJson('/api/v1/portal/home');
+        $response1->assertStatus(200);
+        $this->assertTrue(Cache::has('portal_home'));
+
+        $response2 = $this->getJson('/api/v1/portal/home');
+        $response2->assertStatus(200)
+            ->assertJson($response1->json());
+    }
+
+    public function test_banner_update_clears_home_cache(): void
+    {
+        $banner = Banner::factory()->create(['position' => 'home', 'status' => 1]);
+        $this->getJson('/api/v1/portal/home')->assertStatus(200);
+        $this->assertTrue(Cache::has('portal_home'));
+
+        $banner->update(['title' => 'Updated Title']);
+
+        $this->assertFalse(Cache::has('portal_home'));
+    }
+
+    public function test_banner_delete_clears_home_cache(): void
+    {
+        $banner = Banner::factory()->create(['position' => 'home', 'status' => 1]);
+        $this->getJson('/api/v1/portal/home')->assertStatus(200);
+        $this->assertTrue(Cache::has('portal_home'));
+
+        $banner->delete();
+
+        $this->assertFalse(Cache::has('portal_home'));
+    }
+
+    public function test_announcement_update_clears_home_cache(): void
+    {
+        $announcement = Announcement::factory()->create(['status' => 1]);
+        $this->getJson('/api/v1/portal/home')->assertStatus(200);
+        $this->assertTrue(Cache::has('portal_home'));
+
+        $announcement->update(['title' => 'Updated Title']);
+
+        $this->assertFalse(Cache::has('portal_home'));
+    }
+
+    public function test_announcement_delete_clears_home_cache(): void
+    {
+        $announcement = Announcement::factory()->create(['status' => 1]);
+        $this->getJson('/api/v1/portal/home')->assertStatus(200);
+        $this->assertTrue(Cache::has('portal_home'));
+
+        $announcement->delete();
+
+        $this->assertFalse(Cache::has('portal_home'));
     }
 }

@@ -8,11 +8,14 @@ use App\Domains\Portal\Models\Announcement;
 use App\Domains\Portal\Models\Banner;
 use App\Domains\Product\Models\Product;
 use App\Http\Controllers\BaseController;
+use App\Services\Cache\CacheService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PortalController extends BaseController
 {
+    public function __construct(private readonly CacheService $cacheService) {}
+
     public function banners(Request $request): JsonResponse
     {
         $position = $request->input('position', 'home');
@@ -87,50 +90,54 @@ class PortalController extends BaseController
 
     public function home(): JsonResponse
     {
-        $banners = Banner::ofPosition('home')
-            ->visible()
-            ->orderBy('sort')
-            ->limit(5)
-            ->get()
-            ->map(fn ($b) => [
-                'id' => $b->id,
-                'title' => $b->title,
-                'image' => $b->image,
-                'image_mobile' => $b->image_mobile,
-                'link_type' => $b->link_type,
-                'link_target' => $b->link_target,
-                'sort' => $b->sort,
-            ]);
+        $data = $this->cacheService->remember('portal_home', function () {
+            $banners = Banner::ofPosition('home')
+                ->visible()
+                ->orderBy('sort')
+                ->limit(5)
+                ->get()
+                ->map(fn ($b) => [
+                    'id' => $b->id,
+                    'title' => $b->title,
+                    'image' => $b->image,
+                    'image_mobile' => $b->image_mobile,
+                    'link_type' => $b->link_type,
+                    'link_target' => $b->link_target,
+                    'sort' => $b->sort,
+                ]);
 
-        $announcements = Announcement::visible()
-            ->orderByDesc('created_at')
-            ->limit(3)
-            ->get()
-            ->map(fn ($a) => [
-                'id' => $a->id,
-                'title' => $a->title,
-                'type' => $a->type,
-                'is_popup' => $a->is_popup,
-            ]);
+            $announcements = Announcement::visible()
+                ->orderByDesc('created_at')
+                ->limit(3)
+                ->get()
+                ->map(fn ($a) => [
+                    'id' => $a->id,
+                    'title' => $a->title,
+                    'type' => $a->type,
+                    'is_popup' => $a->is_popup,
+                ]);
 
-        $hotProducts = Product::active()
-            ->where('is_hot', 1)
-            ->orderByDesc('sales_count')
-            ->limit(6)
-            ->get();
+            $hotProducts = Product::active()
+                ->where('is_hot', 1)
+                ->orderByDesc('sales_count')
+                ->limit(6)
+                ->get();
 
-        $newArrivals = Product::active()
-            ->where('is_new', 1)
-            ->orderByDesc('created_at')
-            ->limit(6)
-            ->get();
+            $newArrivals = Product::active()
+                ->where('is_new', 1)
+                ->orderByDesc('created_at')
+                ->limit(6)
+                ->get();
 
-        return $this->success([
-            'banners' => $banners,
-            'announcements' => $announcements,
-            'hot_products' => $this->mapProducts($hotProducts),
-            'new_arrivals' => $this->mapProducts($newArrivals),
-        ]);
+            return [
+                'banners' => $banners,
+                'announcements' => $announcements,
+                'hot_products' => $this->mapProducts($hotProducts),
+                'new_arrivals' => $this->mapProducts($newArrivals),
+            ];
+        }, 300);
+
+        return $this->success($data);
     }
 
     /**

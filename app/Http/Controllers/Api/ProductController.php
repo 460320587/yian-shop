@@ -9,12 +9,15 @@ use App\Domains\Product\Services\PricingCalculator;
 use App\Exceptions\BusinessException;
 use App\Http\Controllers\BaseController;
 use App\Http\Requests\Product\CalculatePriceRequest;
+use App\Services\Cache\CacheService;
 use App\Support\ErrorCode;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController extends BaseController
 {
+    public function __construct(private readonly CacheService $cacheService) {}
+
     public function index(Request $request): JsonResponse
     {
         $query = Product::where('status', 1)
@@ -57,9 +60,11 @@ class ProductController extends BaseController
 
     public function show(int $id): JsonResponse
     {
-        $product = Product::where('status', 1)
-            ->with('category:id,name')
-            ->find($id);
+        $product = $this->cacheService->remember("product_{$id}", function () use ($id) {
+            return Product::where('status', 1)
+                ->with('category:id,name')
+                ->find($id);
+        }, 600);
 
         if (! $product) {
             return $this->error(ErrorCode::PRODUCT_NOT_FOUND);

@@ -6,10 +6,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Domains\Vip\Models\VipLevel;
 use App\Http\Controllers\BaseController;
+use App\Services\Cache\CacheService;
 use Illuminate\Http\JsonResponse;
 
 class VipController extends BaseController
 {
+    public function __construct(private readonly CacheService $cacheService) {}
+
     public function info(): JsonResponse
     {
         $customer = auth('sanctum')->user();
@@ -45,16 +48,18 @@ class VipController extends BaseController
 
     public function levels(): JsonResponse
     {
-        $levels = VipLevel::orderBy('level', 'asc')->get()->map(function (VipLevel $level) {
-            return [
-                'level' => $level->level,
-                'name' => $level->name,
-                'min_points' => $level->min_points,
-                'discount' => $level->discount,
-                'icon' => $level->icon,
-                'privileges' => $level->privileges,
-            ];
-        });
+        $levels = $this->cacheService->remember('vip_levels', function () {
+            return VipLevel::orderBy('level', 'asc')->get()->map(function (VipLevel $level) {
+                return [
+                    'level' => $level->level,
+                    'name' => $level->name,
+                    'min_points' => $level->min_points,
+                    'discount' => $level->discount,
+                    'icon' => $level->icon,
+                    'privileges' => $level->privileges,
+                ];
+            })->all();
+        }, 3600);
 
         return $this->success($levels);
     }

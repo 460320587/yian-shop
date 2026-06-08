@@ -6,11 +6,23 @@ namespace App\Domains\Product\Models;
 
 use App\Domains\Common\Models\BaseModel;
 use App\Domains\Common\ValueObjects\Money;
+use App\Events\ProductStatusChanged;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends BaseModel
 {
+    protected static function booted(): void
+    {
+        static::updating(function (Product $product): void {
+            $originalStatus = (int) $product->getOriginal('status');
+            $newStatus = (int) $product->status;
+
+            if ($originalStatus !== $newStatus) {
+                ProductStatusChanged::dispatch($product, $originalStatus, $newStatus);
+            }
+        });
+    }
     protected $fillable = [
         'category_id',
         'name',

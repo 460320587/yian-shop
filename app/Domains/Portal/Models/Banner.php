@@ -5,11 +5,23 @@ declare(strict_types=1);
 namespace App\Domains\Portal\Models;
 
 use App\Domains\Common\Models\BaseModel;
+use App\Services\Cache\CacheService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 class Banner extends BaseModel
 {
+    protected static function booted(): void
+    {
+        static::saved(function () {
+            app(CacheService::class)->forget('portal_home');
+        });
+        static::deleted(function () {
+            app(CacheService::class)->forget('portal_home');
+        });
+    }
+
+
     protected $table = 'banners';
 
     protected $fillable = [
