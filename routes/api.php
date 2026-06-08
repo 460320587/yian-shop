@@ -42,6 +42,7 @@ Route::prefix('auth')->group(function () {
 Route::middleware('auth:sanctum')->prefix('user')->group(function () {
     Route::get('/profile', [\App\Http\Controllers\Api\AuthController::class, 'profile']);
     Route::put('/profile', [\App\Http\Controllers\Api\AuthController::class, 'updateProfile']);
+    Route::get('/dashboard', [\App\Http\Controllers\Api\UserController::class, 'dashboard']);
 });
 
 // 支付密码

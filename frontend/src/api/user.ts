@@ -60,3 +60,30 @@ export function loginBySms(data: { phone: string; sms_code: string }) {
 export function checkPhone(phone: string) {
   return get<{ available: boolean }>('/auth/check-phone', { phone })
 }
+
+export interface UserDashboardOrder {
+  id: number
+  order_no: string
+  status: number
+  customer_status: string
+  total_amount: number
+  created_at: string
+}
+
+export interface UserDashboard {
+  order_status_counts: {
+    pending_payment: number
+    in_progress: number
+    pending_delivery: number
+    pending_receive: number
+    pending_review: number
+    completed: number
+  }
+  unread_notification_count: number
+  available_coupon_count: number
+  recent_orders: UserDashboardOrder[]
+}
+
+export function getUserDashboard() {
+  return get<UserDashboard>('/user/dashboard')
+}

@@ -1,13 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { getUserInfo } from '@/api/user'
+import { getUserInfo, getUserDashboard } from '@/api/user'
+import type { UserDashboard } from '@/api/user'
 import { ElMessage } from 'element-plus'
+import {
+  Wallet, Coin, Trophy, Bell, Ticket, Document, Box, Van, ChatDotSquare,
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const user = computed(() => userStore.userInfo)
+const dashboard = ref<UserDashboard | null>(null)
+const loadingDashboard = ref(false)
 
 const vipText = computed(() => {
   const map: Record<number, string> = {
@@ -18,6 +24,18 @@ const vipText = computed(() => {
     4: '钻石会员',
   }
   return map[user.value?.vip_level ?? 0] || '普通会员'
+})
+
+const quickEntries = computed(() => {
+  if (!dashboard.value) return []
+  const c = dashboard.value.order_status_counts
+  return [
+    { key: 'pending_payment', label: '待付款', count: c.pending_payment, icon: Document, color: '#f56c6c', status: 11 },
+    { key: 'in_progress', label: '进行中', count: c.in_progress, icon: Box, color: '#e6a23c', status: undefined },
+    { key: 'pending_delivery', label: '待发货', count: c.pending_delivery, icon: Box, color: '#409eff', status: 17 },
+    { key: 'pending_receive', label: '待收货', count: c.pending_receive, icon: Van, color: '#67c23a', status: 54 },
+    { key: 'pending_review', label: '待评价', count: c.pending_review, icon: ChatDotSquare, color: '#909399', status: 60 },
+  ]
 })
 
 const menuGroups = [
@@ -62,24 +80,54 @@ async function refreshUser() {
   }
 }
 
+async function loadDashboard() {
+  loadingDashboard.value = true
+  try {
+    dashboard.value = await getUserDashboard()
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loadingDashboard.value = false
+  }
+}
+
 function goTo(path: string) {
   router.push(path)
+}
+
+function goToOrders(status?: number) {
+  if (status !== undefined) {
+    router.push(`/orders?status=${status}`)
+  } else {
+    router.push('/orders')
+  }
 }
 
 function formatPrice(price: number): string {
   return (price / 100).toFixed(2)
 }
 
+function formatTime(time: string): string {
+  if (!time) return '-'
+  const d = new Date(time.replace(/-/g, '/'))
+  return `${d.getMonth() + 1}月${d.getDate()}日`
+}
+
 onMounted(() => {
   refreshUser()
+  loadDashboard()
 })
 
 defineExpose({
   user,
+  dashboard,
   vipText,
+  quickEntries,
   menuGroups,
   refreshUser,
+  loadDashboard,
   goTo,
+  goToOrders,
 })
 </script>
 
@@ -112,6 +160,54 @@ defineExpose({
       <div class="asset-item" @click="goTo('/vip')">
         <div class="asset-value">Lv.{{ user?.vip_level || 0 }}</div>
         <div class="asset-label">VIP等级</div>
+      </div>
+      <div class="asset-item" @click="goTo('/notifications')">
+        <div class="asset-value">{{ dashboard?.unread_notification_count || 0 }}</div>
+        <div class="asset-label">消息</div>
+      </div>
+      <div class="asset-item" @click="goTo('/my-coupons')">
+        <div class="asset-value">{{ dashboard?.available_coupon_count || 0 }}</div>
+        <div class="asset-label">优惠券</div>
+      </div>
+    </div>
+
+    <!-- 订单快捷入口 -->
+    <div v-loading="loadingDashboard" class="order-quick-bar">
+      <div
+        v-for="entry in quickEntries"
+        :key="entry.key"
+        :data-testid="'quick-' + entry.key"
+        class="order-quick-item"
+        @click="goToOrders(entry.status)">
+        <div class="order-quick-icon" :style="{ background: entry.color + '15', color: entry.color }">
+          <el-icon :size="22"><component :is="entry.icon" /></el-icon>
+        </div>
+        <div class="order-quick-count">{{ entry.count }}</div>
+        <div class="order-quick-label">{{ entry.label }}</div>
+      </div>
+    </div>
+
+    <!-- 最近订单 -->
+    <div v-loading="loadingDashboard" class="recent-orders-card">
+      <div class="recent-orders-header">
+        <span class="recent-orders-title">最近订单</span>
+        <el-button link type="primary" size="small" @click="goTo('/orders')">查看全部</el-button>
+      </div>
+      <div v-if="!dashboard?.recent_orders?.length" class="recent-orders-empty">暂无订单</div>
+      <div
+        v-for="order in dashboard?.recent_orders || []"
+        :key="order.id"
+        class="recent-order-item"
+        @click="goTo('/orders/' + order.id)"
+      >
+        <div class="recent-order-info">
+          <div class="recent-order-no">{{ order.order_no }}</div>
+          <div class="recent-order-status">{{ order.customer_status }}</div>
+        </div>
+        <div class="recent-order-meta">
+          <div class="recent-order-time">{{ formatTime(order.created_at) }}</div>
+          <div class="recent-order-amount">¥{{ (order.total_amount / 100).toFixed(2) }}</div>
+        </div>
       </div>
     </div>
 
@@ -198,6 +294,104 @@ defineExpose({
   color: #909399;
 }
 
+.order-quick-bar {
+  display: flex;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.order-quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  min-width: 56px;
+}
+.order-quick-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.order-quick-count {
+  font-size: 15px;
+  font-weight: 700;
+  color: #303133;
+}
+.order-quick-label {
+  font-size: 12px;
+  color: #606266;
+}
+
+.recent-orders-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+.recent-orders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.recent-orders-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+.recent-orders-empty {
+  padding: 24px;
+  text-align: center;
+  color: #909399;
+  font-size: 13px;
+}
+.recent-order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #f2f6fc;
+  cursor: pointer;
+}
+.recent-order-item:last-child {
+  border-bottom: none;
+}
+.recent-order-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.recent-order-no {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+.recent-order-status {
+  font-size: 12px;
+  color: #909399;
+}
+.recent-order-meta {
+  text-align: right;
+}
+.recent-order-time {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 2px;
+}
+.recent-order-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f56c6c;
+}
+
 .menu-group {
   background: #fff;
   border-radius: 12px;
@@ -241,6 +435,13 @@ defineExpose({
 @media (max-width: 600px) {
   .menu-grid {
     grid-template-columns: repeat(4, 1fr);
+  }
+  .asset-bar {
+    flex-wrap: wrap;
+  }
+  .asset-item {
+    flex: 1 1 33%;
+    margin-bottom: 8px;
   }
 }
 </style>
